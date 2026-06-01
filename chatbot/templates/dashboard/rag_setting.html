@@ -1,0 +1,736 @@
+﻿<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG 설정 · RAG챗봇 V1.0</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        fontFamily: { nanum: ['"Nanum Gothic"', 'sans-serif'] },
+        colors: { primary:'#6C63FF', accent:'#4F46E5' },
+      }},
+    };
+  </script>
+
+  <style>
+    * { font-family: 'Nanum Gothic', sans-serif; box-sizing: border-box; }
+
+    /* ── Light ── */
+    html.light body { background: linear-gradient(135deg,#1e3a8a,#1d4ed8 35%,#2563eb 60%,#3b82f6 85%,#60a5fa); min-height:100vh; }
+    html.light #appHeader      { background:#fff; border-bottom:1px solid #E5E7EB; }
+    html.light .header-logo-txt{ color:#1E1B4B; }
+    html.light .breadcrumb-txt { color:#9CA3AF; }
+    html.light .breadcrumb-last{ color:#4F46E5; font-weight:700; }
+    html.light .header-cfg     { color:#6B7280; font-size:13px; }
+    html.light .header-icon-btn{ color:#6C63FF; }
+    html.light .header-icon-btn:hover{ background:#EEF0FF; }
+    html.light .export-btn     { background:#1E1B4B; color:#fff; }
+    html.light .export-btn:hover{ background:#4F46E5; }
+    html.light #sidebar        { background:#F8F8FC; border-right:1px solid #E5E7EB; }
+    html.light .nav-item:hover { background:#EEEEFF; }
+    html.light .nav-item.active{ background:#EEF0FF; }
+    html.light .nav-txt        { color:#6B7280; }
+    html.light .nav-item.active .nav-txt{ color:#6C63FF; font-weight:700; }
+    html.light .section-label  { color:#9CA3AF; }
+    html.light .sidebar-divider{ border-color:#E5E7EB; }
+    html.light .quick-btn      { background:#EEF0FF; color:#4F46E5; border:1px solid #C7D2FE; }
+    html.light .quick-btn:hover{ background:#DDD8FF; }
+    html.light .status-dot-online{ background:#22C55E; }
+    html.light .sys-status-txt { color:#6B7280; }
+    html.light #pageMain       { background:#F5F6FF; }
+    html.light .page-title     { color:#1E1B4B; }
+    html.light .page-sub       { color:#9CA3AF; }
+    html.light .stat-card      { background:#fff; border:1px solid #E5E7EB; box-shadow:0 2px 8px rgba(108,99,255,.06); }
+    html.light .stat-label     { color:#9CA3AF; }
+    html.light .stat-value     { color:#1E1B4B; }
+    html.light .section-card   { background:#fff; border:1px solid #E5E7EB; box-shadow:0 2px 8px rgba(108,99,255,.06); }
+    html.light .section-head-txt{ color:#1E1B4B; }
+    html.light .section-sub-txt { color:#9CA3AF; }
+    html.light .tbl-head       { background:#F3F4F6; }
+    html.light .tbl-th         { color:#6B7280; }
+    html.light .tbl-row        { border-bottom:1px solid #F3F4F6; }
+    html.light .tbl-row:hover  { background:#F9F9FF; }
+    html.light .tbl-td         { color:#374151; }
+    html.light .tbl-td-sub     { color:#9CA3AF; }
+    html.light .badge-green    { background:#DCFCE7; color:#15803D; }
+    html.light .badge-blue     { background:#DBEAFE; color:#1D4ED8; }
+    html.light .badge-yellow   { background:#FEF9C3; color:#A16207; }
+    html.light .badge-red      { background:#FEE2E2; color:#DC2626; }
+    html.light .badge-gray     { background:#F3F4F6; color:#6B7280; }
+    html.light .badge-purple   { background:#EEF0FF; color:#6C63FF; }
+    html.light .search-box     { background:#F3F4F6; border:1px solid #E5E7EB; color:#374151; }
+    html.light .search-box:focus{ border-color:#6C63FF; background:#fff; }
+    html.light .search-box::placeholder{ color:#9CA3AF; }
+
+    /* ── Dark ── */
+    html.dark body { background:linear-gradient(135deg,#0c1a3a,#0f2460 35%,#1a3a7a 60%,#1e4d96 85%,#1d6bbb); min-height:100vh; }
+    html.dark #appHeader       { background:#1a1f35; border-bottom:1px solid #2d3561; }
+    html.dark .header-logo-txt { color:#e2e8f0; }
+    html.dark .breadcrumb-txt  { color:#64748b; }
+    html.dark .breadcrumb-last { color:#818cf8; font-weight:700; }
+    html.dark .header-cfg      { color:#64748b; font-size:13px; }
+    html.dark .header-icon-btn { color:#818cf8; }
+    html.dark .header-icon-btn:hover{ background:#2d3561; }
+    html.dark .export-btn      { background:#2d3561; color:#e2e8f0; }
+    html.dark .export-btn:hover{ background:#4F46E5; color:#fff; }
+    html.dark #sidebar         { background:#151929; border-right:1px solid #2d3561; }
+    html.dark .nav-item:hover  { background:#1e2a4a; }
+    html.dark .nav-item.active { background:#1e2a4a; }
+    html.dark .nav-txt         { color:#94a3b8; }
+    html.dark .nav-item.active .nav-txt{ color:#818cf8; font-weight:700; }
+    html.dark .section-label   { color:#475569; }
+    html.dark .sidebar-divider { border-color:#2d3561; }
+    html.dark .quick-btn       { background:#1e2a4a; color:#818cf8; border:1px solid #2d3561; }
+    html.dark .quick-btn:hover { background:#2d3561; }
+    html.dark .status-dot-online{ background:#22C55E; }
+    html.dark .sys-status-txt  { color:#64748b; }
+    html.dark #pageMain        { background:#111827; }
+    html.dark .page-title      { color:#e2e8f0; }
+    html.dark .page-sub        { color:#475569; }
+    html.dark .stat-card       { background:#1a1f35; border:1px solid #2d3561; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    html.dark .stat-label      { color:#64748b; }
+    html.dark .stat-value      { color:#e2e8f0; }
+    html.dark .section-card    { background:#1a1f35; border:1px solid #2d3561; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    html.dark .section-head-txt{ color:#e2e8f0; }
+    html.dark .section-sub-txt { color:#475569; }
+    html.dark .tbl-head        { background:#151929; }
+    html.dark .tbl-th          { color:#64748b; }
+    html.dark .tbl-row         { border-bottom:1px solid #1e2a4a; }
+    html.dark .tbl-row:hover   { background:#1e2a4a; }
+    html.dark .tbl-td          { color:#cbd5e1; }
+    html.dark .tbl-td-sub      { color:#475569; }
+    html.dark .badge-green     { background:#14532D; color:#4ADE80; }
+    html.dark .badge-blue      { background:#1e3a5f; color:#60A5FA; }
+    html.dark .badge-yellow    { background:#713F12; color:#FDE047; }
+    html.dark .badge-red       { background:#7F1D1D; color:#FCA5A5; }
+    html.dark .badge-gray      { background:#1e2a4a; color:#94a3b8; }
+    html.dark .badge-purple    { background:#1e2a4a; color:#818cf8; }
+    html.dark .search-box      { background:#111827; border:1px solid #2d3561; color:#e2e8f0; }
+    html.dark .search-box:focus{ border-color:#818cf8; }
+    html.dark .search-box::placeholder{ color:#475569; }
+
+    /* ── Shared ── */
+    #appShell { box-shadow:0 25px 60px rgba(0,0,0,.35); border-radius:16px; overflow:hidden; }
+    ::-webkit-scrollbar{ width:5px; height:5px; }
+    ::-webkit-scrollbar-track{ background:transparent; }
+    ::-webkit-scrollbar-thumb{ background:#6C63FF55; border-radius:10px; }
+    #sidebar{ transition:transform .3s ease; }
+    @media(max-width:768px){
+      #sidebar{ position:fixed!important; left:0; top:0; bottom:0; z-index:50; transform:translateX(-100%); width:260px!important; }
+      #sidebar.open{ transform:translateX(0)!important; }
+    }
+    #sidebarOverlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+    #sidebarOverlay.show{ display:block; }
+
+    .nav-item{ transition:background .15s; border-radius:8px; cursor:pointer; display:block; }
+    .nav-item.active .nav-txt { font-weight:700; }
+    a.nav-item { text-decoration:none; }
+
+    .stat-card{ border-radius:14px; padding:20px; transition:all .2s; }
+    .stat-card:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(108,99,255,.15)!important; }
+    .section-card{ border-radius:14px; }
+    .badge{ font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; }
+
+    .btn-primary{ background:linear-gradient(135deg,#6C63FF,#4F46E5); transition:opacity .2s,transform .1s; }
+    .btn-primary:hover{ opacity:.9; transform:translateY(-1px); }
+    .btn-danger{ background:linear-gradient(135deg,#EF4444,#DC2626); transition:opacity .2s,transform .1s; }
+    .btn-danger:hover{ opacity:.9; transform:translateY(-1px); }
+
+    .icon-bg-purple{ background:linear-gradient(135deg,#6C63FF,#4F46E5); }
+    .icon-bg-green { background:linear-gradient(135deg,#22C55E,#16A34A); }
+    .icon-bg-blue  { background:linear-gradient(135deg,#3B82F6,#1D4ED8); }
+    .icon-bg-red   { background:linear-gradient(135deg,#EF4444,#DC2626); }
+    .icon-bg-orange{ background:linear-gradient(135deg,#F97316,#EA580C); }
+
+    .status-dot{ width:8px; height:8px; border-radius:50%; }
+    .status-dot-online{ animation:pulse-green 2s infinite; }
+    @keyframes pulse-green{
+      0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,.4); }
+      50%{ box-shadow:0 0 0 4px rgba(34,197,94,0); }
+    }
+
+    @keyframes fadeUp{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in{ animation:fadeUp .35s ease forwards; }
+
+    #themeBtn{ transition:transform .4s; }
+    #themeBtn:hover{ transform:rotate(20deg); }
+    .sun-icon,.moon-icon{ transition:opacity .3s,transform .3s; position:absolute; }
+    html.dark  .sun-icon { opacity:1; transform:rotate(0deg); }
+    html.dark  .moon-icon{ opacity:0; transform:rotate(-90deg); }
+    html.light .sun-icon { opacity:0; transform:rotate(90deg); }
+    html.light .moon-icon{ opacity:1; transform:rotate(0deg); }
+
+    .empty-state{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; opacity:.5; }
+
+    .page-btn{ padding:4px 10px; border-radius:8px; font-size:13px; font-weight:700; transition:all .15s; cursor:pointer; }
+    html.light .page-btn       { background:#F3F4F6; color:#374151; border:1px solid #E5E7EB; }
+    html.light .page-btn:hover { background:#EEF0FF; border-color:#C7D2FE; color:#4F46E5; }
+    html.light .page-btn.active{ background:#6C63FF; color:#fff; border-color:#6C63FF; }
+    html.dark  .page-btn       { background:#1e2a4a; color:#94a3b8; border:1px solid #2d3561; }
+    html.dark  .page-btn:hover { background:#2d3561; color:#818cf8; }
+    html.dark  .page-btn.active{ background:#6C63FF; color:#fff; border-color:#6C63FF; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; }
+  </style>
+</head>
+
+<body class="h-screen flex items-stretch justify-stretch overflow-hidden p-0 md:p-4">
+
+  <div id="appShell" class="flex flex-col w-full h-full md:h-[calc(100vh-2rem)] md:rounded-2xl overflow-hidden">
+
+    <!-- ── HEADER ── -->
+    <header id="appHeader" class="flex items-center px-4 h-14 gap-3 z-30 flex-shrink-0 transition-colors duration-300">
+      <button id="menuBtn" class="md:hidden p-1.5 rounded-lg header-icon-btn">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <div class="flex items-center gap-2 mr-2">
+        <div class="w-7 h-7 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+        </div>
+        <a href="{% url 'dashboard' %}" class="font-extrabold text-base hidden sm:block header-logo-txt transition-colors duration-300 no-underline">RAG챗봇 V1.0</a>
+      </div>
+
+      <div class="hidden md:flex items-center gap-1.5 flex-1 text-sm">
+        <span class="breadcrumb-txt transition-colors duration-300">관리 대시보드</span>
+        <span class="breadcrumb-txt">/</span>
+        <span class="breadcrumb-last transition-colors duration-300">RAG 설정</span>
+      </div>
+
+      <div class="ml-auto flex items-center gap-1.5">
+        <span class="hidden sm:block header-cfg transition-colors duration-300">RAG Management</span>
+
+        <a href="{% url 'dashboard' %}" class="export-btn flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-colors duration-300">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="hidden sm:inline">대시보드</span>
+        </a>
+
+        <span class="hidden md:flex items-center gap-1.5 text-xs header-cfg transition-colors duration-300">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          {{ request.user.get_full_name|default:request.user.username }}
+        </span>
+
+        <button id="themeBtn" onclick="toggleTheme()" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300 relative w-8 h-8 flex items-center justify-center" title="테마 전환">
+          <svg class="sun-icon w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+          <svg class="moon-icon w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+
+        <a href="{% url 'logout' %}" onclick="return confirmLogoutHeader(event)" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300" title="로그아웃">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- ── BODY ── -->
+    <div class="flex flex-1 overflow-hidden relative">
+      <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+      {% include "dashboard/inc_left.html" %}
+
+      <!-- ── MAIN ── -->
+      <main id="pageMain" class="flex-1 flex flex-col overflow-hidden transition-colors duration-300">
+        <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+          <!-- 페이지 헤더 -->
+          <div class="fade-in flex items-center justify-between">
+            <div>
+              <h1 class="text-xl font-extrabold page-title transition-colors duration-300">RAG 설정</h1>
+              <p class="text-xs mt-0.5 page-sub transition-colors duration-300">벡터 DB 인덱스 빌드 및 관리</p>
+            </div>
+            <a href="{% url 'rag_add' %}" class="btn-primary text-white font-bold text-sm px-4 py-2 rounded-xl flex items-center gap-2 no-underline">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+              RAG 추가
+            </a>
+          </div>
+
+          <!-- 통계 카드 -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 fade-in">
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-purple rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                </div>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300" id="statTotal">{{ total_count }}</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">전체 RAG</p>
+            </div>
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-green rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300" id="statReady">{{ ready_count }}</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">준비 완료</p>
+            </div>
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-blue rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </div>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300" id="statProcessing">{{ processing_count }}</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">처리 중</p>
+            </div>
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-red rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300" id="statError">{{ error_count }}</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">오류</p>
+            </div>
+          </div>
+
+          <!-- 테이블 카드 -->
+          <div class="section-card overflow-hidden fade-in transition-colors duration-300">
+
+            <!-- 검색 & 필터 -->
+            <div class="flex items-center gap-3 p-4 flex-wrap">
+              <div class="relative flex-1 min-w-48">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style="color:#9CA3AF" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input id="searchInput" type="text" placeholder="RAG명, 파일명 검색..."
+                  class="search-box text-sm pl-9 pr-4 py-2 rounded-xl outline-none w-full transition-all duration-200"
+                  oninput="filterTable()" />
+              </div>
+              <select id="statusFilter" class="search-box text-sm px-3 py-2 rounded-xl outline-none transition-all duration-200" onchange="filterTable()">
+                <option value="">전체 상태</option>
+                <option value="pending">대기 중</option>
+                <option value="processing">처리 중</option>
+                <option value="ready">준비 완료</option>
+                <option value="error">오류</option>
+                <option value="disabled">비활성</option>
+              </select>
+              <button onclick="loadRags()" class="p-2 rounded-xl header-icon-btn transition-colors duration-300" title="새로고침">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              </button>
+              <a href="{% url 'rag_add' %}" class="btn-primary text-white font-bold text-sm px-4 py-2 rounded-xl flex items-center gap-1.5 no-underline">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                RAG 추가
+              </a>
+            </div>
+
+            <!-- 테이블 -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="tbl-head transition-colors duration-300">
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300">RAG명</th>
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300 hidden sm:table-cell w-40">파일명</th>
+                    <th class="tbl-th text-right text-xs font-bold py-3 px-4 transition-colors duration-300 hidden md:table-cell w-24">청크 수</th>
+                    <th class="tbl-th text-center text-xs font-bold py-3 px-4 transition-colors duration-300 w-24">상태</th>
+                    <th class="tbl-th text-right text-xs font-bold py-3 px-4 transition-colors duration-300 hidden lg:table-cell w-24">빌드 시간</th>
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300 hidden lg:table-cell w-20">생성일</th>
+                    <th class="tbl-th text-center text-xs font-bold py-3 px-4 transition-colors duration-300">관리</th>
+                  </tr>
+                </thead>
+                <tbody id="ragTableBody">
+                  <tr>
+                    <td colspan="7" class="text-center py-12">
+                      <div class="empty-state">
+                        <svg class="w-12 h-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+                        <p class="text-sm font-bold">불러오는 중...</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 페이지네이션 & 결과수 -->
+            <div class="flex items-center justify-between px-4 py-3">
+              <p class="text-xs page-sub transition-colors duration-300" id="resultInfo">—</p>
+              <div class="flex items-center gap-1" id="pagination"></div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+  // ════════════════════════════════
+  //  THEME
+  // ════════════════════════════════
+  let isDark = false;
+  function toggleTheme() {
+    isDark = !isDark;
+    document.documentElement.classList.toggle('dark', isDark);
+    document.documentElement.classList.toggle('light', !isDark);
+    Swal.fire({ icon:'info', title: isDark?'🌙 다크 모드':'☀️ 라이트 모드', timer:1200, showConfirmButton:false, toast:true, position:'top-end' });
+  }
+
+  // ════════════════════════════════
+  //  CSRF
+  // ════════════════════════════════
+  function getCookie(name) {
+    let v = null;
+    for (const p of document.cookie.split(';')) {
+      const [k, val] = p.trim().split('=');
+      if (k === name) { v = decodeURIComponent(val); break; }
+    }
+    return v;
+  }
+
+  // ════════════════════════════════
+  //  DATA
+  // ════════════════════════════════
+  let allRags = [];
+  let filteredRags = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 10;
+
+  // Track active pollers: { ragId: intervalId }
+  const pollers = {};
+
+  async function loadRags() {
+    try {
+      const resp = await fetch(window.location.href, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const data = await resp.json();
+      allRags = data.rags;
+      filterTable();
+      // restart pollers for any processing items
+      allRags.forEach(r => {
+        if (r.status === 'processing' && !pollers[r.id]) {
+          startPoller(r.id);
+        }
+      });
+    } catch {
+      Swal.fire({ icon:'error', title:'불러오기 실패', text:'서버와 연결할 수 없습니다.', confirmButtonColor:'#6C63FF' });
+    }
+  }
+
+  function filterTable() {
+    const q      = document.getElementById('searchInput').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+
+    filteredRags = allRags.filter(r => {
+      const matchQ = !q || r.name.toLowerCase().includes(q) ||
+                     (r.source_file_name || '').toLowerCase().includes(q) ||
+                     (r.description || '').toLowerCase().includes(q);
+      const matchStatus = !status || r.status === status;
+      return matchQ && matchStatus;
+    });
+
+    currentPage = 1;
+    renderTable();
+    renderPagination();
+  }
+
+  function statusBadge(r) {
+    const map = {
+      ready:      'badge-green',
+      processing: 'badge-blue',
+      pending:    'badge-gray',
+      error:      'badge-red',
+      disabled:   'badge-yellow',
+    };
+    const cls = map[r.status] || 'badge-gray';
+    const spin = r.status === 'processing'
+      ? '<svg class="w-3 h-3 spin inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>'
+      : '';
+    return `<span class="badge ${cls}" id="status-badge-${r.id}">${spin}${escHtml(r.status_display)}</span>`;
+  }
+
+  function fileTypeBadge(type) {
+    const map = {
+      pdf: 'badge-red', docx: 'badge-blue', txt: 'badge-gray',
+      md: 'badge-purple', csv: 'badge-green', xlsx: 'badge-green',
+      html: 'badge-orange', other: 'badge-gray',
+    };
+    return `<span class="badge ${map[type] || 'badge-gray'}">${(type || 'other').toUpperCase()}</span>`;
+  }
+
+  function buildTimeDisplay(ms) {
+    if (!ms) return '-';
+    if (ms < 1000) return ms + 'ms';
+    return (ms / 1000).toFixed(1) + 's';
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('ragTableBody');
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageRags = filteredRags.slice(start, start + PAGE_SIZE);
+
+    const total = filteredRags.length;
+    const from  = total === 0 ? 0 : start + 1;
+    const to    = Math.min(start + PAGE_SIZE, total);
+    document.getElementById('resultInfo').textContent =
+      `${total}개 중 ${from}–${to}개 표시`;
+
+    if (!pageRags.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state page-sub">
+        <svg class="w-10 h-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-sm font-bold">결과가 없습니다.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = pageRags.map(r => {
+      const canBuild = r.status !== 'processing';
+      const buildBtn = canBuild
+        ? `<button onclick="triggerBuild(${r.id})" id="build-btn-${r.id}"
+             class="header-icon-btn p-1.5 rounded-lg transition-colors duration-300" title="빌드">
+             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+           </button>`
+        : `<button disabled id="build-btn-${r.id}"
+             class="p-1.5 rounded-lg opacity-40 cursor-not-allowed" title="빌드 중">
+             <svg class="w-4 h-4 spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+           </button>`;
+
+      return `<tr class="tbl-row transition-colors duration-300" id="rag-row-${r.id}">
+        <td class="tbl-td py-3 px-4 transition-colors duration-300">
+          <div class="font-bold">${escHtml(r.name)}</div>
+          ${r.description ? `<div class="tbl-td-sub text-xs mt-0.5">${escHtml(r.description.substring(0,60))}${r.description.length > 60 ? '…' : ''}</div>` : ''}
+        </td>
+        <td class="tbl-td py-3 px-4 text-xs hidden sm:table-cell transition-colors duration-300 w-40 max-w-[160px]">
+          <div class="flex items-center gap-1.5">
+            ${fileTypeBadge(r.source_file_type)}
+            <span class="tbl-td-sub truncate max-w-[100px]" title="${escHtml(r.source_file_name || '-')}">${escHtml(r.source_file_name || '-')}</span>
+          </div>
+          <div class="tbl-td-sub text-xs mt-0.5">${escHtml(r.source_file_size_display)}</div>
+        </td>
+        <td class="tbl-td py-3 px-4 text-xs text-right hidden md:table-cell transition-colors duration-300 w-24" id="chunk-count-${r.id}">
+          ${r.chunk_count ? r.chunk_count.toLocaleString() : '-'}
+        </td>
+        <td class="py-3 px-4 text-center w-24" id="status-cell-${r.id}">${statusBadge(r)}</td>
+        <td class="tbl-td-sub py-3 px-4 text-xs text-right hidden lg:table-cell transition-colors duration-300 w-24" id="build-time-${r.id}">
+          ${buildTimeDisplay(r.build_time_ms)}
+        </td>
+        <td class="tbl-td-sub py-3 px-4 text-xs hidden lg:table-cell transition-colors duration-300 w-20">
+          ${escHtml((r.created_at || '').substring(0, 10))}
+        </td>
+        <td class="py-3 px-4">
+          <div class="flex items-center justify-center gap-1">
+            ${buildBtn}
+            <a href="/chatbot/rag/${r.id}/edit/"
+               class="header-icon-btn p-1.5 rounded-lg transition-colors duration-300" title="수정">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </a>
+            <button onclick="confirmDelete(${r.id}, '${escHtml(r.name)}')"
+              class="p-1.5 rounded-lg transition-colors duration-300" style="color:#EF4444" title="삭제">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // start pollers for processing rows
+    pageRags.forEach(r => {
+      if (r.status === 'processing' && !pollers[r.id]) {
+        startPoller(r.id);
+      }
+    });
+  }
+
+  function renderPagination() {
+    const total = Math.ceil(filteredRags.length / PAGE_SIZE);
+    const pg = document.getElementById('pagination');
+    if (total <= 1) { pg.innerHTML = ''; return; }
+
+    let html = '';
+    if (currentPage > 1)
+      html += `<button class="page-btn" onclick="goPage(${currentPage-1})">‹</button>`;
+    for (let i = 1; i <= total; i++) {
+      if (i === 1 || i === total || Math.abs(i - currentPage) <= 1)
+        html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+      else if (Math.abs(i - currentPage) === 2)
+        html += `<span class="page-btn" style="cursor:default">…</span>`;
+    }
+    if (currentPage < total)
+      html += `<button class="page-btn" onclick="goPage(${currentPage+1})">›</button>`;
+    pg.innerHTML = html;
+  }
+
+  function goPage(p) { currentPage = p; renderTable(); renderPagination(); }
+
+  function escHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ════════════════════════════════
+  //  BUILD
+  // ════════════════════════════════
+  async function triggerBuild(id) {
+    const rag = allRags.find(r => r.id === id);
+    if (!rag) return;
+
+    const result = await Swal.fire({
+      title: 'RAG 빌드',
+      html: `<p style="font-family:'Nanum Gothic',sans-serif;font-size:14px"><strong>${escHtml(rag.name)}</strong>의 벡터 DB를 빌드하시겠습니까?<br>기존 DB가 있으면 덮어씁니다.</p>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#6C63FF',
+      cancelButtonColor: '#9CA3AF',
+      confirmButtonText: '빌드 시작',
+      cancelButtonText: '취소',
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      const resp = await fetch(`/chatbot/rag/${id}/build/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      });
+      const data = await resp.json();
+      if (data.success) {
+        // update local data
+        const idx = allRags.findIndex(r => r.id === id);
+        if (idx !== -1) allRags[idx].status = 'processing';
+        filterTable();
+        startPoller(id);
+        Swal.fire({ icon:'info', title:'빌드 시작', text:'백그라운드에서 빌드 중입니다.', timer:1500, showConfirmButton:false, toast:true, position:'top-end' });
+      } else {
+        Swal.fire({ icon:'error', title:'빌드 실패', text: data.error, confirmButtonColor:'#6C63FF' });
+      }
+    } catch {
+      Swal.fire({ icon:'error', title:'서버 오류', confirmButtonColor:'#6C63FF' });
+    }
+  }
+
+  function startPoller(id) {
+    if (pollers[id]) return;
+    pollers[id] = setInterval(() => pollStatus(id), 2000);
+  }
+
+  async function pollStatus(id) {
+    try {
+      const resp = await fetch(`/chatbot/rag/${id}/status/`);
+      const data = await resp.json();
+
+      // update allRags
+      const idx = allRags.findIndex(r => r.id === id);
+      if (idx !== -1) {
+        allRags[idx].status = data.status;
+        allRags[idx].status_display = data.status_display;
+        allRags[idx].chunk_count = data.chunk_count;
+        allRags[idx].build_time_ms = data.build_time_ms;
+        allRags[idx].error_message = data.error_message;
+      }
+
+      // update DOM in-place (avoid full re-render)
+      const statusCell = document.getElementById(`status-cell-${id}`);
+      const chunkCell  = document.getElementById(`chunk-count-${id}`);
+      const timeCell   = document.getElementById(`build-time-${id}`);
+      const buildBtn   = document.getElementById(`build-btn-${id}`);
+
+      if (statusCell) {
+        const r = allRags[idx];
+        if (r) statusCell.innerHTML = statusBadge(r);
+      }
+      if (chunkCell && data.chunk_count) {
+        chunkCell.textContent = data.chunk_count.toLocaleString();
+      }
+      if (timeCell && data.build_time_ms) {
+        timeCell.textContent = buildTimeDisplay(data.build_time_ms);
+      }
+
+      if (data.status !== 'processing') {
+        clearInterval(pollers[id]);
+        delete pollers[id];
+
+        // re-enable build button
+        if (buildBtn) {
+          buildBtn.disabled = false;
+          buildBtn.className = 'header-icon-btn p-1.5 rounded-lg transition-colors duration-300';
+          buildBtn.innerHTML = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+          buildBtn.title = '빌드';
+          buildBtn.onclick = () => triggerBuild(id);
+        }
+
+        if (data.status === 'ready') {
+          Swal.fire({ icon:'success', title:'빌드 완료', text:`청크 ${data.chunk_count}개 (${buildTimeDisplay(data.build_time_ms)})`, timer:2000, showConfirmButton:false, toast:true, position:'top-end' });
+        } else if (data.status === 'error') {
+          Swal.fire({ icon:'error', title:'빌드 오류', text: data.error_message || '빌드 중 오류가 발생했습니다.', confirmButtonColor:'#6C63FF' });
+        }
+      }
+    } catch {
+      // network error - stop poller
+      clearInterval(pollers[id]);
+      delete pollers[id];
+    }
+  }
+
+  // ════════════════════════════════
+  //  DELETE
+  // ════════════════════════════════
+  function confirmDelete(id, name) {
+    Swal.fire({
+      title: `"${name}" 삭제`,
+      html: `<p style="font-family:'Nanum Gothic',sans-serif;font-size:14px">
+        이 RAG 설정과 관련 파일을 삭제하면 <strong>복구할 수 없습니다.</strong><br>계속하시겠습니까?</p>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#EF4444',
+      cancelButtonColor:  '#9CA3AF',
+      confirmButtonText: '삭제',
+      cancelButtonText:  '취소',
+    }).then(async r => {
+      if (!r.isConfirmed) return;
+      try {
+        const resp = await fetch(`/chatbot/rag/${id}/delete/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        });
+        const data = await resp.json();
+        if (data.success) {
+          if (pollers[id]) { clearInterval(pollers[id]); delete pollers[id]; }
+          allRags = allRags.filter(r => r.id !== id);
+          filterTable();
+          Swal.fire({ icon:'success', title:'삭제 완료', timer:1200, showConfirmButton:false, toast:true, position:'top-end' });
+        } else {
+          Swal.fire({ icon:'error', title:'삭제 실패', text: data.error, confirmButtonColor:'#6C63FF' });
+        }
+      } catch {
+        Swal.fire({ icon:'error', title:'서버 오류', confirmButtonColor:'#6C63FF' });
+      }
+    });
+  }
+
+  // ════════════════════════════════
+  //  LOGOUT
+  // ════════════════════════════════
+  function confirmLogoutHeader(e) {
+    e.preventDefault();
+    const href = e.currentTarget.href;
+    Swal.fire({
+      title:'로그아웃', text:'로그아웃을 하시겠습니까?', icon:'question',
+      showCancelButton:true, confirmButtonColor:'#6C63FF', cancelButtonColor:'#9CA3AF',
+      confirmButtonText:'로그아웃', cancelButtonText:'취소',
+    }).then(r => { if (r.isConfirmed) window.location.href = href; });
+    return false;
+  }
+
+  // ════════════════════════════════
+  //  MOBILE SIDEBAR
+  // ════════════════════════════════
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('show');
+  });
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
+
+  // ════════════════════════════════
+  //  INIT
+  // ════════════════════════════════
+  loadRags();
+  </script>
+</body>
+</html>

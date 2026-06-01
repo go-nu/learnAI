@@ -1,0 +1,327 @@
+﻿<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ session.title|default:"채팅 내용" }} · RAG챗봇 V1.0</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        fontFamily: { nanum: ['"Nanum Gothic"', 'sans-serif'] },
+        colors: { primary: '#6C63FF', primaryLight: '#EEF0FF', accent: '#4F46E5' },
+      }},
+    };
+  </script>
+
+  <style>
+    * { font-family: 'Nanum Gothic', sans-serif; box-sizing: border-box; }
+
+    html.light body  { background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 35%,#2563eb 60%,#3b82f6 85%,#60a5fa 100%); min-height:100vh; }
+    html.dark  body  { background:linear-gradient(135deg,#0c1a3a 0%,#0f2460 35%,#1a3a7a 60%,#1e4d96 85%,#1d6bbb 100%); min-height:100vh; }
+
+    html.light #appHeader      { background:#fff; border-bottom:1px solid #E5E7EB; }
+    html.dark  #appHeader      { background:#1a1f35; border-bottom:1px solid #2d3561; }
+    html.light .header-logo-txt{ color:#1E1B4B; }
+    html.dark  .header-logo-txt{ color:#e2e8f0; }
+    html.light .breadcrumb-txt { color:#9CA3AF; }
+    html.dark  .breadcrumb-txt { color:#64748b; }
+    html.light .breadcrumb-last{ color:#4F46E5; font-weight:700; }
+    html.dark  .breadcrumb-last{ color:#818cf8; font-weight:700; }
+    html.light .header-icon-btn{ color:#6C63FF; }
+    html.dark  .header-icon-btn{ color:#818cf8; }
+    html.light .header-icon-btn:hover{ background:#EEF0FF; }
+    html.dark  .header-icon-btn:hover{ background:#2d3561; }
+    html.light .export-btn     { background:#1E1B4B; color:#fff; }
+    html.dark  .export-btn     { background:#2d3561; color:#e2e8f0; }
+    html.light .export-btn:hover{ background:#4F46E5; }
+    html.dark  .export-btn:hover{ background:#4F46E5; color:#fff; }
+    html.light .header-cfg     { color:#6B7280; font-size:13px; }
+    html.dark  .header-cfg     { color:#64748b; font-size:13px; }
+
+    html.light #sidebar        { background:#F8F8FC; border-right:1px solid #E5E7EB; }
+    html.dark  #sidebar        { background:#151929; border-right:1px solid #2d3561; }
+    html.light .nav-item:hover { background:#EEEEFF; }
+    html.dark  .nav-item:hover { background:#1e2a4a; }
+    html.light .nav-item.active{ background:#EEF0FF; }
+    html.dark  .nav-item.active{ background:#1e2a4a; }
+    html.light .nav-txt        { color:#6B7280; }
+    html.dark  .nav-txt        { color:#94a3b8; }
+    html.light .nav-item.active .nav-txt{ color:#6C63FF; font-weight:700; }
+    html.dark  .nav-item.active .nav-txt{ color:#818cf8; font-weight:700; }
+    html.light .section-label  { color:#9CA3AF; }
+    html.dark  .section-label  { color:#475569; }
+    html.light .sidebar-divider{ border-color:#E5E7EB; }
+    html.dark  .sidebar-divider{ border-color:#2d3561; }
+    html.light .sys-status-txt { color:#6B7280; }
+    html.dark  .sys-status-txt { color:#64748b; }
+    html.light .quick-btn      { background:#EEF0FF; color:#4F46E5; border:1px solid #C7D2FE; }
+    html.dark  .quick-btn      { background:#1e2a4a; color:#818cf8; border:1px solid #2d3561; }
+    html.light .quick-btn:hover{ background:#DDD8FF; }
+    html.dark  .quick-btn:hover{ background:#2d3561; }
+    .status-dot { width:8px; height:8px; border-radius:50%; }
+    .status-dot-online { background:#22C55E; animation:pulse-green 2s infinite; }
+    @keyframes pulse-green { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4)} 50%{box-shadow:0 0 0 4px rgba(34,197,94,0)} }
+
+    html.light #dashMain       { background:#F5F6FF; }
+    html.dark  #dashMain       { background:#111827; }
+    html.light .page-title     { color:#1E1B4B; }
+    html.dark  .page-title     { color:#e2e8f0; }
+    html.light .page-sub       { color:#9CA3AF; }
+    html.dark  .page-sub       { color:#475569; }
+
+    html.light .section-card   { background:#fff; border:1px solid #E5E7EB; box-shadow:0 2px 8px rgba(108,99,255,.06); }
+    html.dark  .section-card   { background:#1a1f35; border:1px solid #2d3561; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    html.light .section-head-txt{ color:#1E1B4B; }
+    html.dark  .section-head-txt{ color:#e2e8f0; }
+    html.light .section-sub-txt { color:#9CA3AF; }
+    html.dark  .section-sub-txt { color:#475569; }
+
+    html.light .badge-green    { background:#DCFCE7; color:#15803D; }
+    html.dark  .badge-green    { background:#14532D; color:#4ADE80; }
+    html.light .badge-blue     { background:#DBEAFE; color:#1D4ED8; }
+    html.dark  .badge-blue     { background:#1e3a5f; color:#60A5FA; }
+    html.light .badge-yellow   { background:#FEF9C3; color:#A16207; }
+    html.dark  .badge-yellow   { background:#713F12; color:#FDE047; }
+    html.light .badge-red      { background:#FEE2E2; color:#DC2626; }
+    html.dark  .badge-red      { background:#7F1D1D; color:#FCA5A5; }
+    html.light .badge-gray     { background:#F3F4F6; color:#6B7280; }
+    html.dark  .badge-gray     { background:#1e2a4a; color:#94a3b8; }
+
+    #appShell   { box-shadow:0 25px 60px rgba(0,0,0,.35); border-radius:16px; overflow:hidden; }
+    ::-webkit-scrollbar{ width:5px; height:5px; }
+    ::-webkit-scrollbar-track{ background:transparent; }
+    ::-webkit-scrollbar-thumb{ background:#6C63FF55; border-radius:10px; }
+
+    .nav-item    { transition:background .15s; border-radius:8px; cursor:pointer; }
+    .section-card{ border-radius:14px; }
+    .badge       { font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; }
+    .btn-primary { background:linear-gradient(135deg,#6C63FF,#4F46E5); transition:opacity .2s,transform .1s; }
+    .btn-primary:hover{ opacity:.9; transform:translateY(-1px); }
+
+    #sidebar{ transition:transform .3s ease; }
+    @media(max-width:768px){
+      #sidebar{ position:fixed!important; left:0; top:0; bottom:0; z-index:50; transform:translateX(-100%); width:260px!important; }
+      #sidebar.open{ transform:translateX(0)!important; }
+    }
+    #sidebarOverlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+    #sidebarOverlay.show{ display:block; }
+
+    @keyframes fadeUp{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in{ animation:fadeUp .35s ease forwards; }
+
+    #themeBtn{ transition:transform .4s ease; }
+    #themeBtn:hover{ transform:rotate(20deg); }
+    .sun-icon,.moon-icon{ transition:opacity .3s,transform .3s; }
+    html.dark .sun-icon  { opacity:1; transform:rotate(0deg); }
+    html.dark .moon-icon { opacity:0; transform:rotate(-90deg); }
+    html.light .sun-icon { opacity:0; transform:rotate(90deg); }
+    html.light .moon-icon{ opacity:1; transform:rotate(0deg); }
+
+    /* 채팅 버블 */
+    html.light .bubble-user { background:linear-gradient(135deg,#6C63FF,#4F46E5); color:#fff; }
+    html.dark  .bubble-user { background:linear-gradient(135deg,#4F46E5,#3730a3); color:#fff; }
+    html.light .bubble-bot  { background:#fff; border:1px solid #E5E7EB; color:#374151; }
+    html.dark  .bubble-bot  { background:#1a1f35; border:1px solid #2d3561; color:#cbd5e1; }
+    html.light .msg-meta    { color:#9CA3AF; }
+    html.dark  .msg-meta    { color:#475569; }
+
+    /* Markdown prose */
+    .prose { line-height:1.7; font-size:13px; }
+    .prose h1,.prose h2,.prose h3 { font-weight:800; margin:0.8em 0 0.4em; }
+    .prose h1 { font-size:1.1em; }
+    .prose h2 { font-size:1.0em; }
+    .prose h3 { font-size:0.95em; }
+    .prose p  { margin:0.4em 0; }
+    .prose ul,.prose ol { padding-left:1.4em; margin:0.4em 0; }
+    .prose li { margin:0.2em 0; }
+    .prose code { background:rgba(108,99,255,.12); padding:1px 5px; border-radius:4px; font-size:12px; font-family:monospace; }
+    .prose pre  { background:rgba(0,0,0,.08); border-radius:8px; padding:10px 14px; overflow-x:auto; margin:0.6em 0; }
+    html.dark .prose pre { background:rgba(0,0,0,.3); }
+    .prose pre code { background:transparent; padding:0; }
+    .prose strong { font-weight:700; }
+    .prose blockquote { border-left:3px solid #6C63FF; padding-left:10px; opacity:.8; margin:0.4em 0; }
+    .prose table { border-collapse:collapse; width:100%; font-size:12px; }
+    .prose th,.prose td { border:1px solid #E5E7EB; padding:4px 8px; }
+    html.dark .prose th,.prose td { border-color:#2d3561; }
+    .prose th { background:rgba(108,99,255,.1); font-weight:700; }
+
+    /* 세션 정보 카드 */
+    html.light .info-card { background:#fff; border:1px solid #E5E7EB; }
+    html.dark  .info-card { background:#1a1f35; border:1px solid #2d3561; }
+    html.light .info-label{ color:#9CA3AF; }
+    html.dark  .info-label{ color:#475569; }
+    html.light .info-value{ color:#1E1B4B; }
+    html.dark  .info-value{ color:#e2e8f0; }
+  </style>
+</head>
+
+<body class="h-screen flex items-stretch justify-stretch overflow-hidden p-0 md:p-4">
+<div id="appShell" class="flex flex-col w-full h-full md:h-[calc(100vh-2rem)] md:rounded-2xl overflow-hidden">
+
+  <!-- HEADER -->
+  <header id="appHeader" class="flex items-center px-4 h-14 gap-3 z-30 flex-shrink-0 transition-colors duration-300">
+    <button id="menuBtn" class="md:hidden p-1.5 rounded-lg header-icon-btn">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="flex items-center gap-2 mr-2">
+      <div class="w-7 h-7 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+      </div>
+      <a href="{% url 'dashboard' %}" class="font-extrabold text-base hidden sm:block header-logo-txt transition-colors duration-300 no-underline">RAG챗봇 V1.0</a>
+    </div>
+    <div class="hidden md:flex items-center gap-1.5 flex-1 text-sm">
+      <span class="breadcrumb-txt transition-colors duration-300">챗봇 앱</span>
+      <span class="breadcrumb-txt">/</span>
+      <a href="{% url 'chatting_list' %}" class="breadcrumb-txt transition-colors duration-300 no-underline">채팅 세션 목록</a>
+      <span class="breadcrumb-txt">/</span>
+      <span class="breadcrumb-last transition-colors duration-300">{{ session.title|default:"채팅 내용"|truncatechars:30 }}</span>
+    </div>
+    <div class="ml-auto flex items-center gap-1.5">
+      <span class="hidden sm:block header-cfg transition-colors duration-300">Admin</span>
+      <a href="{% url 'chatbot' %}" class="export-btn flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-colors duration-300">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        <span class="hidden sm:inline">챗봇 열기</span>
+      </a>
+      <button id="themeBtn" onclick="toggleTheme()" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300 relative w-8 h-8 flex items-center justify-center">
+        <svg class="sun-icon w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+        <svg class="moon-icon w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <div class="flex flex-1 overflow-hidden relative">
+    <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+    {% include "dashboard/inc_left.html" %}
+
+    <main id="dashMain" class="flex-1 flex flex-col overflow-hidden transition-colors duration-300">
+      <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+        <!-- 페이지 헤더 -->
+        <div class="fade-in flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-extrabold page-title transition-colors duration-300">
+              {{ session.title|default:"새 대화" }}
+            </h1>
+            <p class="text-xs mt-0.5 page-sub transition-colors duration-300">
+              {{ messages|length }}개 메시지 · {{ session.created_at|date:"Y-m-d H:i" }}
+            </p>
+          </div>
+          <a href="{% url 'chatting_list' %}" class="export-btn flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-colors duration-300 no-underline">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            목록으로
+          </a>
+        </div>
+
+        <!-- 세션 정보 카드 -->
+        <div class="info-card fade-in rounded-2xl p-4 transition-colors duration-300">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <p class="info-label text-xs mb-1 transition-colors duration-300">사용자</p>
+              <p class="info-value text-sm font-bold transition-colors duration-300">{{ session.username|default:"-" }}</p>
+            </div>
+            <div>
+              <p class="info-label text-xs mb-1 transition-colors duration-300">RAG 모델</p>
+              <p class="info-value text-sm font-bold transition-colors duration-300 truncate">{{ session.chat_model|default:"-" }}</p>
+            </div>
+            <div>
+              <p class="info-label text-xs mb-1 transition-colors duration-300">접속 IP</p>
+              <p class="info-value text-sm font-bold transition-colors duration-300">{{ session.client_ip|default:"-" }}</p>
+            </div>
+            <div>
+              <p class="info-label text-xs mb-1 transition-colors duration-300">세션 ID</p>
+              <p class="info-value text-xs font-bold transition-colors duration-300 truncate" title="{{ session.session_id }}">
+                {{ session.session_id|stringformat:"s"|slice:":8"|upper }}…
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 채팅 메시지 -->
+        <div class="space-y-1 fade-in">
+          {% for msg in messages %}
+
+          <!-- 사용자 질문 -->
+          <div class="flex justify-end mb-1">
+            <div class="max-w-2xl w-full sm:w-auto">
+              <p class="msg-meta text-xs text-right mb-1 transition-colors duration-300">
+                {{ msg.username|default:"사용자" }} · {{ msg.created_at|date:"H:i" }}
+              </p>
+              <div class="bubble-user rounded-2xl rounded-tr-sm px-4 py-3 text-sm whitespace-pre-wrap">{{ msg.question }}</div>
+            </div>
+          </div>
+
+          <!-- AI 답변 -->
+          <div class="flex justify-start mb-4">
+            <div class="max-w-2xl w-full sm:w-auto">
+              <p class="msg-meta text-xs mb-1 flex items-center gap-2 transition-colors duration-300">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
+                AI 응답
+                {% if msg.response_ms %}
+                <span class="badge badge-gray" style="font-size:10px">{{ msg.response_ms }}ms</span>
+                {% endif %}
+                {% if msg.is_error %}
+                <span class="badge badge-red" style="font-size:10px">오류</span>
+                {% endif %}
+                {% if msg.total_tokens %}
+                <span class="badge badge-blue" style="font-size:10px">{{ msg.total_tokens }}토큰</span>
+                {% endif %}
+              </p>
+              <div class="bubble-bot rounded-2xl rounded-tl-sm px-4 py-3">
+                {% if msg.is_error %}
+                <p class="text-sm" style="color:#EF4444">{{ msg.answer|default:"오류가 발생했습니다." }}</p>
+                {% else %}
+                <div class="prose msg-answer"></div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          {% empty %}
+          <div class="text-center py-12">
+            <p class="page-sub text-sm transition-colors duration-300">메시지가 없습니다.</p>
+          </div>
+          {% endfor %}
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+let isDark = false;
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.classList.toggle('dark', isDark);
+  document.documentElement.classList.toggle('light', !isDark);
+}
+document.getElementById('menuBtn').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('show');
+});
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+function _openUpload()   { window.location.href = '{% url "dashboard" %}'; }
+function _rebuildIndex() { window.location.href = '{% url "dashboard" %}'; }
+
+// 마크다운 렌더링 — 뷰에서 JSON 직렬화된 답변 배열 사용
+marked.setOptions({ breaks: true, gfm: true });
+const _answers = {{ answers_json|safe }};
+document.querySelectorAll('.msg-answer').forEach((el, i) => {
+  if (_answers[i] !== undefined) {
+    el.innerHTML = marked.parse(_answers[i]);
+  }
+});
+</script>
+</body>
+</html>

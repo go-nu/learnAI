@@ -1,0 +1,256 @@
+{% extends 'backoffice/base.html' %}
+
+{% block title %}대시보드{% endblock %}
+{% block page_title %}대시보드{% endblock %}
+{% block page_sub %}시스템 현황 요약{% endblock %}
+
+{% block content %}
+
+<!-- ── 통계 카드 ── -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+
+  <!-- 총 직원 수 -->
+  <div class="card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(217,79,30,0.12);">
+        <svg class="w-5 h-5" style="color:#d94f1e" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <span class="mono text-[10px] text-slate-400 uppercase tracking-widest">총 직원</span>
+    </div>
+    <div class="text-4xl font-bold text-slate-800 tabular-nums">{{ total_emp }}</div>
+    <div class="text-sm text-slate-500 mt-1">등록된 직원 수</div>
+  </div>
+
+  <!-- 부서 수 -->
+  <div class="card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(28,41,64,0.1);">
+        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2M8 7V5a2 2 0 0 0-4 0v2"/>
+        </svg>
+      </div>
+      <span class="mono text-[10px] text-slate-400 uppercase tracking-widest">부서</span>
+    </div>
+    <div class="text-4xl font-bold text-slate-800 tabular-nums">{{ dept_stats|length }}</div>
+    <div class="text-sm text-slate-500 mt-1">운영 중인 부서 수</div>
+  </div>
+
+  <!-- 관리자 정보 -->
+  <div class="card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(90,125,58,0.12);">
+        <svg class="w-5 h-5" style="color:#5a7d3a" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <span class="mono text-[10px] text-slate-400 uppercase tracking-widest">관리자</span>
+    </div>
+    <div class="text-xl font-bold text-slate-800 truncate">{{ manager.name }}</div>
+    <div class="text-sm text-slate-500 mt-1">{{ manager.email|default:"이메일 미설정" }}</div>
+  </div>
+</div>
+
+<!-- ── 부서별 직원 현황 ── -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <div class="card p-6">
+    <h2 class="font-bold text-slate-800 mb-1">부서별 직원 현황</h2>
+    <p class="text-sm text-slate-500 mb-5">각 부서의 등록 인원 수</p>
+
+    {% if dept_stats %}
+    <div class="space-y-3">
+      {% for dept, count in dept_stats.items %}
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-sm font-medium text-slate-700">{{ dept }}</span>
+          <span class="mono text-sm font-bold text-slate-800">{{ count }}명</span>
+        </div>
+        <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+          <div class="h-full rounded-full transition-all" style="background:#d94f1e; width: {% widthratio count total_emp 100 %}%;"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8 text-slate-400">
+      <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      </svg>
+      <p class="text-sm">등록된 직원이 없습니다.</p>
+      <a href="{% url 'bo_employee_create' %}" class="inline-block mt-3 text-sm font-medium" style="color:#d94f1e;">첫 직원 추가하기 →</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 빠른 메뉴 -->
+  <div class="card p-6">
+    <h2 class="font-bold text-slate-800 mb-1">빠른 메뉴</h2>
+    <p class="text-sm text-slate-500 mb-5">자주 사용하는 기능</p>
+
+    <div class="space-y-3">
+      <a href="{% url 'bo_employee_list' %}" class="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-[#d94f1e] hover:bg-orange-50 transition-all group">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center group-hover:opacity-90" style="background:#d94f1e;">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-slate-700">직원 목록</div>
+          <div class="text-xs text-slate-400">전체 직원 조회 및 관리</div>
+        </div>
+        <svg class="w-4 h-4 text-slate-300 ml-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+
+      <a href="{% url 'bo_employee_create' %}" class="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-[#d94f1e] hover:bg-orange-50 transition-all group">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:#1e293b;">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-slate-700">직원 추가</div>
+          <div class="text-xs text-slate-400">신규 직원 및 사진 등록</div>
+        </div>
+        <svg class="w-4 h-4 text-slate-300 ml-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+
+      <a href="{% url 'bo_profile' %}" class="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-[#d94f1e] hover:bg-orange-50 transition-all group">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:#5a7d3a;">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="8" r="4"/><path d="M12 14c-5 0-8 2.5-8 4v1h16v-1c0-1.5-3-4-8-4z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-slate-700">내 프로필</div>
+          <div class="text-xs text-slate-400">계정 정보 및 비밀번호 변경</div>
+        </div>
+        <svg class="w-4 h-4 text-slate-300 ml-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+
+      <a href="/cctv/" target="_blank" class="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-700">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.36a1 1 0 0 1-1.447.89L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-slate-700">CCTV 모니터링</div>
+          <div class="text-xs text-slate-400">실시간 출입 관제 시스템</div>
+        </div>
+        <svg class="w-4 h-4 text-slate-300 ml-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── FAISS 재학습 ── -->
+<div class="mt-6 card p-6">
+  <div class="flex items-start justify-between gap-4 flex-wrap">
+    <div>
+      <h2 class="font-bold text-slate-800 mb-1 flex items-center gap-2">
+        <svg class="w-5 h-5" style="color:#d94f1e" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 2a10 10 0 0 1 10 10"/>
+          <polyline points="16 12 12 8 8 12"/>
+        </svg>
+        FAISS 얼굴 인식 모델 재학습
+      </h2>
+      <p class="text-sm text-slate-500">
+        직원·관리자 사진 등록 후 모델을 재학습해야 CCTV 인식에 반영됩니다.
+      </p>
+    </div>
+    <button id="retrain-btn" onclick="startRetrain()"
+            class="btn-primary flex items-center gap-2 whitespace-nowrap">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      모델 재학습 시작
+    </button>
+  </div>
+
+  <!-- 진행 상태 -->
+  <div id="retrain-status" class="hidden mt-4 p-4 rounded-xl border text-sm" style="border-color:#e2e8f0; background:#f8fafc;">
+    <div class="flex items-center gap-2">
+      <span id="retrain-icon" class="text-lg">⏳</span>
+      <span id="retrain-msg" class="font-medium text-slate-700"></span>
+    </div>
+    <div id="retrain-times" class="mono text-[11px] text-slate-400 mt-1.5 uppercase tracking-wider"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function getCsrf() {
+    return document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='))?.split('=')[1] || '';
+  }
+
+  function startRetrain() {
+    fetch('{% url "bo_retrain" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrf() },
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) {
+        Swal.fire({ icon: 'info', title: '알림', text: data.message, confirmButtonColor: '#d94f1e' });
+        return;
+      }
+      document.getElementById('retrain-btn').disabled = true;
+      document.getElementById('retrain-btn').style.opacity = '0.5';
+      pollRetrain();
+    });
+  }
+
+  function pollRetrain() {
+    fetch('{% url "bo_retrain" %}')
+    .then(r => r.json())
+    .then(data => {
+      const box   = document.getElementById('retrain-status');
+      const icon  = document.getElementById('retrain-icon');
+      const msg   = document.getElementById('retrain-msg');
+      const times = document.getElementById('retrain-times');
+
+      box.classList.remove('hidden');
+
+      if (data.status === 'running') {
+        icon.textContent = '⏳';
+        msg.textContent = data.message;
+        box.style.borderColor = '#fbbf24';
+        box.style.background = '#fffbeb';
+        times.textContent = '시작: ' + data.started_at;
+        setTimeout(pollRetrain, 2000);
+
+      } else if (data.status === 'done') {
+        icon.textContent = '✅';
+        msg.textContent = data.message;
+        box.style.borderColor = '#86efac';
+        box.style.background = '#f0fdf4';
+        times.textContent = '시작: ' + data.started_at + '  완료: ' + data.finished_at;
+        document.getElementById('retrain-btn').disabled = false;
+        document.getElementById('retrain-btn').style.opacity = '1';
+        Swal.fire({
+          icon: 'success',
+          title: '재학습 완료',
+          text: 'FAISS 모델이 갱신되었습니다. CCTV 스트림에 자동 반영됩니다.',
+          confirmButtonColor: '#d94f1e',
+        });
+
+      } else if (data.status === 'error') {
+        icon.textContent = '❌';
+        msg.textContent = '오류 발생';
+        box.style.borderColor = '#fca5a5';
+        box.style.background = '#fff5f5';
+        times.textContent = '시작: ' + data.started_at + '  실패: ' + data.finished_at;
+        document.getElementById('retrain-btn').disabled = false;
+        document.getElementById('retrain-btn').style.opacity = '1';
+        Swal.fire({ icon: 'error', title: '오류', text: data.message, confirmButtonColor: '#d94f1e' });
+      }
+    });
+  }
+</script>
+{% endblock %}

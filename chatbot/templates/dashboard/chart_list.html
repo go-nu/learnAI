@@ -1,0 +1,786 @@
+﻿<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>분석 및 통계 · RAG챗봇 V1.0</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        fontFamily: { nanum: ['"Nanum Gothic"', 'sans-serif'] },
+        colors: { primary: '#6C63FF', primaryLight: '#EEF0FF', accent: '#4F46E5' },
+      }},
+    };
+  </script>
+
+  <style>
+    * { font-family: 'Nanum Gothic', sans-serif; box-sizing: border-box; }
+
+    html.light body  { background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 35%,#2563eb 60%,#3b82f6 85%,#60a5fa 100%); min-height:100vh; }
+    html.dark  body  { background:linear-gradient(135deg,#0c1a3a 0%,#0f2460 35%,#1a3a7a 60%,#1e4d96 85%,#1d6bbb 100%); min-height:100vh; }
+
+    html.light #appHeader       { background:#fff; border-bottom:1px solid #E5E7EB; }
+    html.dark  #appHeader       { background:#1a1f35; border-bottom:1px solid #2d3561; }
+    html.light .header-logo-txt { color:#1E1B4B; }
+    html.dark  .header-logo-txt { color:#e2e8f0; }
+    html.light .breadcrumb-txt  { color:#9CA3AF; }
+    html.dark  .breadcrumb-txt  { color:#64748b; }
+    html.light .breadcrumb-last { color:#4F46E5; font-weight:700; }
+    html.dark  .breadcrumb-last { color:#818cf8; font-weight:700; }
+    html.light .header-icon-btn { color:#6C63FF; }
+    html.dark  .header-icon-btn { color:#818cf8; }
+    html.light .header-icon-btn:hover { background:#EEF0FF; }
+    html.dark  .header-icon-btn:hover { background:#2d3561; }
+    html.light .export-btn      { background:#1E1B4B; color:#fff; }
+    html.dark  .export-btn      { background:#2d3561; color:#e2e8f0; }
+    html.light .export-btn:hover{ background:#4F46E5; }
+    html.dark  .export-btn:hover{ background:#4F46E5; color:#fff; }
+    html.light .header-cfg      { color:#6B7280; font-size:13px; }
+    html.dark  .header-cfg      { color:#64748b; font-size:13px; }
+
+    html.light #sidebar         { background:#F8F8FC; border-right:1px solid #E5E7EB; }
+    html.dark  #sidebar         { background:#151929; border-right:1px solid #2d3561; }
+    html.light .nav-item:hover  { background:#EEEEFF; }
+    html.dark  .nav-item:hover  { background:#1e2a4a; }
+    html.light .nav-item.active { background:#EEF0FF; }
+    html.dark  .nav-item.active { background:#1e2a4a; }
+    html.light .nav-txt         { color:#6B7280; }
+    html.dark  .nav-txt         { color:#94a3b8; }
+    html.light .nav-item.active .nav-txt { color:#6C63FF; font-weight:700; }
+    html.dark  .nav-item.active .nav-txt { color:#818cf8; font-weight:700; }
+    html.light .section-label   { color:#9CA3AF; }
+    html.dark  .section-label   { color:#475569; }
+    html.light .sidebar-divider { border-color:#E5E7EB; }
+    html.dark  .sidebar-divider { border-color:#2d3561; }
+    html.light .sys-status-txt  { color:#6B7280; }
+    html.dark  .sys-status-txt  { color:#64748b; }
+    html.light .quick-btn       { background:#EEF0FF; color:#4F46E5; border:1px solid #C7D2FE; }
+    html.dark  .quick-btn       { background:#1e2a4a; color:#818cf8; border:1px solid #2d3561; }
+    html.light .quick-btn:hover { background:#DDD8FF; }
+    html.dark  .quick-btn:hover { background:#2d3561; }
+    .status-dot { width:8px; height:8px; border-radius:50%; }
+    .status-dot-online { background:#22C55E; animation:pulse-green 2s infinite; }
+    @keyframes pulse-green { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4)} 50%{box-shadow:0 0 0 4px rgba(34,197,94,0)} }
+
+    html.light #dashMain        { background:#F5F6FF; }
+    html.dark  #dashMain        { background:#111827; }
+    html.light .page-title      { color:#1E1B4B; }
+    html.dark  .page-title      { color:#e2e8f0; }
+    html.light .page-sub        { color:#9CA3AF; }
+    html.dark  .page-sub        { color:#475569; }
+
+    html.light .section-card    { background:#fff; border:1px solid #E5E7EB; box-shadow:0 2px 8px rgba(108,99,255,.06); }
+    html.dark  .section-card    { background:#1a1f35; border:1px solid #2d3561; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    html.light .section-head-txt{ color:#1E1B4B; }
+    html.dark  .section-head-txt{ color:#e2e8f0; }
+    html.light .chart-sub-txt   { color:#9CA3AF; }
+    html.dark  .chart-sub-txt   { color:#475569; }
+
+    html.light .tbl-head        { background:#F3F4F6; }
+    html.dark  .tbl-head        { background:#151929; }
+    html.light .tbl-th          { color:#6B7280; }
+    html.dark  .tbl-th          { color:#64748b; }
+    html.light .tbl-row         { border-bottom:1px solid #F3F4F6; }
+    html.dark  .tbl-row         { border-bottom:1px solid #1e2a4a; }
+    html.light .tbl-row:hover   { background:#F9F9FF; }
+    html.dark  .tbl-row:hover   { background:#1e2a4a; }
+    html.light .tbl-td          { color:#374151; }
+    html.dark  .tbl-td          { color:#cbd5e1; }
+    html.light .tbl-td-sub      { color:#9CA3AF; }
+    html.dark  .tbl-td-sub      { color:#475569; }
+
+    html.light .badge-green     { background:#DCFCE7; color:#15803D; }
+    html.dark  .badge-green     { background:#14532D; color:#4ADE80; }
+    html.light .badge-blue      { background:#DBEAFE; color:#1D4ED8; }
+    html.dark  .badge-blue      { background:#1e3a5f; color:#60A5FA; }
+    html.light .badge-yellow    { background:#FEF9C3; color:#A16207; }
+    html.dark  .badge-yellow    { background:#713F12; color:#FDE047; }
+    html.light .badge-red       { background:#FEE2E2; color:#DC2626; }
+    html.dark  .badge-red       { background:#7F1D1D; color:#FCA5A5; }
+    html.light .badge-gray      { background:#F3F4F6; color:#6B7280; }
+    html.dark  .badge-gray      { background:#1e2a4a; color:#94a3b8; }
+    html.light .badge-purple    { background:#EDE9FE; color:#6D28D9; }
+    html.dark  .badge-purple    { background:#2E1065; color:#A78BFA; }
+
+    /* KPI 카드 */
+    html.light .kpi-card        { background:#fff; border:1px solid #E5E7EB; box-shadow:0 2px 8px rgba(108,99,255,.06); }
+    html.dark  .kpi-card        { background:#1a1f35; border:1px solid #2d3561; }
+    html.light .kpi-val         { color:#1E1B4B; }
+    html.dark  .kpi-val         { color:#e2e8f0; }
+    html.light .kpi-label       { color:#9CA3AF; }
+    html.dark  .kpi-label       { color:#475569; }
+    html.light .kpi-icon-bg     { background:#EEF0FF; }
+    html.dark  .kpi-icon-bg     { background:#1e2a4a; }
+
+    /* 기간 버튼 */
+    html.light .period-btn      { background:#F3F4F6; color:#6B7280; border:1px solid #E5E7EB; }
+    html.dark  .period-btn      { background:#1e2a4a; color:#94a3b8; border:1px solid #2d3561; }
+    html.light .period-btn.active{ background:#6C63FF; color:#fff; border-color:#6C63FF; }
+    html.dark  .period-btn.active{ background:#6C63FF; color:#fff; border-color:#6C63FF; }
+    html.light .period-btn:hover:not(.active){ background:#EEF0FF; }
+    html.dark  .period-btn:hover:not(.active){ background:#2d3561; }
+
+    /* 키워드 바 */
+    html.light .kw-bar-bg       { background:#EEF0FF; }
+    html.dark  .kw-bar-bg       { background:#1e2a4a; }
+    .kw-bar-fill                { background:linear-gradient(90deg,#6C63FF,#4F46E5); border-radius:999px; height:6px; }
+
+    #appShell   { box-shadow:0 25px 60px rgba(0,0,0,.35); border-radius:16px; overflow:hidden; }
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:#6C63FF55; border-radius:10px; }
+    .nav-item    { transition:background .15s; border-radius:8px; cursor:pointer; }
+    .section-card, .kpi-card { border-radius:14px; }
+    .badge       { font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; }
+    .btn-primary { background:linear-gradient(135deg,#6C63FF,#4F46E5); transition:opacity .2s,transform .1s; }
+    .btn-primary:hover { opacity:.9; transform:translateY(-1px); }
+    #sidebar { transition:transform .3s ease; }
+    @media(max-width:768px){
+      #sidebar{ position:fixed!important; left:0; top:0; bottom:0; z-index:50; transform:translateX(-100%); width:260px!important; }
+      #sidebar.open{ transform:translateX(0)!important; }
+    }
+    #sidebarOverlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+    #sidebarOverlay.show{ display:block; }
+    @keyframes fadeUp{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in{ animation:fadeUp .35s ease forwards; }
+    #themeBtn{ transition:transform .4s ease; }
+    #themeBtn:hover{ transform:rotate(20deg); }
+    .sun-icon,.moon-icon{ transition:opacity .3s,transform .3s; }
+    html.dark .sun-icon  { opacity:1; transform:rotate(0deg); }
+    html.dark .moon-icon { opacity:0; transform:rotate(-90deg); }
+    html.light .sun-icon { opacity:0; transform:rotate(90deg); }
+    html.light .moon-icon{ opacity:1; transform:rotate(0deg); }
+
+    /* 로딩 스피너 */
+    .spin { animation:spin 1s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+  </style>
+</head>
+
+<body class="h-screen flex items-stretch justify-stretch overflow-hidden p-0 md:p-4">
+<div id="appShell" class="flex flex-col w-full h-full md:h-[calc(100vh-2rem)] md:rounded-2xl overflow-hidden">
+
+  <!-- HEADER -->
+  <header id="appHeader" class="flex items-center px-4 h-14 gap-3 z-30 flex-shrink-0 transition-colors duration-300">
+    <button id="menuBtn" class="md:hidden p-1.5 rounded-lg header-icon-btn">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="flex items-center gap-2 mr-2">
+      <div class="w-7 h-7 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+      </div>
+      <a href="{% url 'dashboard' %}" class="font-extrabold text-base hidden sm:block header-logo-txt transition-colors duration-300 no-underline">RAG챗봇 V1.0</a>
+    </div>
+    <div class="hidden md:flex items-center gap-1.5 flex-1 text-sm">
+      <span class="breadcrumb-txt transition-colors duration-300">챗봇 앱</span>
+      <span class="breadcrumb-txt">/</span>
+      <a href="{% url 'dashboard' %}" class="breadcrumb-txt no-underline transition-colors duration-300">관리 대시보드</a>
+      <span class="breadcrumb-txt">/</span>
+      <span class="breadcrumb-last transition-colors duration-300">분석 및 통계</span>
+    </div>
+    <div class="ml-auto flex items-center gap-1.5">
+      <span class="hidden md:flex items-center gap-1.5 text-xs header-cfg transition-colors duration-300">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        {{ request.user.get_full_name|default:request.user.username }}
+      </span>
+      <button id="themeBtn" onclick="toggleTheme()" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300 relative w-8 h-8 flex items-center justify-center">
+        <svg class="sun-icon w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+        <svg class="moon-icon w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <div class="flex flex-1 overflow-hidden relative">
+    <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+    {% include "dashboard/inc_left.html" %}
+
+    <main id="dashMain" class="flex-1 flex flex-col overflow-hidden transition-colors duration-300">
+      <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+        <!-- 페이지 헤더 -->
+        <div class="fade-in flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-extrabold page-title transition-colors duration-300">분석 및 통계</h1>
+            <p class="text-xs mt-0.5 page-sub transition-colors duration-300">채팅 이용 현황 · RAG 성능 · 사용 패턴 분석</p>
+          </div>
+          <!-- 기간 선택 -->
+          <div class="flex items-center gap-1" id="periodBtns">
+            <button class="period-btn text-xs font-bold px-3 py-1.5 rounded-lg transition-colors duration-150" data-days="7">7일</button>
+            <button class="period-btn text-xs font-bold px-3 py-1.5 rounded-lg transition-colors duration-150" data-days="14">14일</button>
+            <button class="period-btn active text-xs font-bold px-3 py-1.5 rounded-lg transition-colors duration-150" data-days="30">30일</button>
+            <button class="period-btn text-xs font-bold px-3 py-1.5 rounded-lg transition-colors duration-150" data-days="90">90일</button>
+          </div>
+        </div>
+
+        <!-- ── KPI 카드 5개 ──────────────────────────────────── -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 fade-in">
+
+          <!-- 총 대화 수 -->
+          <div class="kpi-card rounded-2xl p-4 transition-colors duration-300">
+            <div class="flex items-center justify-between mb-2">
+              <p class="kpi-label text-xs transition-colors duration-300">총 대화 수</p>
+              <div class="kpi-icon-bg w-8 h-8 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4" style="color:#6C63FF" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              </div>
+            </div>
+            <p id="kpiMessages" class="kpi-val text-2xl font-extrabold transition-colors duration-300">—</p>
+          </div>
+
+          <!-- 총 세션 수 -->
+          <div class="kpi-card rounded-2xl p-4 transition-colors duration-300">
+            <div class="flex items-center justify-between mb-2">
+              <p class="kpi-label text-xs transition-colors duration-300">총 세션 수</p>
+              <div class="kpi-icon-bg w-8 h-8 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4" style="color:#3B82F6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+            </div>
+            <p id="kpiSessions" class="kpi-val text-2xl font-extrabold transition-colors duration-300">—</p>
+          </div>
+
+          <!-- 평균 응답시간 -->
+          <div class="kpi-card rounded-2xl p-4 transition-colors duration-300">
+            <div class="flex items-center justify-between mb-2">
+              <p class="kpi-label text-xs transition-colors duration-300">평균 응답시간</p>
+              <div class="kpi-icon-bg w-8 h-8 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4" style="color:#F97316" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+            </div>
+            <p id="kpiAvgMs" class="kpi-val text-2xl font-extrabold transition-colors duration-300">—</p>
+          </div>
+
+          <!-- 오류율 -->
+          <div class="kpi-card rounded-2xl p-4 transition-colors duration-300">
+            <div class="flex items-center justify-between mb-2">
+              <p class="kpi-label text-xs transition-colors duration-300">오류율</p>
+              <div class="kpi-icon-bg w-8 h-8 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4" style="color:#EF4444" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
+            </div>
+            <p id="kpiErrorRate" class="kpi-val text-2xl font-extrabold transition-colors duration-300">—</p>
+          </div>
+
+          <!-- 총 토큰 -->
+          <div class="kpi-card rounded-2xl p-4 transition-colors duration-300">
+            <div class="flex items-center justify-between mb-2">
+              <p class="kpi-label text-xs transition-colors duration-300">총 토큰 사용량</p>
+              <div class="kpi-icon-bg w-8 h-8 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4" style="color:#22C55E" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+              </div>
+            </div>
+            <p id="kpiTokens" class="kpi-val text-2xl font-extrabold transition-colors duration-300">—</p>
+          </div>
+
+        </div>
+
+        <!-- ── Row 1: 일별 대화량 + 시간대 분포 ─────────────── -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 fade-in">
+
+          <!-- 일별 대화량 (3/5) -->
+          <div class="section-card lg:col-span-3 p-4 transition-colors duration-300">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <p class="text-sm font-extrabold section-head-txt transition-colors duration-300">일별 대화량</p>
+                <p id="dailySubTxt" class="text-xs chart-sub-txt transition-colors duration-300 mt-0.5">최근 30일 기준</p>
+              </div>
+              <div id="dailyLoadingIcon" class="spin">
+                <svg class="w-4 h-4" style="color:#6C63FF" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              </div>
+            </div>
+            <div style="height:220px">
+              <canvas id="dailyChart"></canvas>
+            </div>
+          </div>
+
+          <!-- 시간대별 분포 (2/5) -->
+          <div class="section-card lg:col-span-2 p-4 transition-colors duration-300">
+            <div class="mb-3">
+              <p class="text-sm font-extrabold section-head-txt transition-colors duration-300">시간대별 이용 패턴</p>
+              <p class="text-xs chart-sub-txt transition-colors duration-300 mt-0.5">전체 기간 기준 (24시간)</p>
+            </div>
+            <div style="height:220px">
+              <canvas id="hourlyChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Row 2: RAG 사용량 + 응답 시간 분포 ───────────── -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 fade-in">
+
+          <!-- RAG별 사용량 -->
+          <div class="section-card p-4 transition-colors duration-300">
+            <div class="mb-3">
+              <p class="text-sm font-extrabold section-head-txt transition-colors duration-300">RAG 모델별 사용량</p>
+              <p class="text-xs chart-sub-txt transition-colors duration-300 mt-0.5">상위 10개 RAG 기준 (메시지 수)</p>
+            </div>
+            <div style="height:220px">
+              <canvas id="ragChart"></canvas>
+            </div>
+          </div>
+
+          <!-- 응답 시간 분포 -->
+          <div class="section-card p-4 transition-colors duration-300">
+            <div class="mb-3">
+              <p class="text-sm font-extrabold section-head-txt transition-colors duration-300">응답 시간 분포</p>
+              <p class="text-xs chart-sub-txt transition-colors duration-300 mt-0.5">전체 메시지 기준</p>
+            </div>
+            <div style="height:220px">
+              <canvas id="rtChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Row 3: 인기 검색어 + 사용자 활동 ─────────────── -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 fade-in">
+
+          <!-- 인기 검색어 -->
+          <div class="section-card p-4 transition-colors duration-300">
+            <div class="mb-3">
+              <p class="text-sm font-extrabold section-head-txt transition-colors duration-300">인기 검색어 TOP 20</p>
+              <p class="text-xs chart-sub-txt transition-colors duration-300 mt-0.5">최근 2,000건 질문 기준</p>
+            </div>
+            <div id="keywordList" class="space-y-2 overflow-y-auto" style="max-height:280px">
+              <div class="text-center py-8"><svg class="w-5 h-5 spin mx-auto" style="color:#6C63FF" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></div>
+            </div>
+          </div>
+
+          <!-- 사용자 활동 순위 -->
+          <div class="section-card overflow-hidden transition-colors duration-300">
+            <div class="px-4 pt-4 pb-3">
+              <p class="text-sm font-extrabold section-head-txt transition-colors duration-300">사용자 활동 순위 TOP 10</p>
+              <p class="text-xs chart-sub-txt transition-colors duration-300 mt-0.5">메시지 수 기준</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="tbl-head transition-colors duration-300">
+                    <th class="tbl-th text-left text-xs font-bold py-2 px-4 w-8">#</th>
+                    <th class="tbl-th text-left text-xs font-bold py-2 px-4">사용자</th>
+                    <th class="tbl-th text-right text-xs font-bold py-2 px-4 w-20">대화 수</th>
+                    <th class="tbl-th text-right text-xs font-bold py-2 px-4 w-20">세션 수</th>
+                  </tr>
+                </thead>
+                <tbody id="userTbody">
+                  <tr><td colspan="4" class="text-center py-8 tbl-td-sub">
+                    <svg class="w-5 h-5 spin mx-auto" style="color:#6C63FF" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  </td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Row 4: RAG 성능 요약 (풀 너비) ─────────────────── -->
+        <div class="section-card overflow-hidden fade-in transition-colors duration-300">
+          <div class="px-4 pt-4 pb-3 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-extrabold section-head-txt transition-colors duration-300">RAG 성능 요약</p>
+              <p class="text-xs chart-sub-txt transition-colors duration-300 mt-0.5">활성화된 전체 RAG 기준</p>
+            </div>
+            <a href="{% url 'doc_list' %}" class="btn-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg no-underline">문서 관리</a>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="tbl-head transition-colors duration-300">
+                  <th class="tbl-th text-left text-xs font-bold py-3 px-4">RAG명</th>
+                  <th class="tbl-th text-center text-xs font-bold py-3 px-3 w-20">상태</th>
+                  <th class="tbl-th text-right text-xs font-bold py-3 px-4 w-24 hidden sm:table-cell">청크 수</th>
+                  <th class="tbl-th text-right text-xs font-bold py-3 px-4 w-24 hidden md:table-cell">총 토큰</th>
+                  <th class="tbl-th text-right text-xs font-bold py-3 px-4 w-24">쿼리 수</th>
+                  <th class="tbl-th text-right text-xs font-bold py-3 px-4 w-28">평균 응답</th>
+                </tr>
+              </thead>
+              <tbody id="ragPerfTbody">
+                <tr><td colspan="6" class="text-center py-10 tbl-td-sub">
+                  <svg class="w-5 h-5 spin mx-auto" style="color:#6C63FF" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  테마 / 사이드바
+// ════════════════════════════════════════
+let isDark = false;
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.classList.toggle('dark',  isDark);
+  document.documentElement.classList.toggle('light', !isDark);
+  rebuildAllCharts();
+}
+document.getElementById('menuBtn').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('show');
+});
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+function _openUpload()   { window.location.href = '{% url "rag_add" %}'; }
+function _rebuildIndex() { window.location.href = '{% url "rag_setting" %}'; }
+
+// ════════════════════════════════════════
+//  Chart.js 공통
+// ════════════════════════════════════════
+let _dailyChart = null, _hourlyChart = null, _ragChart = null, _rtChart = null;
+let _lastData   = null;
+let _period     = 30;
+
+function chartColors() {
+  return {
+    grid:   isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+    label:  isDark ? '#94a3b8' : '#6B7280',
+    legend: isDark ? '#e2e8f0' : '#374151',
+    purple: '#6C63FF',
+    blue:   '#3B82F6',
+    green:  '#22C55E',
+    orange: '#F97316',
+    red:    '#EF4444',
+    yellow: '#F59E0B',
+    teal:   '#14B8A6',
+    pink:   '#EC4899',
+  };
+}
+
+function destroyChart(c) { if (c) { c.destroy(); } }
+
+// ── 일별 대화량 ─────────────────────────────────────
+function buildDailyChart(items) {
+  destroyChart(_dailyChart);
+  const ctx = document.getElementById('dailyChart').getContext('2d');
+  const C   = chartColors();
+  const grad = ctx.createLinearGradient(0, 0, 0, 200);
+  grad.addColorStop(0, 'rgba(108,99,255,0.35)');
+  grad.addColorStop(1, 'rgba(108,99,255,0.01)');
+
+  _dailyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels:   items.map(d => d.label),
+      datasets: [{
+        label: '대화 수',
+        data:  items.map(d => d.count),
+        borderColor:     C.purple,
+        backgroundColor: grad,
+        pointBackgroundColor: C.purple,
+        pointRadius: items.length <= 14 ? 4 : 2,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2.5,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y.toLocaleString()}건`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: C.grid, drawBorder: false },
+          ticks: {
+            color: C.label, font: { size: 10 },
+            maxTicksLimit: items.length <= 14 ? items.length : 15,
+          },
+        },
+        y: {
+          grid: { color: C.grid, drawBorder: false },
+          ticks: { color: C.label, font: { size: 10 }, precision: 0 },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
+
+// ── 시간대별 분포 ────────────────────────────────────
+function buildHourlyChart(items) {
+  destroyChart(_hourlyChart);
+  const ctx = document.getElementById('hourlyChart').getContext('2d');
+  const C   = chartColors();
+  const maxVal = Math.max(...items.map(d => d.count), 1);
+
+  _hourlyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels:   items.map(d => d.label),
+      datasets: [{
+        label: '메시지',
+        data:  items.map(d => d.count),
+        backgroundColor: items.map(d => {
+          const ratio = d.count / maxVal;
+          return `rgba(108,99,255,${0.25 + ratio * 0.65})`;
+        }),
+        borderRadius: 4,
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()}건` } },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: C.label, font: { size: 9 },
+            callback: (_, i) => i % 3 === 0 ? items[i].label.replace('시','') + '시' : '',
+          },
+        },
+        y: {
+          grid: { color: C.grid, drawBorder: false },
+          ticks: { color: C.label, font: { size: 10 }, precision: 0 },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
+
+// ── RAG별 사용량 (수평 바) ───────────────────────────
+function buildRagChart(items) {
+  destroyChart(_ragChart);
+  const ctx = document.getElementById('ragChart').getContext('2d');
+  const C   = chartColors();
+  const palette = [C.purple, C.blue, C.green, C.orange, C.red, C.yellow, C.teal, C.pink, '#8B5CF6', '#06B6D4'];
+
+  _ragChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels:   items.map(d => d.label),
+      datasets: [{
+        label: '메시지 수',
+        data:  items.map(d => d.count),
+        backgroundColor: items.map((_, i) => palette[i % palette.length] + 'CC'),
+        borderColor:     items.map((_, i) => palette[i % palette.length]),
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x.toLocaleString()}건` } },
+      },
+      scales: {
+        x: {
+          grid: { color: C.grid, drawBorder: false },
+          ticks: { color: C.label, font: { size: 10 }, precision: 0 },
+          beginAtZero: true,
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            color: C.label, font: { size: 10 },
+            callback: v => v.length > 12 ? v.slice(0, 12) + '…' : v,
+          },
+        },
+      },
+    },
+  });
+}
+
+// ── 응답 시간 분포 ──────────────────────────────────
+function buildRtChart(items) {
+  destroyChart(_rtChart);
+  const ctx = document.getElementById('rtChart').getContext('2d');
+  const C   = chartColors();
+  const colors = [C.green, C.blue, C.yellow, C.orange, C.red];
+
+  _rtChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels:   items.map(d => d.label),
+      datasets: [{
+        label: '메시지 수',
+        data:  items.map(d => d.count),
+        backgroundColor: colors.map(c => c + 'CC'),
+        borderColor:     colors,
+        borderWidth: 1.5,
+        borderRadius: 6,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()}건` } },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: C.label, font: { size: 10 } },
+        },
+        y: {
+          grid: { color: C.grid, drawBorder: false },
+          ticks: { color: C.label, font: { size: 10 }, precision: 0 },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
+
+function rebuildAllCharts() {
+  if (!_lastData) return;
+  buildDailyChart(_lastData.daily);
+  buildHourlyChart(_lastData.hourly);
+  if (_lastData.rag_stats.length) buildRagChart(_lastData.rag_stats);
+  buildRtChart(_lastData.rt_dist);
+}
+
+// ════════════════════════════════════════
+//  테이블 렌더링
+// ════════════════════════════════════════
+function fmtMs(ms) {
+  if (ms <= 0) return '—';
+  if (ms >= 60000) return `${Math.floor(ms/60000)}분 ${Math.floor((ms%60000)/1000)}초`;
+  if (ms >= 1000)  return `${(ms/1000).toFixed(1)}초`;
+  return `${ms}ms`;
+}
+
+function renderKeywords(items) {
+  const el = document.getElementById('keywordList');
+  if (!items.length) { el.innerHTML = '<p class="text-center py-6 text-xs tbl-td-sub">데이터 없음</p>'; return; }
+  const max = items[0].count;
+  el.innerHTML = items.map((d, i) => `
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-extrabold w-5 text-right tbl-td-sub">${i+1}</span>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between mb-0.5">
+          <span class="text-xs font-bold tbl-td truncate transition-colors duration-300">${d.word}</span>
+          <span class="text-xs tbl-td-sub ml-2 flex-shrink-0">${d.count.toLocaleString()}</span>
+        </div>
+        <div class="kw-bar-bg rounded-full" style="height:6px">
+          <div class="kw-bar-fill" style="width:${Math.round(d.count/max*100)}%"></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderUsers(items) {
+  const el = document.getElementById('userTbody');
+  if (!items.length) { el.innerHTML = '<tr><td colspan="4" class="text-center py-8 tbl-td-sub text-xs">데이터 없음</td></tr>'; return; }
+  el.innerHTML = items.map((d, i) => `
+    <tr class="tbl-row transition-colors duration-300">
+      <td class="tbl-td-sub py-2.5 px-4 text-xs">${i+1}</td>
+      <td class="tbl-td py-2.5 px-4 text-xs font-bold">${d.username}</td>
+      <td class="tbl-td py-2.5 px-4 text-xs text-right font-extrabold" style="color:#6C63FF">${d.msg_count.toLocaleString()}</td>
+      <td class="tbl-td-sub py-2.5 px-4 text-xs text-right">${d.sess_count.toLocaleString()}</td>
+    </tr>
+  `).join('');
+}
+
+const STATUS_INFO = {
+  ready:      ['badge-green',  '완료'],
+  processing: ['badge-yellow', '빌드 중'],
+  pending:    ['badge-gray',   '대기'],
+  error:      ['badge-red',    '오류'],
+  disabled:   ['badge-gray',   '비활성'],
+};
+
+function renderRagPerf(items) {
+  const el = document.getElementById('ragPerfTbody');
+  if (!items.length) { el.innerHTML = '<tr><td colspan="6" class="text-center py-8 tbl-td-sub text-xs">등록된 RAG 없음</td></tr>'; return; }
+  el.innerHTML = items.map(d => {
+    const [bCls, bTxt] = STATUS_INFO[d.status] || ['badge-gray', d.status];
+    return `
+    <tr class="tbl-row transition-colors duration-300">
+      <td class="tbl-td py-3 px-4 text-xs font-bold">${d.name}</td>
+      <td class="py-3 px-3 text-center"><span class="badge ${bCls} transition-colors duration-300">${bTxt}</span></td>
+      <td class="tbl-td-sub py-3 px-4 text-xs text-right hidden sm:table-cell">${d.chunk_count.toLocaleString()}</td>
+      <td class="tbl-td-sub py-3 px-4 text-xs text-right hidden md:table-cell">${d.total_tokens.toLocaleString()}</td>
+      <td class="tbl-td py-3 px-4 text-xs text-right font-bold" style="color:#6C63FF">${d.msg_count.toLocaleString()}</td>
+      <td class="tbl-td py-3 px-4 text-xs text-right">${fmtMs(d.avg_ms)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+//  데이터 로드
+// ════════════════════════════════════════
+async function loadAnalytics(days) {
+  document.getElementById('dailyLoadingIcon').style.display = '';
+  try {
+    const res  = await fetch(`{% url "analytics_data" %}?days=${days}`);
+    const data = await res.json();
+    _lastData  = data;
+    _period    = days;
+
+    // KPI
+    const s = data.summary;
+    document.getElementById('kpiMessages').textContent  = s.total_messages.toLocaleString();
+    document.getElementById('kpiSessions').textContent  = s.total_sessions.toLocaleString();
+    document.getElementById('kpiAvgMs').textContent     = fmtMs(s.avg_response_ms);
+    document.getElementById('kpiErrorRate').textContent = s.error_rate + '%';
+    document.getElementById('kpiTokens').textContent    = s.total_tokens > 0
+      ? s.total_tokens.toLocaleString() : '0';
+
+    // 일별 서브텍스트
+    document.getElementById('dailySubTxt').textContent = `최근 ${days}일 기준`;
+
+    // 차트
+    buildDailyChart(data.daily);
+    buildHourlyChart(data.hourly);
+    if (data.rag_stats.length) {
+      buildRagChart(data.rag_stats);
+    } else {
+      destroyChart(_ragChart);
+      document.getElementById('ragChart').getContext('2d').clearRect(0,0,99999,99999);
+    }
+    buildRtChart(data.rt_dist);
+
+    // 테이블
+    renderKeywords(data.top_keywords);
+    renderUsers(data.user_stats);
+    renderRagPerf(data.rag_perf);
+
+  } catch(e) {
+    console.error('analytics fetch error', e);
+  } finally {
+    document.getElementById('dailyLoadingIcon').style.display = 'none';
+  }
+}
+
+// ── 기간 버튼 이벤트 ─────────────────────────────────
+document.querySelectorAll('.period-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadAnalytics(parseInt(btn.dataset.days));
+  });
+});
+
+// 초기 로드
+loadAnalytics(30);
+</script>
+</body>
+</html>

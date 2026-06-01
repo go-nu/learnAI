@@ -1,0 +1,1187 @@
+﻿<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG챗봇 V1.0 · 관리 대시보드</title>
+
+  <!-- Nanum Gothic Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- SweetAlert2 -->
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { nanum: ['"Nanum Gothic"', 'sans-serif'] },
+          colors: {
+            primary: '#6C63FF',
+            primaryLight: '#EEF0FF',
+            accent: '#4F46E5',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    * { font-family: 'Nanum Gothic', sans-serif; box-sizing: border-box; }
+
+    /* ═══════════════════════════════════════════
+       LIGHT MODE
+    ═══════════════════════════════════════════ */
+    html.light body {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 35%, #2563eb 60%, #3b82f6 85%, #60a5fa 100%);
+      min-height: 100vh;
+    }
+
+    /* 헤더 */
+    html.light #appHeader       { background: #ffffff; border-bottom: 1px solid #E5E7EB; }
+    html.light .header-logo-txt { color: #1E1B4B; }
+    html.light .breadcrumb-txt  { color: #9CA3AF; }
+    html.light .breadcrumb-last { color: #4F46E5; font-weight: 700; }
+    html.light .header-cfg      { color: #6B7280; font-size: 13px; }
+    html.light .header-icon-btn { color: #6C63FF; }
+    html.light .header-icon-btn:hover { background: #EEF0FF; }
+    html.light .export-btn      { background: #1E1B4B; color: #fff; }
+    html.light .export-btn:hover{ background: #4F46E5; }
+
+    /* 사이드바 */
+    html.light #sidebar         { background: #F8F8FC; border-right: 1px solid #E5E7EB; }
+    html.light .nav-item:hover  { background: #EEEEFF; }
+    html.light .nav-item.active { background: #EEF0FF; }
+    html.light .nav-txt         { color: #6B7280; }
+    html.light .nav-item.active .nav-txt { color: #6C63FF; font-weight: 700; }
+    html.light .section-label   { color: #9CA3AF; }
+    html.light .sidebar-divider { border-color: #E5E7EB; }
+    html.light .sidebar-menu-btn{ color: #6B7280; }
+    html.light .sidebar-menu-btn:hover { color: #6C63FF; }
+    html.light .status-dot-online { background: #22C55E; }
+    html.light .sys-status-txt  { color: #6B7280; }
+
+    /* 메인 콘텐츠 */
+    html.light #dashMain        { background: #F5F6FF; }
+    html.light .page-title      { color: #1E1B4B; }
+    html.light .page-sub        { color: #9CA3AF; }
+
+    /* 통계 카드 */
+    html.light .stat-card       { background: #ffffff; border: 1px solid #E5E7EB; box-shadow: 0 2px 8px rgba(108,99,255,.06); }
+    html.light .stat-label      { color: #9CA3AF; }
+    html.light .stat-value      { color: #1E1B4B; }
+    html.light .stat-delta-up   { color: #22C55E; }
+    html.light .stat-delta-down { color: #EF4444; }
+    html.light .stat-delta-neu  { color: #9CA3AF; }
+
+    /* 섹션 카드 */
+    html.light .section-card    { background: #ffffff; border: 1px solid #E5E7EB; box-shadow: 0 2px 8px rgba(108,99,255,.06); }
+    html.light .section-head-txt{ color: #1E1B4B; }
+    html.light .section-sub-txt { color: #9CA3AF; }
+
+    /* 테이블 */
+    html.light .tbl-head        { background: #F3F4F6; }
+    html.light .tbl-th          { color: #6B7280; }
+    html.light .tbl-row         { border-bottom: 1px solid #F3F4F6; }
+    html.light .tbl-row:hover   { background: #F9F9FF; }
+    html.light .tbl-td          { color: #374151; }
+    html.light .tbl-td-sub      { color: #9CA3AF; }
+
+    /* 배지 */
+    html.light .badge-green     { background: #DCFCE7; color: #15803D; }
+    html.light .badge-blue      { background: #DBEAFE; color: #1D4ED8; }
+    html.light .badge-yellow    { background: #FEF9C3; color: #A16207; }
+    html.light .badge-red       { background: #FEE2E2; color: #DC2626; }
+    html.light .badge-gray      { background: #F3F4F6; color: #6B7280; }
+
+    /* 차트 */
+    html.light .chart-wrap      { background: #ffffff; border: 1px solid #E5E7EB; }
+    html.light .chart-title     { color: #1E1B4B; }
+
+    /* 문서 목록 */
+    html.light .doc-item        { border-bottom: 1px solid #F3F4F6; }
+    html.light .doc-item:hover  { background: #F9F9FF; }
+    html.light .doc-name        { color: #1E1B4B; }
+    html.light .doc-meta        { color: #9CA3AF; }
+
+    /* 검색 */
+    html.light .search-box      { background: #F3F4F6; border: 1px solid #E5E7EB; color: #374151; }
+    html.light .search-box:focus{ border-color: #6C63FF; background: #ffffff; }
+    html.light .search-box::placeholder { color: #9CA3AF; }
+
+    /* 빠른 링크 */
+    html.light .quick-btn       { background: #EEF0FF; color: #4F46E5; border: 1px solid #C7D2FE; }
+    html.light .quick-btn:hover { background: #DDD8FF; }
+
+    /* ═══════════════════════════════════════════
+       DARK MODE
+    ═══════════════════════════════════════════ */
+    html.dark body {
+      background: linear-gradient(135deg, #0c1a3a 0%, #0f2460 35%, #1a3a7a 60%, #1e4d96 85%, #1d6bbb 100%);
+      min-height: 100vh;
+    }
+
+    html.dark #appHeader        { background: #1a1f35; border-bottom: 1px solid #2d3561; }
+    html.dark .header-logo-txt  { color: #e2e8f0; }
+    html.dark .breadcrumb-txt   { color: #64748b; }
+    html.dark .breadcrumb-last  { color: #818cf8; font-weight: 700; }
+    html.dark .header-cfg       { color: #64748b; font-size: 13px; }
+    html.dark .header-icon-btn  { color: #818cf8; }
+    html.dark .header-icon-btn:hover { background: #2d3561; }
+    html.dark .export-btn       { background: #2d3561; color: #e2e8f0; }
+    html.dark .export-btn:hover { background: #4F46E5; color: #fff; }
+
+    html.dark #sidebar          { background: #151929; border-right: 1px solid #2d3561; }
+    html.dark .nav-item:hover   { background: #1e2a4a; }
+    html.dark .nav-item.active  { background: #1e2a4a; }
+    html.dark .nav-txt          { color: #94a3b8; }
+    html.dark .nav-item.active .nav-txt { color: #818cf8; font-weight: 700; }
+    html.dark .section-label    { color: #475569; }
+    html.dark .sidebar-divider  { border-color: #2d3561; }
+    html.dark .sidebar-menu-btn { color: #64748b; }
+    html.dark .sidebar-menu-btn:hover { color: #818cf8; }
+    html.dark .status-dot-online { background: #22C55E; }
+    html.dark .sys-status-txt   { color: #64748b; }
+
+    html.dark #dashMain         { background: #111827; }
+    html.dark .page-title       { color: #e2e8f0; }
+    html.dark .page-sub         { color: #475569; }
+
+    html.dark .stat-card        { background: #1a1f35; border: 1px solid #2d3561; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    html.dark .stat-label       { color: #64748b; }
+    html.dark .stat-value       { color: #e2e8f0; }
+    html.dark .stat-delta-up    { color: #4ADE80; }
+    html.dark .stat-delta-down  { color: #F87171; }
+    html.dark .stat-delta-neu   { color: #64748b; }
+
+    html.dark .section-card     { background: #1a1f35; border: 1px solid #2d3561; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    html.dark .section-head-txt { color: #e2e8f0; }
+    html.dark .section-sub-txt  { color: #475569; }
+
+    html.dark .tbl-head         { background: #151929; }
+    html.dark .tbl-th           { color: #64748b; }
+    html.dark .tbl-row          { border-bottom: 1px solid #1e2a4a; }
+    html.dark .tbl-row:hover    { background: #1e2a4a; }
+    html.dark .tbl-td           { color: #cbd5e1; }
+    html.dark .tbl-td-sub       { color: #475569; }
+
+    html.dark .badge-green      { background: #14532D; color: #4ADE80; }
+    html.dark .badge-blue       { background: #1e3a5f; color: #60A5FA; }
+    html.dark .badge-yellow     { background: #713F12; color: #FDE047; }
+    html.dark .badge-red        { background: #7F1D1D; color: #FCA5A5; }
+    html.dark .badge-gray       { background: #1e2a4a; color: #94a3b8; }
+
+    html.dark .chart-wrap       { background: #111827; border: 1px solid #2d3561; }
+    html.dark .chart-title      { color: #e2e8f0; }
+
+    html.dark .doc-item         { border-bottom: 1px solid #1e2a4a; }
+    html.dark .doc-item:hover   { background: #1e2a4a; }
+    html.dark .doc-name         { color: #e2e8f0; }
+    html.dark .doc-meta         { color: #475569; }
+
+    html.dark .search-box       { background: #111827; border: 1px solid #2d3561; color: #e2e8f0; }
+    html.dark .search-box:focus { border-color: #818cf8; background: #1a1f35; }
+    html.dark .search-box::placeholder { color: #475569; }
+
+    html.dark .quick-btn        { background: #1e2a4a; color: #818cf8; border: 1px solid #2d3561; }
+    html.dark .quick-btn:hover  { background: #2d3561; }
+
+    /* ═══════════════════════════════════════════
+       SHARED
+    ═══════════════════════════════════════════ */
+    #appShell {
+      box-shadow: 0 25px 60px rgba(0,0,0,.35);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #6C63FF55; border-radius: 10px; }
+
+    #sidebar { transition: transform .3s ease; }
+    #sidebar.collapsed { width: 0 !important; overflow: hidden; }
+
+    @media (max-width: 768px) {
+      #sidebar { position: fixed !important; left:0; top:0; bottom:0; z-index:50; transform:translateX(-100%); width:260px !important; }
+      #sidebar.open { transform:translateX(0) !important; }
+    }
+
+    #sidebarOverlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+    #sidebarOverlay.show { display:block; }
+
+    .nav-item { transition: background .15s; border-radius: 8px; cursor: pointer; }
+
+    /* 통계 카드 */
+    .stat-card { border-radius: 14px; padding: 20px; transition: all .2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108,99,255,.15) !important; }
+
+    /* 아이콘 배경 */
+    .icon-bg-purple { background: linear-gradient(135deg,#6C63FF,#4F46E5); }
+    .icon-bg-green  { background: linear-gradient(135deg,#22C55E,#16A34A); }
+    .icon-bg-blue   { background: linear-gradient(135deg,#3B82F6,#1D4ED8); }
+    .icon-bg-orange { background: linear-gradient(135deg,#F97316,#EA580C); }
+    .icon-bg-pink   { background: linear-gradient(135deg,#EC4899,#DB2777); }
+
+    /* 버튼 */
+    .btn-primary { background: linear-gradient(135deg,#6C63FF,#4F46E5); transition: opacity .2s, transform .1s; }
+    .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+
+    /* 섹션 카드 */
+    .section-card { border-radius: 14px; }
+
+    /* 배지 */
+    .badge { font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+
+    /* 프로그레스 */
+    .progress-bar-bg { background: #E5E7EB; border-radius: 999px; height: 6px; overflow: hidden; }
+    html.dark .progress-bar-bg { background: #2d3561; }
+    .progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg,#6C63FF,#4F46E5); }
+
+    /* 온라인 상태 */
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot-online { animation: pulse-green 2s infinite; }
+    @keyframes pulse-green {
+      0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,.4); }
+      50%      { box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+    }
+
+    /* 페이드인 */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in { animation: fadeUp .35s ease forwards; }
+
+    /* 테마 토글 */
+    #themeBtn { transition: transform .4s ease; }
+    #themeBtn:hover { transform: rotate(20deg); }
+    .sun-icon, .moon-icon { transition: opacity .3s, transform .3s; }
+    html.dark .sun-icon  { opacity:1; transform:rotate(0deg); }
+    html.dark .moon-icon { opacity:0; transform:rotate(-90deg); }
+    html.light .sun-icon { opacity:0; transform:rotate(90deg); }
+    html.light .moon-icon{ opacity:1; transform:rotate(0deg); }
+
+    /* 탭 */
+    .tab-btn { transition: all .15s; border-radius: 8px; }
+    html.light .tab-btn.active { background: #EEF0FF; color: #4F46E5; font-weight: 700; }
+    html.dark  .tab-btn.active { background: #1e2a4a; color: #818cf8; font-weight: 700; }
+    html.light .tab-btn { color: #6B7280; }
+    html.dark  .tab-btn { color: #64748b; }
+    html.light .tab-btn:hover { background: #F3F4F6; }
+    html.dark  .tab-btn:hover { background: #1e2a4a; }
+
+    /* 업로드 드롭존 */
+    html.light .dropzone { border: 2px dashed #C7D2FE; background: #F8F8FF; color: #6B7280; }
+    html.dark  .dropzone { border: 2px dashed #2d3561; background: #151929; color: #64748b; }
+    .dropzone { border-radius: 12px; transition: all .2s; }
+    .dropzone:hover { border-color: #6C63FF; }
+  </style>
+</head>
+
+<body class="h-screen flex items-stretch justify-stretch overflow-hidden p-0 md:p-4">
+
+  <!-- ═══════════════ APP SHELL ═══════════════ -->
+  <div id="appShell" class="flex flex-col w-full h-full md:h-[calc(100vh-2rem)] md:rounded-2xl overflow-hidden">
+
+    <!-- ═══════════════ HEADER ═══════════════ -->
+    <header id="appHeader" class="flex items-center px-4 h-14 gap-3 z-30 flex-shrink-0 transition-colors duration-300">
+
+      <!-- Hamburger (mobile) -->
+      <button id="menuBtn" class="md:hidden p-1.5 rounded-lg header-icon-btn">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+
+      <!-- Logo -->
+      <div class="flex items-center gap-2 mr-2">
+        <div class="w-7 h-7 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+          </svg>
+        </div>
+        <a href="{% url 'dashboard' %}" class="font-extrabold text-base hidden sm:block header-logo-txt transition-colors duration-300 no-underline">RAG챗봇 V1.0</a>
+      </div>
+
+      <!-- Breadcrumb -->
+      <div class="hidden md:flex items-center gap-1.5 flex-1 text-sm">
+        <span class="breadcrumb-txt transition-colors duration-300">챗봇 앱</span>
+        <span class="breadcrumb-txt">/</span>
+        <span class="breadcrumb-last transition-colors duration-300">관리 대시보드 ▾</span>
+      </div>
+
+      <!-- Right actions -->
+      <div class="ml-auto flex items-center gap-1.5">
+        <span class="hidden sm:block header-cfg transition-colors duration-300">Admin Dashboard</span>
+
+        <!-- Chat 바로가기 -->
+        <a href="{% url 'chatbot' %}" class="export-btn flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-colors duration-300">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+          </svg>
+          <span class="hidden sm:inline">챗봇 열기</span>
+        </a>
+
+        <!-- 사용자 정보 -->
+        <span class="hidden md:flex items-center gap-1.5 text-xs header-cfg transition-colors duration-300">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+          {{ request.user.get_full_name|default:request.user.username }}
+        </span>
+
+        <!-- 로그아웃 -->
+        <a href="{% url 'logout' %}" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300" title="로그아웃">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </a>
+
+        <!-- Theme Toggle -->
+        <button id="themeBtn" onclick="toggleTheme()" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300 relative w-8 h-8 flex items-center justify-center" title="다크/라이트 모드 전환">
+          <svg class="sun-icon w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+          </svg>
+          <svg class="moon-icon w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        </button>
+
+        <!-- 알림 -->
+        <button onclick="showNotifications()" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300 relative" title="알림">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          <span class="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ═══════════════ BODY ROW ═══════════════ -->
+    <div class="flex flex-1 overflow-hidden relative">
+
+      <!-- Mobile overlay -->
+      <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+      {% include "dashboard/inc_left.html" %}
+
+      <!-- ═══════════ DASHBOARD MAIN ═══════════ -->
+      <main id="dashMain" class="flex-1 flex flex-col overflow-hidden transition-colors duration-300">
+        <div class="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+
+          <!-- 페이지 헤더 -->
+          <div class="fade-in flex items-center justify-between">
+            <div>
+              <h1 class="text-xl font-extrabold page-title transition-colors duration-300">관리 대시보드</h1>
+              <p class="text-xs mt-0.5 page-sub transition-colors duration-300">RAG 기반 중대재해처벌법 챗봇 시스템 현황</p>
+            </div>
+            <div class="flex items-center gap-2 text-xs page-sub transition-colors duration-300">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span id="currentTime"></span>
+            </div>
+          </div>
+
+          <!-- ─── 통계 카드 4개 ─── -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 fade-in">
+
+            <!-- 오늘 대화 수 -->
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-purple rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                </div>
+                <span class="badge badge-green stat-delta-up transition-colors duration-300">+12%</span>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300" id="statConv">—</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">오늘 대화 수</p>
+              <div class="progress-bar-bg mt-3 transition-colors duration-300">
+                <div class="progress-fill" id="statConvBar" style="width:0%"></div>
+              </div>
+              <p class="text-xs mt-1 stat-label transition-colors duration-300" id="statConvBarTxt"></p>
+            </div>
+
+            <!-- 활성 세션 -->
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-green rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+                <span class="badge badge-green stat-delta-up transition-colors duration-300">실시간</span>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300" id="statActive">—</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">현재 활성 세션</p>
+              <div class="flex items-center gap-1 mt-3">
+                <span class="status-dot status-dot-online"></span>
+                <span class="text-xs stat-label transition-colors duration-300">온라인 사용자</span>
+              </div>
+            </div>
+
+            <!-- 인덱싱 문서 -->
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-blue rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <span class="badge badge-blue stat-delta-neu transition-colors duration-300">총 청크</span>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300" id="statDocs">—</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">인덱싱된 RAG</p>
+              <p class="text-xs mt-3 stat-label transition-colors duration-300" id="statDocsExtra">— 청크</p>
+            </div>
+
+            <!-- 평균 응답 시간 -->
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-orange rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="badge badge-green stat-delta-up transition-colors duration-300">-8%</span>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300" id="statAvgMs">—</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">평균 응답 시간</p>
+              <div class="progress-bar-bg mt-3 transition-colors duration-300">
+                <div class="progress-fill" style="width:45%;background:linear-gradient(90deg,#22C55E,#16A34A)"></div>
+              </div>
+              <p class="text-xs mt-1 stat-label transition-colors duration-300">목표: 2.0s 이하</p>
+            </div>
+          </div>
+
+          <!-- ─── 중간 행: 차트 + 채팅 세션 ─── -->
+          <div class="grid grid-cols-1 lg:grid-cols-5 gap-3 fade-in">
+
+            <!-- 일별 대화량 차트 (3/5) -->
+            <div class="lg:col-span-3 section-card p-4 transition-colors duration-300">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h2 class="text-sm font-extrabold section-head-txt transition-colors duration-300">일별 대화량</h2>
+                  <p class="text-xs section-sub-txt transition-colors duration-300">최근 7일 기준</p>
+                </div>
+                <div class="flex gap-1">
+                  <button class="tab-btn active text-xs px-2.5 py-1" onclick="switchChart(this,'week')">7일</button>
+                  <button class="tab-btn text-xs px-2.5 py-1" onclick="switchChart(this,'month')">30일</button>
+                </div>
+              </div>
+              <div class="chart-wrap rounded-xl p-3 transition-colors duration-300">
+                <canvas id="volumeChart" height="140"></canvas>
+              </div>
+            </div>
+
+            <!-- 쿼리 카테고리 (2/5) -->
+            <div class="lg:col-span-2 section-card p-4 transition-colors duration-300">
+              <div class="mb-3">
+                <h2 class="text-sm font-extrabold section-head-txt transition-colors duration-300">쿼리 카테고리</h2>
+                <p class="text-xs section-sub-txt transition-colors duration-300">질문 유형 분포</p>
+              </div>
+              <div class="chart-wrap rounded-xl p-3 transition-colors duration-300">
+                <canvas id="categoryChart" height="160"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─── 하단 행: 최근 세션 + 문서 목록 ─── -->
+          <div class="grid grid-cols-1 lg:grid-cols-5 gap-3 fade-in">
+
+            <!-- 최근 채팅 세션 (3/5) -->
+            <div class="lg:col-span-3 section-card overflow-hidden transition-colors duration-300">
+              <div class="flex items-center justify-between p-4 border-b" style="border-color: inherit;">
+                <div>
+                  <h2 class="text-sm font-extrabold section-head-txt transition-colors duration-300">최근 채팅 세션</h2>
+                  <p class="text-xs section-sub-txt transition-colors duration-300">실시간 업데이트</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input type="text" placeholder="세션 검색..." class="search-box text-xs px-3 py-1.5 rounded-lg outline-none transition-all duration-200 w-36" />
+                  <button onclick="refreshSessions()" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300" title="새로고침">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="tbl-head transition-colors duration-300">
+                      <th class="tbl-th text-left text-xs font-bold py-2.5 px-3 w-28 transition-colors duration-300">세션 ID</th>
+                      <th class="tbl-th text-center text-xs font-bold py-2.5 px-2 w-14 transition-colors duration-300 hidden sm:table-cell">질문 수</th>
+                      <th class="tbl-th text-center text-xs font-bold py-2.5 px-2 w-16 transition-colors duration-300">상태</th>
+                      <th class="tbl-th text-left text-xs font-bold py-2.5 px-2 w-20 transition-colors duration-300 hidden md:table-cell">시작 시간</th>
+                      <th class="tbl-th text-xs font-bold py-2.5 px-2 w-8 transition-colors duration-300"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="sessionsTable">
+                    <!-- JS로 채워짐 -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 문서 관리 (2/5) -->
+            <div class="lg:col-span-2 section-card overflow-hidden transition-colors duration-300">
+              <div class="flex items-center justify-between p-4">
+                <div>
+                  <h2 class="text-sm font-extrabold section-head-txt transition-colors duration-300">RAG 문서</h2>
+                  <p class="text-xs section-sub-txt transition-colors duration-300">벡터 DB 인덱스 현황</p>
+                </div>
+                <a href="{% url 'rag_add' %}" class="btn-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 no-underline">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  추가
+                </a>
+              </div>
+              <div id="docList" class="overflow-y-auto" style="max-height: 280px;">
+                <!-- JS로 채워짐 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- ─── RAG 파이프라인 상태 ─── -->
+          <div class="section-card p-4 fade-in transition-colors duration-300">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="text-sm font-extrabold section-head-txt transition-colors duration-300">RAG 파이프라인 상태</h2>
+                <p class="text-xs section-sub-txt transition-colors duration-300">각 단계별 처리 현황</p>
+              </div>
+              <button onclick="showPipelineDetail()" class="text-xs header-icon-btn underline transition-colors duration-300">상세 보기</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="text-center">
+                <div class="w-10 h-10 icon-bg-purple rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <p class="text-xs font-bold section-head-txt transition-colors duration-300">문서 로딩</p>
+                <span class="badge badge-green mt-1 inline-block">정상</span>
+              </div>
+              <div class="text-center">
+                <div class="w-10 h-10 icon-bg-blue rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                </div>
+                <p class="text-xs font-bold section-head-txt transition-colors duration-300">청크 분할</p>
+                <span class="badge badge-green mt-1 inline-block">정상</span>
+              </div>
+              <div class="text-center">
+                <div class="w-10 h-10 icon-bg-green rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                </div>
+                <p class="text-xs font-bold section-head-txt transition-colors duration-300">임베딩 (BGE-M3)</p>
+                <span class="badge badge-green mt-1 inline-block">정상</span>
+              </div>
+              <div class="text-center">
+                <div class="w-10 h-10 icon-bg-orange rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+                <p class="text-xs font-bold section-head-txt transition-colors duration-300">벡터 검색</p>
+                <span class="badge badge-green mt-1 inline-block">정상</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /overflow-y-auto -->
+      </main>
+    </div>
+  </div><!-- /appShell -->
+
+  <!-- ═══════════════ 사용자 관리 모달 ═══════════════ -->
+  <div id="userMgmtModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(0,0,0,.5)">
+    <div class="section-card w-full max-w-3xl rounded-2xl shadow-2xl transition-colors duration-300" style="max-height:90vh;display:flex;flex-direction:column">
+      <!-- 헤더 -->
+      <div class="flex items-center justify-between p-5 flex-shrink-0" style="border-bottom:1px solid rgba(0,0,0,.08)">
+        <div>
+          <h2 class="font-extrabold text-base section-head-txt transition-colors duration-300">사용자 관리</h2>
+          <p class="text-xs section-sub-txt transition-colors duration-300 mt-0.5">Django 회원 계정 목록 및 권한 관리</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openAddUser()" class="btn-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            사용자 추가
+          </button>
+          <button onclick="closeUserMgmt()" class="header-icon-btn p-1.5 rounded-lg transition-colors duration-300">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- 검색 -->
+      <div class="px-5 py-3 flex-shrink-0">
+        <input type="text" id="userSearchInput" placeholder="이름 또는 이메일로 검색..."
+          class="search-box w-full text-sm px-4 py-2 rounded-xl outline-none transition-all duration-200"
+          oninput="filterUsers(this.value)" />
+      </div>
+      <!-- 테이블 -->
+      <div class="overflow-y-auto flex-1 px-5 pb-5">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0">
+            <tr class="tbl-head transition-colors duration-300">
+              <th class="tbl-th text-left text-xs font-bold py-2.5 px-3 transition-colors duration-300">사용자</th>
+              <th class="tbl-th text-left text-xs font-bold py-2.5 px-3 transition-colors duration-300 hidden sm:table-cell">이메일</th>
+              <th class="tbl-th text-left text-xs font-bold py-2.5 px-3 transition-colors duration-300">역할</th>
+              <th class="tbl-th text-left text-xs font-bold py-2.5 px-3 transition-colors duration-300 hidden md:table-cell">가입일</th>
+              <th class="tbl-th text-left text-xs font-bold py-2.5 px-3 transition-colors duration-300">상태</th>
+              <th class="tbl-th text-xs font-bold py-2.5 px-3 transition-colors duration-300">관리</th>
+            </tr>
+          </thead>
+          <tbody id="userTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 업로드 모달 ═══════════════ -->
+  <div id="uploadModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(0,0,0,.5)">
+    <div class="section-card w-full max-w-lg rounded-2xl shadow-2xl transition-colors duration-300">
+      <div class="flex items-center justify-between p-5" style="border-bottom:1px solid #E5E7EB" id="uploadModalHeader">
+        <h2 class="font-extrabold text-base section-head-txt transition-colors duration-300">문서 업로드</h2>
+        <button onclick="closeUpload()" class="header-icon-btn p-1 rounded-lg transition-colors duration-300">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="dropzone p-8 text-center cursor-pointer" onclick="document.getElementById('fileInput').click()">
+          <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <p class="text-sm font-bold mb-1">파일을 드래그하거나 클릭해서 선택</p>
+          <p class="text-xs opacity-60">PDF, TXT, DOCX 지원 · 최대 50MB</p>
+          <input type="file" id="fileInput" class="hidden" multiple accept=".pdf,.txt,.docx" onchange="handleFileSelect(this)" />
+        </div>
+        <div id="filePreview" class="space-y-2 hidden"></div>
+        <button onclick="submitUpload()" class="btn-primary w-full text-white font-bold py-2.5 rounded-xl text-sm">
+          인덱싱 시작
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ════════════════════════════════════════════
+  //  THEME
+  // ════════════════════════════════════════════
+  let isDark = false;
+
+  function toggleTheme() {
+    isDark = !isDark;
+    const html = document.documentElement;
+    html.classList.toggle('dark', isDark);
+    html.classList.toggle('light', !isDark);
+    updateChartColors();
+    Swal.fire({
+      icon:'info', title: isDark ? '🌙 다크 모드' : '☀️ 라이트 모드',
+      timer:1200, showConfirmButton:false, toast:true, position:'top-end'
+    });
+  }
+
+  // ════════════════════════════════════════════
+  //  CLOCK
+  // ════════════════════════════════════════════
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('currentTime').textContent =
+      now.toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ════════════════════════════════════════════
+  //  NAV
+  // ════════════════════════════════════════════
+  function setNav(el, section) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    if (window.innerWidth < 768) closeSidebar();
+    Swal.fire({
+      icon:'info', title:`${el.querySelector('.nav-txt').textContent.trim()} 선택됨`,
+      timer:900, showConfirmButton:false, toast:true, position:'top-end'
+    });
+  }
+
+  // ════════════════════════════════════════════
+  //  SESSIONS TABLE
+  // ════════════════════════════════════════════
+  function relativeTime(isoStr) {
+    const d   = new Date(isoStr);
+    const sec = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (sec < 60)    return '방금 전';
+    if (sec < 3600)  return Math.floor(sec / 60) + '분 전';
+    if (sec < 86400) return Math.floor(sec / 3600) + '시간 전';
+    if (sec < 172800) return '어제';
+    return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+  }
+
+  function renderSessions(sessions) {
+    const tbody = document.getElementById('sessionsTable');
+    if (!sessions || sessions.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-xs tbl-td-sub py-8 transition-colors duration-300">채팅 세션이 없습니다.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = sessions.map(s => {
+      const badgeCls = s.is_active ? 'badge-green' : 'badge-gray';
+      const badgeTxt = s.is_active ? '진행 중' : '종료';
+      return `<tr class="tbl-row transition-colors duration-300">
+        <td class="tbl-td py-2.5 px-3 w-28 max-w-[112px] transition-colors duration-300" title="${s.title}">
+          <span class="font-bold text-xs">${s.session_short}</span><br>
+          <span class="tbl-td-sub text-xs block truncate">${s.title}</span>
+        </td>
+        <td class="tbl-td py-2.5 px-2 w-14 text-center hidden sm:table-cell transition-colors duration-300">${s.message_count}</td>
+        <td class="py-2.5 px-2 w-16 text-center"><span class="badge ${badgeCls} transition-colors duration-300">${badgeTxt}</span></td>
+        <td class="tbl-td-sub py-2.5 px-2 w-20 text-xs hidden md:table-cell transition-colors duration-300">${relativeTime(s.updated_at)}</td>
+        <td class="py-2.5 px-2 w-8 text-center">
+          <a href="{% url 'chatbot' %}" class="header-icon-btn p-1 rounded transition-colors duration-300 inline-block" title="채팅창에서 보기">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          </a>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ════════════════════════════════════════════
+  //  DOC LIST (RAG 설정 목록)
+  // ════════════════════════════════════════════
+  function renderDocs(rags) {
+    const container = document.getElementById('docList');
+    if (!rags || rags.length === 0) {
+      container.innerHTML = `<div class="px-4 py-8 text-center text-xs doc-meta transition-colors duration-300">등록된 RAG가 없습니다.</div>`;
+      return;
+    }
+    const statusMap = {
+      ready:    { cls:'badge-green',  txt:'완료' },
+      building: { cls:'badge-yellow', txt:'빌드 중' },
+      pending:  { cls:'badge-gray',   txt:'대기' },
+      error:    { cls:'badge-red',    txt:'오류' },
+    };
+    container.innerHTML = rags.map(r => {
+      const s = statusMap[r.status] || { cls:'badge-gray', txt:r.status };
+      return `<div class="doc-item flex items-center gap-3 px-4 py-3 transition-colors duration-300 cursor-default">
+        <div class="w-8 h-8 icon-bg-blue rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold doc-name truncate transition-colors duration-300">${r.name}</p>
+          <p class="text-xs doc-meta transition-colors duration-300">${r.chunk_count > 0 ? r.chunk_count+'청크' : '—'} · ${r.llm_model}</p>
+        </div>
+        <span class="badge ${s.cls} transition-colors duration-300 flex-shrink-0">${s.txt}</span>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadDocs() {
+    try {
+      const res = await fetch('{% url "dashboard_rags" %}');
+      const data = await res.json();
+      renderDocs(data.rags || []);
+    } catch (e) {
+      document.getElementById('docList').innerHTML =
+        `<div class="px-4 py-8 text-center text-xs doc-meta transition-colors duration-300">불러오기 실패</div>`;
+    }
+  }
+  loadDocs();
+
+  // ════════════════════════════════════════════
+  //  CHARTS
+  // ════════════════════════════════════════════
+  let _chartData7 = [], _chartData30 = [], _chartPeriod = 'week';
+  let volChart, catChart;
+
+  const CAT_COLORS = ['#6C63FF','#4F46E5','#7C3AED','#A78BFA','#3B82F6','#22C55E','#F97316','#EC4899'];
+
+  function getChartColor() {
+    return isDark
+      ? { grid:'rgba(255,255,255,.05)', tick:'#64748b', bg:'rgba(129,140,248,.12)', border:'#818cf8' }
+      : { grid:'rgba(0,0,0,.05)',       tick:'#9CA3AF', bg:'rgba(108,99,255,.10)',  border:'#6C63FF' };
+  }
+
+  function buildVolumeChart(items) {
+    const c      = getChartColor();
+    const labels = items.map(d => d.label);
+    const data   = items.map(d => d.count);
+    if (volChart) volChart.destroy();
+    volChart = new Chart(document.getElementById('volumeChart'), {
+      type:'line',
+      data:{
+        labels,
+        datasets:[{
+          label:'대화 수', data,
+          borderColor: c.border, backgroundColor: c.bg,
+          tension:.4, fill:true, pointBackgroundColor: c.border, pointRadius: 4,
+        }]
+      },
+      options:{
+        responsive:true,
+        plugins:{ legend:{ display:false } },
+        scales:{
+          x:{ grid:{ color:c.grid }, ticks:{ color:c.tick, font:{ family:'Nanum Gothic', size:11 } } },
+          y:{ beginAtZero:true,  grid:{ color:c.grid }, ticks:{ color:c.tick, font:{ family:'Nanum Gothic', size:11 }, stepSize:1 } }
+        }
+      }
+    });
+  }
+
+  function buildCategoryChart(categories) {
+    const labels = categories.map(d => d.label);
+    const data   = categories.map(d => d.count);
+    const colors = labels.map((_, i) => CAT_COLORS[i % CAT_COLORS.length]);
+    if (catChart) catChart.destroy();
+    catChart = new Chart(document.getElementById('categoryChart'), {
+      type:'doughnut',
+      data:{ labels, datasets:[{ data, backgroundColor: colors }] },
+      options:{
+        responsive:true,
+        plugins:{
+          legend:{
+            position:'bottom',
+            labels:{ font:{ family:'Nanum Gothic', size:11 }, color: isDark?'#94a3b8':'#6B7280', padding:8 }
+          }
+        }
+      }
+    });
+  }
+
+  function updateChartColors() {
+    if (_chartData7.length)  buildVolumeChart(_chartPeriod === 'week' ? _chartData7 : _chartData30);
+    if (_chartCats)          buildCategoryChart(_chartCats);
+  }
+
+  let _chartCats = null;
+
+  async function loadCharts() {
+    try {
+      const res  = await fetch('{% url "dashboard_charts" %}');
+      const data = await res.json();
+      _chartData7  = data.daily_7  || [];
+      _chartData30 = data.daily_30 || [];
+      _chartCats   = data.categories || [];
+      buildVolumeChart(_chartData7);
+      buildCategoryChart(_chartCats);
+    } catch (e) {
+      console.error('차트 데이터 로드 실패:', e);
+    }
+  }
+
+  loadCharts();
+
+  function switchChart(btn, period) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _chartPeriod = period;
+    buildVolumeChart(period === 'week' ? _chartData7 : _chartData30);
+  }
+
+  // ════════════════════════════════════════════
+  //  ACTIONS
+  // ════════════════════════════════════════════
+  // ════════════════════════════════════════════
+  //  USER MANAGEMENT
+  // ════════════════════════════════════════════
+  const sampleUsers = [
+    { id:1, name:'홍길동',   email:'admin@example.com',  role:'superuser', joined:'2024-01-15', active:true  },
+    { id:2, name:'김철수',   email:'staff@example.com',  role:'staff',     joined:'2024-03-22', active:true  },
+    { id:3, name:'이영희',   email:'user1@example.com',  role:'user',      joined:'2024-05-10', active:true  },
+    { id:4, name:'박민준',   email:'user2@example.com',  role:'user',      joined:'2024-07-01', active:false },
+    { id:5, name:'최수진',   email:'user3@example.com',  role:'user',      joined:'2024-08-18', active:true  },
+    { id:6, name:'정재원',   email:'user4@example.com',  role:'user',      joined:'2024-10-05', active:true  },
+  ];
+
+  function renderUserTable(users) {
+    const tbody = document.getElementById('userTable');
+    tbody.innerHTML = users.map(u => {
+      const roleBadge = u.role === 'superuser'
+        ? '<span class="badge badge-red">슈퍼관리자</span>'
+        : u.role === 'staff'
+          ? '<span class="badge badge-blue">스태프</span>'
+          : '<span class="badge badge-gray">일반 사용자</span>';
+      const statusBadge = u.active
+        ? '<span class="badge badge-green">활성</span>'
+        : '<span class="badge badge-gray">비활성</span>';
+      return `<tr class="tbl-row transition-colors duration-300">
+        <td class="tbl-td py-2.5 px-3 font-bold transition-colors duration-300">${u.name}</td>
+        <td class="tbl-td py-2.5 px-3 text-xs hidden sm:table-cell transition-colors duration-300">${u.email}</td>
+        <td class="py-2.5 px-3">${roleBadge}</td>
+        <td class="tbl-td-sub py-2.5 px-3 text-xs hidden md:table-cell transition-colors duration-300">${u.joined}</td>
+        <td class="py-2.5 px-3">${statusBadge}</td>
+        <td class="py-2.5 px-3">
+          <div class="flex items-center gap-1">
+            <button onclick="editUser(${u.id})" class="header-icon-btn p-1 rounded transition-colors duration-300" title="수정">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+            <button onclick="deleteUser(${u.id},'${u.name}')" class="p-1 rounded transition-colors duration-300" style="color:#EF4444" title="삭제">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function openUserMgmt() {
+    renderUserTable(sampleUsers);
+    document.getElementById('userMgmtModal').classList.remove('hidden');
+    document.getElementById('userSearchInput').value = '';
+  }
+
+  function closeUserMgmt() {
+    document.getElementById('userMgmtModal').classList.add('hidden');
+  }
+
+  function filterUsers(q) {
+    const filtered = sampleUsers.filter(u =>
+      u.name.includes(q) || u.email.toLowerCase().includes(q.toLowerCase())
+    );
+    renderUserTable(filtered);
+  }
+
+  function editUser(id) {
+    const u = sampleUsers.find(u => u.id === id);
+    if (!u) return;
+    Swal.fire({
+      title: `${u.name} 계정 수정`,
+      html: `<div style="text-align:left;font-family:'Nanum Gothic',sans-serif;font-size:13px">
+        <label style="font-weight:700;display:block;margin-bottom:4px">역할</label>
+        <select id="swalRole" style="width:100%;padding:8px;border:1px solid #E5E7EB;border-radius:8px;font-family:'Nanum Gothic',sans-serif;margin-bottom:10px">
+          <option value="user"      ${u.role==='user'      ?'selected':''}>일반 사용자</option>
+          <option value="staff"     ${u.role==='staff'     ?'selected':''}>스태프</option>
+          <option value="superuser" ${u.role==='superuser' ?'selected':''}>슈퍼관리자</option>
+        </select>
+        <label style="font-weight:700;display:block;margin-bottom:4px">상태</label>
+        <select id="swalActive" style="width:100%;padding:8px;border:1px solid #E5E7EB;border-radius:8px;font-family:'Nanum Gothic',sans-serif">
+          <option value="1" ${u.active?'selected':''}>활성</option>
+          <option value="0" ${!u.active?'selected':''}>비활성</option>
+        </select>
+      </div>`,
+      confirmButtonColor: '#6C63FF',
+      confirmButtonText: '저장',
+      showCancelButton: true,
+      cancelButtonText: '취소',
+    }).then(r => {
+      if (r.isConfirmed) {
+        const idx = sampleUsers.findIndex(x => x.id === id);
+        sampleUsers[idx].role   = document.getElementById('swalRole').value;
+        sampleUsers[idx].active = document.getElementById('swalActive').value === '1';
+        renderUserTable(sampleUsers);
+        Swal.fire({ icon:'success', title:'저장 완료', timer:1200, showConfirmButton:false, toast:true, position:'top-end' });
+      }
+    });
+  }
+
+  function deleteUser(id, name) {
+    Swal.fire({
+      title: `${name} 계정 삭제`,
+      text: '삭제된 계정은 복구할 수 없습니다. 계속하시겠습니까?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#EF4444',
+      cancelButtonColor: '#9CA3AF',
+      confirmButtonText: '삭제',
+      cancelButtonText: '취소',
+    }).then(r => {
+      if (r.isConfirmed) {
+        const idx = sampleUsers.findIndex(u => u.id === id);
+        if (idx !== -1) sampleUsers.splice(idx, 1);
+        renderUserTable(sampleUsers);
+        Swal.fire({ icon:'success', title:'삭제 완료', timer:1200, showConfirmButton:false, toast:true, position:'top-end' });
+      }
+    });
+  }
+
+  function openAddUser() {
+    Swal.fire({
+      title: '사용자 추가',
+      html: `<div style="text-align:left;font-family:'Nanum Gothic',sans-serif;font-size:13px">
+        <label style="font-weight:700;display:block;margin-bottom:4px">이름</label>
+        <input id="swalName" type="text" placeholder="홍길동"
+          style="width:100%;padding:8px;border:1px solid #E5E7EB;border-radius:8px;font-family:'Nanum Gothic',sans-serif;margin-bottom:10px;outline:none"
+          onfocus="this.style.borderColor='#6C63FF'" onblur="this.style.borderColor='#E5E7EB'" />
+        <label style="font-weight:700;display:block;margin-bottom:4px">이메일</label>
+        <input id="swalNewEmail" type="email" placeholder="user@example.com"
+          style="width:100%;padding:8px;border:1px solid #E5E7EB;border-radius:8px;font-family:'Nanum Gothic',sans-serif;margin-bottom:10px;outline:none"
+          onfocus="this.style.borderColor='#6C63FF'" onblur="this.style.borderColor='#E5E7EB'" />
+        <label style="font-weight:700;display:block;margin-bottom:4px">역할</label>
+        <select id="swalNewRole" style="width:100%;padding:8px;border:1px solid #E5E7EB;border-radius:8px;font-family:'Nanum Gothic',sans-serif">
+          <option value="user">일반 사용자</option>
+          <option value="staff">스태프</option>
+          <option value="superuser">슈퍼관리자</option>
+        </select>
+      </div>`,
+      confirmButtonColor: '#6C63FF',
+      confirmButtonText: '추가',
+      showCancelButton: true,
+      cancelButtonText: '취소',
+      preConfirm: () => {
+        const name  = document.getElementById('swalName').value.trim();
+        const email = document.getElementById('swalNewEmail').value.trim();
+        const role  = document.getElementById('swalNewRole').value;
+        if (!name)  { Swal.showValidationMessage('이름을 입력해 주세요.'); return false; }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          Swal.showValidationMessage('올바른 이메일을 입력해 주세요.'); return false;
+        }
+        return { name, email, role };
+      }
+    }).then(r => {
+      if (r.isConfirmed) {
+        const newId = Math.max(...sampleUsers.map(u => u.id)) + 1;
+        sampleUsers.push({
+          id: newId,
+          name: r.value.name,
+          email: r.value.email,
+          role: r.value.role,
+          joined: new Date().toISOString().slice(0,10),
+          active: true,
+        });
+        renderUserTable(sampleUsers);
+        Swal.fire({ icon:'success', title:'사용자 추가 완료', timer:1200, showConfirmButton:false, toast:true, position:'top-end' });
+      }
+    });
+  }
+
+  document.getElementById('userMgmtModal').addEventListener('click', function(e){
+    if (e.target === this) closeUserMgmt();
+  });
+
+  function refreshSessions() {
+    Swal.fire({ icon:'info', title:'갱신 중...', timer:600, showConfirmButton:false, toast:true, position:'top-end' });
+    loadStats();
+  }
+
+  function viewSession(id) {
+    Swal.fire({
+      title: `세션 ${id}`,
+      html: `<div style="text-align:left;font-family:'Nanum Gothic',sans-serif;font-size:13px">
+        <p><strong>상태:</strong> 진행 중</p>
+        <p><strong>질문 수:</strong> 14개</p>
+        <p><strong>모델:</strong> claude-sonnet-4-6</p>
+        <p><strong>임베딩:</strong> BGE-M3</p>
+        <p><strong>검색 청크:</strong> Top-5</p>
+        <p style="margin-top:8px"><strong>마지막 질문:</strong><br>경영책임자 의무사항에 대해 알려주세요</p>
+      </div>`,
+      confirmButtonColor:'#6C63FF', confirmButtonText:'채팅창에서 보기',
+      showCancelButton:true, cancelButtonText:'닫기'
+    }).then(r => {
+      if (r.isConfirmed) window.location.href = '/chatbot/dashboard/chat/';
+    });
+  }
+
+  function showNotifications() {
+    Swal.fire({
+      title:'알림',
+      html:`<div style="text-align:left;font-family:'Nanum Gothic',sans-serif;font-size:13px">
+        <div style="padding:10px 0;border-bottom:1px solid #E5E7EB">
+          <p style="font-weight:700;color:#EF4444">⚠️ 세션 #S-2042 처리 오류</p>
+          <p style="color:#9CA3AF;font-size:12px">2시간 전 · 임베딩 타임아웃</p>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px solid #E5E7EB">
+          <p style="font-weight:700">📄 문서 인덱싱 진행 중</p>
+          <p style="color:#9CA3AF;font-size:12px">경영책임자_의무체크리스트.txt</p>
+        </div>
+        <div style="padding:10px 0">
+          <p style="font-weight:700;color:#22C55E">✅ 일일 백업 완료</p>
+          <p style="color:#9CA3AF;font-size:12px">오전 3:00 자동 실행</p>
+        </div>
+      </div>`,
+      confirmButtonColor:'#6C63FF', confirmButtonText:'모두 읽음'
+    });
+  }
+
+  function _rebuildIndex() {
+    Swal.fire({
+      title:'인덱스 재구성',
+      text:'모든 문서를 다시 임베딩하고 벡터 DB를 재구성합니다. 시간이 소요될 수 있습니다.',
+      icon:'warning',
+      showCancelButton:true,
+      confirmButtonColor:'#6C63FF', cancelButtonColor:'#9CA3AF',
+      confirmButtonText:'재구성 시작', cancelButtonText:'취소'
+    }).then(r => {
+      if (r.isConfirmed) {
+        Swal.fire({ icon:'info', title:'인덱스 재구성 중...', text:'백그라운드에서 처리됩니다.', confirmButtonColor:'#6C63FF' });
+      }
+    });
+  }
+
+  function showPipelineDetail() {
+    Swal.fire({
+      title:'RAG 파이프라인 상세',
+      html:`<div style="text-align:left;font-family:'Nanum Gothic',sans-serif;font-size:13px">
+        <p><strong>임베딩 모델:</strong> BAAI/bge-m3</p>
+        <p><strong>청크 크기:</strong> 512 tokens</p>
+        <p><strong>청크 오버랩:</strong> 50 tokens</p>
+        <p><strong>검색 방식:</strong> Dense + Sparse (Hybrid)</p>
+        <p><strong>Top-K:</strong> 5</p>
+        <p><strong>재랭킹:</strong> Cross-Encoder</p>
+        <p><strong>LLM:</strong> claude-sonnet-4-6</p>
+        <p><strong>벡터 DB:</strong> ChromaDB / Qdrant</p>
+        <p style="margin-top:8px;color:#22C55E;font-weight:700">모든 단계 정상 동작 중</p>
+      </div>`,
+      confirmButtonColor:'#6C63FF', confirmButtonText:'확인'
+    });
+  }
+
+  // ════════════════════════════════════════════
+  //  UPLOAD MODAL
+  // ════════════════════════════════════════════
+  function _openUpload() { document.getElementById('uploadModal').classList.remove('hidden'); }
+  function closeUpload() { document.getElementById('uploadModal').classList.add('hidden'); }
+
+  function handleFileSelect(input) {
+    const preview = document.getElementById('filePreview');
+    preview.innerHTML = '';
+    [...input.files].forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'flex items-center gap-2 text-xs';
+      div.innerHTML = `
+        <svg class="w-4 h-4 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span class="doc-name font-bold truncate transition-colors duration-300">${f.name}</span>
+        <span class="doc-meta transition-colors duration-300">(${(f.size/1024).toFixed(1)}KB)</span>`;
+      preview.appendChild(div);
+    });
+    preview.classList.remove('hidden');
+  }
+
+  function submitUpload() {
+    closeUpload();
+    Swal.fire({ icon:'success', title:'업로드 완료!', text:'백그라운드에서 인덱싱이 진행됩니다.', confirmButtonColor:'#6C63FF' });
+  }
+
+  document.getElementById('uploadModal').addEventListener('click', function(e){
+    if (e.target === this) closeUpload();
+  });
+
+  // ════════════════════════════════════════════
+  //  MOBILE SIDEBAR
+  // ════════════════════════════════════════════
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('show');
+  });
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
+
+  // ════════════════════════════════════════════
+  //  DASHBOARD STATS (DB 실시간)
+  // ════════════════════════════════════════════
+  async function loadStats() {
+    try {
+      const res  = await fetch('{% url "dashboard_stats" %}');
+      const data = await res.json();
+
+      document.getElementById('statConv').textContent   = data.today_messages.toLocaleString();
+      document.getElementById('statActive').textContent = data.active_sessions.toLocaleString();
+      document.getElementById('statDocs').textContent   = data.ready_rags.toLocaleString();
+      document.getElementById('statDocsExtra').textContent = data.total_chunks.toLocaleString() + '청크';
+      document.getElementById('statAvgMs').textContent  = data.avg_response_s > 0 ? data.avg_response_s + 's' : '—';
+
+      // 오늘 대화 수 프로그레스 바 (목표 100건 기준)
+      const goal = 100;
+      const pct  = Math.min(Math.round(data.today_messages / goal * 100), 100);
+      document.getElementById('statConvBar').style.width = pct + '%';
+      document.getElementById('statConvBarTxt').textContent = `목표(${goal}건) 대비 ${pct}%`;
+
+      renderSessions(data.recent_sessions);
+    } catch (e) {
+      console.error('대시보드 통계 로드 실패:', e);
+    }
+  }
+
+  loadStats();
+  setInterval(loadStats, 30000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,572 @@
+﻿<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>문서 관리 · RAG챗봇 V1.0</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        fontFamily: { nanum: ['"Nanum Gothic"', 'sans-serif'] },
+        colors: { primary: '#6C63FF', primaryLight: '#EEF0FF', accent: '#4F46E5' },
+      }},
+    };
+  </script>
+
+  <style>
+    * { font-family: 'Nanum Gothic', sans-serif; box-sizing: border-box; }
+
+    html.light body  { background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 35%,#2563eb 60%,#3b82f6 85%,#60a5fa 100%); min-height:100vh; }
+    html.dark  body  { background:linear-gradient(135deg,#0c1a3a 0%,#0f2460 35%,#1a3a7a 60%,#1e4d96 85%,#1d6bbb 100%); min-height:100vh; }
+
+    html.light #appHeader       { background:#fff; border-bottom:1px solid #E5E7EB; }
+    html.dark  #appHeader       { background:#1a1f35; border-bottom:1px solid #2d3561; }
+    html.light .header-logo-txt { color:#1E1B4B; }
+    html.dark  .header-logo-txt { color:#e2e8f0; }
+    html.light .breadcrumb-txt  { color:#9CA3AF; }
+    html.dark  .breadcrumb-txt  { color:#64748b; }
+    html.light .breadcrumb-last { color:#4F46E5; font-weight:700; }
+    html.dark  .breadcrumb-last { color:#818cf8; font-weight:700; }
+    html.light .header-icon-btn { color:#6C63FF; }
+    html.dark  .header-icon-btn { color:#818cf8; }
+    html.light .header-icon-btn:hover { background:#EEF0FF; }
+    html.dark  .header-icon-btn:hover { background:#2d3561; }
+    html.light .export-btn      { background:#1E1B4B; color:#fff; }
+    html.dark  .export-btn      { background:#2d3561; color:#e2e8f0; }
+    html.light .export-btn:hover{ background:#4F46E5; }
+    html.dark  .export-btn:hover{ background:#4F46E5; color:#fff; }
+    html.light .header-cfg      { color:#6B7280; font-size:13px; }
+    html.dark  .header-cfg      { color:#64748b; font-size:13px; }
+
+    html.light #sidebar         { background:#F8F8FC; border-right:1px solid #E5E7EB; }
+    html.dark  #sidebar         { background:#151929; border-right:1px solid #2d3561; }
+    html.light .nav-item:hover  { background:#EEEEFF; }
+    html.dark  .nav-item:hover  { background:#1e2a4a; }
+    html.light .nav-item.active { background:#EEF0FF; }
+    html.dark  .nav-item.active { background:#1e2a4a; }
+    html.light .nav-txt         { color:#6B7280; }
+    html.dark  .nav-txt         { color:#94a3b8; }
+    html.light .nav-item.active .nav-txt { color:#6C63FF; font-weight:700; }
+    html.dark  .nav-item.active .nav-txt { color:#818cf8; font-weight:700; }
+    html.light .section-label   { color:#9CA3AF; }
+    html.dark  .section-label   { color:#475569; }
+    html.light .sidebar-divider { border-color:#E5E7EB; }
+    html.dark  .sidebar-divider { border-color:#2d3561; }
+    html.light .sys-status-txt  { color:#6B7280; }
+    html.dark  .sys-status-txt  { color:#64748b; }
+    html.light .quick-btn       { background:#EEF0FF; color:#4F46E5; border:1px solid #C7D2FE; }
+    html.dark  .quick-btn       { background:#1e2a4a; color:#818cf8; border:1px solid #2d3561; }
+    html.light .quick-btn:hover { background:#DDD8FF; }
+    html.dark  .quick-btn:hover { background:#2d3561; }
+    .status-dot { width:8px; height:8px; border-radius:50%; }
+    .status-dot-online { background:#22C55E; animation:pulse-green 2s infinite; }
+    @keyframes pulse-green { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4)} 50%{box-shadow:0 0 0 4px rgba(34,197,94,0)} }
+
+    html.light #dashMain        { background:#F5F6FF; }
+    html.dark  #dashMain        { background:#111827; }
+    html.light .page-title      { color:#1E1B4B; }
+    html.dark  .page-title      { color:#e2e8f0; }
+    html.light .page-sub        { color:#9CA3AF; }
+    html.dark  .page-sub        { color:#475569; }
+
+    html.light .section-card    { background:#fff; border:1px solid #E5E7EB; box-shadow:0 2px 8px rgba(108,99,255,.06); }
+    html.dark  .section-card    { background:#1a1f35; border:1px solid #2d3561; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    html.light .section-head-txt{ color:#1E1B4B; }
+    html.dark  .section-head-txt{ color:#e2e8f0; }
+
+    html.light .tbl-head        { background:#F3F4F6; }
+    html.dark  .tbl-head        { background:#151929; }
+    html.light .tbl-th          { color:#6B7280; }
+    html.dark  .tbl-th          { color:#64748b; }
+    html.light .tbl-row         { border-bottom:1px solid #F3F4F6; }
+    html.dark  .tbl-row         { border-bottom:1px solid #1e2a4a; }
+    html.light .tbl-row:hover   { background:#F9F9FF; }
+    html.dark  .tbl-row:hover   { background:#1e2a4a; }
+    html.light .tbl-td          { color:#374151; }
+    html.dark  .tbl-td          { color:#cbd5e1; }
+    html.light .tbl-td-sub      { color:#9CA3AF; }
+    html.dark  .tbl-td-sub      { color:#475569; }
+
+    html.light .badge-green     { background:#DCFCE7; color:#15803D; }
+    html.dark  .badge-green     { background:#14532D; color:#4ADE80; }
+    html.light .badge-blue      { background:#DBEAFE; color:#1D4ED8; }
+    html.dark  .badge-blue      { background:#1e3a5f; color:#60A5FA; }
+    html.light .badge-yellow    { background:#FEF9C3; color:#A16207; }
+    html.dark  .badge-yellow    { background:#713F12; color:#FDE047; }
+    html.light .badge-red       { background:#FEE2E2; color:#DC2626; }
+    html.dark  .badge-red       { background:#7F1D1D; color:#FCA5A5; }
+    html.light .badge-gray      { background:#F3F4F6; color:#6B7280; }
+    html.dark  .badge-gray      { background:#1e2a4a; color:#94a3b8; }
+    html.light .badge-purple    { background:#EDE9FE; color:#6D28D9; }
+    html.dark  .badge-purple    { background:#2E1065; color:#A78BFA; }
+
+    html.light .search-box      { background:#F3F4F6; border:1px solid #E5E7EB; color:#374151; }
+    html.dark  .search-box      { background:#111827; border:1px solid #2d3561; color:#e2e8f0; }
+    .search-box:focus           { border-color:#6C63FF !important; outline:none; }
+    html.light .search-box::placeholder { color:#9CA3AF; }
+    html.dark  .search-box::placeholder { color:#475569; }
+
+    /* 모달 */
+    html.light .modal-card      { background:#fff; border:1px solid #E5E7EB; }
+    html.dark  .modal-card      { background:#1a1f35; border:1px solid #2d3561; }
+    html.light .modal-overlay   { background:rgba(0,0,0,.5); }
+    html.dark  .modal-overlay   { background:rgba(0,0,0,.7); }
+    html.light .modal-section   { background:#F8F8FC; border:1px solid #E5E7EB; }
+    html.dark  .modal-section   { background:#111827; border:1px solid #2d3561; }
+    html.light .modal-label     { color:#9CA3AF; }
+    html.dark  .modal-label     { color:#475569; }
+    html.light .modal-value     { color:#1E1B4B; }
+    html.dark  .modal-value     { color:#e2e8f0; }
+    html.light .modal-title-txt { color:#1E1B4B; }
+    html.dark  .modal-title-txt { color:#e2e8f0; }
+    html.light .modal-divider   { border-color:#E5E7EB; }
+    html.dark  .modal-divider   { border-color:#2d3561; }
+
+    /* 파일 유형 아이콘 */
+    .filetype-pdf   { background:linear-gradient(135deg,#EF4444,#DC2626); }
+    .filetype-docx  { background:linear-gradient(135deg,#3B82F6,#1D4ED8); }
+    .filetype-txt   { background:linear-gradient(135deg,#6B7280,#4B5563); }
+    .filetype-xlsx  { background:linear-gradient(135deg,#22C55E,#16A34A); }
+    .filetype-csv   { background:linear-gradient(135deg,#22C55E,#16A34A); }
+    .filetype-md    { background:linear-gradient(135deg,#8B5CF6,#7C3AED); }
+    .filetype-other { background:linear-gradient(135deg,#F97316,#EA580C); }
+
+    #appShell   { box-shadow:0 25px 60px rgba(0,0,0,.35); border-radius:16px; overflow:hidden; }
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:#6C63FF55; border-radius:10px; }
+    .nav-item    { transition:background .15s; border-radius:8px; cursor:pointer; }
+    .section-card{ border-radius:14px; }
+    .badge       { font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; }
+    .btn-primary { background:linear-gradient(135deg,#6C63FF,#4F46E5); transition:opacity .2s,transform .1s; }
+    .btn-primary:hover { opacity:.9; transform:translateY(-1px); }
+    #sidebar { transition:transform .3s ease; }
+    @media(max-width:768px){
+      #sidebar{ position:fixed!important; left:0; top:0; bottom:0; z-index:50; transform:translateX(-100%); width:260px!important; }
+      #sidebar.open{ transform:translateX(0)!important; }
+    }
+    #sidebarOverlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+    #sidebarOverlay.show{ display:block; }
+    @keyframes fadeUp{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in{ animation:fadeUp .35s ease forwards; }
+    #themeBtn{ transition:transform .4s ease; }
+    #themeBtn:hover{ transform:rotate(20deg); }
+    .sun-icon,.moon-icon{ transition:opacity .3s,transform .3s; }
+    html.dark .sun-icon  { opacity:1; transform:rotate(0deg); }
+    html.dark .moon-icon { opacity:0; transform:rotate(-90deg); }
+    html.light .sun-icon { opacity:0; transform:rotate(90deg); }
+    html.light .moon-icon{ opacity:1; transform:rotate(0deg); }
+  </style>
+</head>
+
+<body class="h-screen flex items-stretch justify-stretch overflow-hidden p-0 md:p-4">
+<div id="appShell" class="flex flex-col w-full h-full md:h-[calc(100vh-2rem)] md:rounded-2xl overflow-hidden">
+
+  <!-- HEADER -->
+  <header id="appHeader" class="flex items-center px-4 h-14 gap-3 z-30 flex-shrink-0 transition-colors duration-300">
+    <button id="menuBtn" class="md:hidden p-1.5 rounded-lg header-icon-btn">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="flex items-center gap-2 mr-2">
+      <div class="w-7 h-7 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+      </div>
+      <a href="{% url 'dashboard' %}" class="font-extrabold text-base hidden sm:block header-logo-txt transition-colors duration-300 no-underline">RAG챗봇 V1.0</a>
+    </div>
+    <div class="hidden md:flex items-center gap-1.5 flex-1 text-sm">
+      <span class="breadcrumb-txt transition-colors duration-300">챗봇 앱</span>
+      <span class="breadcrumb-txt">/</span>
+      <a href="{% url 'dashboard' %}" class="breadcrumb-txt no-underline transition-colors duration-300">관리 대시보드</a>
+      <span class="breadcrumb-txt">/</span>
+      <span class="breadcrumb-last transition-colors duration-300">문서 관리</span>
+    </div>
+    <div class="ml-auto flex items-center gap-1.5">
+      <span class="hidden sm:block header-cfg transition-colors duration-300">Admin</span>
+      <a href="{% url 'rag_add' %}" class="export-btn flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-colors duration-300 no-underline">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="hidden sm:inline">RAG 추가</span>
+      </a>
+      <span class="hidden md:flex items-center gap-1.5 text-xs header-cfg transition-colors duration-300">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        {{ request.user.get_full_name|default:request.user.username }}
+      </span>
+      <button id="themeBtn" onclick="toggleTheme()" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300 relative w-8 h-8 flex items-center justify-center">
+        <svg class="sun-icon w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+        <svg class="moon-icon w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <div class="flex flex-1 overflow-hidden relative">
+    <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+    {% include "dashboard/inc_left.html" %}
+
+    <main id="dashMain" class="flex-1 flex flex-col overflow-hidden transition-colors duration-300">
+      <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+        <!-- 페이지 헤더 -->
+        <div class="fade-in flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-extrabold page-title transition-colors duration-300">문서 관리</h1>
+            <p class="text-xs mt-0.5 page-sub transition-colors duration-300">전체 {{ total }}개 RAG 문서</p>
+          </div>
+          <a href="{% url 'rag_add' %}" class="btn-primary text-white flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-xl no-underline">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            RAG 추가
+          </a>
+        </div>
+
+        <!-- 검색 -->
+        <form method="get" class="fade-in flex items-center gap-2">
+          <input type="text" name="q" value="{{ q }}" placeholder="RAG명 / 파일명 / 설명 검색..."
+            class="search-box flex-1 text-sm px-4 py-2 rounded-xl transition-all duration-200" />
+          <button type="submit" class="btn-primary text-white text-sm font-bold px-4 py-2 rounded-xl">검색</button>
+          {% if q %}
+          <a href="{% url 'doc_list' %}" class="export-btn text-sm font-bold px-4 py-2 rounded-xl no-underline">초기화</a>
+          {% endif %}
+        </form>
+
+        <!-- 문서 목록 -->
+        <div class="section-card overflow-hidden fade-in transition-colors duration-300">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="tbl-head transition-colors duration-300">
+                  <th class="tbl-th text-left text-xs font-bold py-3 px-4 w-10">#</th>
+                  <th class="tbl-th text-left text-xs font-bold py-3 px-4">RAG명 / 파일</th>
+                  <th class="tbl-th text-center text-xs font-bold py-3 px-3 w-16 hidden sm:table-cell">유형</th>
+                  <th class="tbl-th text-right text-xs font-bold py-3 px-4 w-20 hidden md:table-cell">파일크기</th>
+                  <th class="tbl-th text-right text-xs font-bold py-3 px-4 w-20 hidden md:table-cell">청크수</th>
+                  <th class="tbl-th text-right text-xs font-bold py-3 px-4 w-24 hidden lg:table-cell">총토큰</th>
+                  <th class="tbl-th text-center text-xs font-bold py-3 px-3 w-20">상태</th>
+                  <th class="tbl-th text-left text-xs font-bold py-3 px-4 w-28 hidden lg:table-cell">생성일</th>
+                  <th class="tbl-th text-xs font-bold py-3 px-3 w-24"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for doc in docs %}
+                {% with ft=doc.source_file_type %}
+                <tr class="tbl-row transition-colors duration-300 cursor-pointer" onclick="openDetail({{ doc.id }})">
+                  <td class="tbl-td-sub py-3 px-4 text-xs">{{ forloop.counter }}</td>
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                      <!-- 파일 유형 아이콘 -->
+                      <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
+                        {% if ft == 'pdf' %}filetype-pdf
+                        {% elif ft == 'docx' %}filetype-docx
+                        {% elif ft == 'txt' %}filetype-txt
+                        {% elif ft == 'xlsx' or ft == 'csv' %}filetype-xlsx
+                        {% elif ft == 'md' %}filetype-md
+                        {% else %}filetype-other{% endif %}">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="tbl-td font-bold text-xs truncate max-w-[180px] transition-colors duration-300">{{ doc.name }}</p>
+                        <p class="tbl-td-sub text-xs truncate max-w-[180px] transition-colors duration-300">{{ doc.source_file_name|default:"-" }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-3 text-center hidden sm:table-cell">
+                    <span class="badge badge-purple transition-colors duration-300" style="font-size:10px">{{ ft|upper }}</span>
+                  </td>
+                  <td class="tbl-td-sub py-3 px-4 text-xs text-right hidden md:table-cell transition-colors duration-300">
+                    {{ doc.source_file_size_display }}
+                  </td>
+                  <td class="tbl-td py-3 px-4 text-xs text-right hidden md:table-cell transition-colors duration-300">
+                    {% if doc.chunk_count %}{{ doc.chunk_count|floatformat:"0" }}{% else %}-{% endif %}
+                  </td>
+                  <td class="tbl-td-sub py-3 px-4 text-xs text-right hidden lg:table-cell transition-colors duration-300">
+                    {% if doc.total_tokens %}{{ doc.total_tokens|floatformat:"0" }}{% else %}-{% endif %}
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    {% if doc.status == 'ready' %}
+                    <span class="badge badge-green transition-colors duration-300">완료</span>
+                    {% elif doc.status == 'processing' %}
+                    <span class="badge badge-yellow transition-colors duration-300">빌드 중</span>
+                    {% elif doc.status == 'pending' %}
+                    <span class="badge badge-gray transition-colors duration-300">대기</span>
+                    {% elif doc.status == 'error' %}
+                    <span class="badge badge-red transition-colors duration-300">오류</span>
+                    {% else %}
+                    <span class="badge badge-gray transition-colors duration-300">비활성</span>
+                    {% endif %}
+                  </td>
+                  <td class="tbl-td-sub py-3 px-4 text-xs hidden lg:table-cell transition-colors duration-300">
+                    {{ doc.created_at|date:"Y-m-d" }}
+                  </td>
+                  <td class="py-3 px-3 text-center" onclick="event.stopPropagation()">
+                    <button onclick="openDetail({{ doc.id }})"
+                      class="btn-primary text-white text-xs font-bold px-4 py-2 rounded-lg">상세</button>
+                  </td>
+                </tr>
+                {% endwith %}
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center tbl-td-sub text-sm py-12 transition-colors duration-300">
+                    {% if q %}검색 결과가 없습니다.{% else %}등록된 RAG 문서가 없습니다.{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════ 상세 정보 모달 ═══════════ -->
+<div id="detailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 modal-overlay transition-colors duration-300"
+     onclick="if(event.target===this) closeDetail()">
+  <div class="modal-card w-full max-w-2xl rounded-2xl shadow-2xl transition-colors duration-300 flex flex-col" style="max-height:90vh">
+
+    <!-- 모달 헤더 -->
+    <div class="flex items-center justify-between px-6 py-4 flex-shrink-0" style="border-bottom:1px solid rgba(108,99,255,.15)">
+      <div class="flex items-center gap-3">
+        <div id="detailFileIcon" class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 filetype-other">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div>
+          <h2 id="detailName" class="font-extrabold text-base modal-title-txt transition-colors duration-300">로딩 중...</h2>
+          <p id="detailFileName" class="text-xs modal-label transition-colors duration-300 mt-0.5"></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="detailStatusBadge" class="badge badge-gray transition-colors duration-300">-</span>
+        <button onclick="closeDetail()" class="header-icon-btn p-1.5 rounded-lg transition-colors duration-300">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 모달 바디 -->
+    <div class="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+
+      <!-- 설명 -->
+      <div id="detailDescRow" class="hidden">
+        <p class="modal-label text-xs mb-1 transition-colors duration-300">설명</p>
+        <p id="detailDesc" class="modal-value text-sm transition-colors duration-300"></p>
+      </div>
+
+      <!-- 파일 정보 -->
+      <div class="modal-section rounded-xl p-4 transition-colors duration-300">
+        <p class="text-xs font-extrabold modal-title-txt mb-3 transition-colors duration-300">파일 정보</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">파일명</p>
+            <p id="dFileName" class="modal-value text-xs font-bold truncate transition-colors duration-300"></p>
+          </div>
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">파일 유형</p>
+            <p id="dFileType" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">파일 크기</p>
+            <p id="dFileSize" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+          <div class="col-span-2 sm:col-span-3">
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">벡터DB 경로</p>
+            <p id="dResultPath" class="modal-value text-xs font-bold break-all transition-colors duration-300"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 모델 설정 -->
+      <div class="modal-section rounded-xl p-4 transition-colors duration-300">
+        <p class="text-xs font-extrabold modal-title-txt mb-3 transition-colors duration-300">모델 설정</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="col-span-2 sm:col-span-1">
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">임베딩 모델</p>
+            <p id="dEmbedModel" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+          <div class="col-span-2 sm:col-span-1">
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">LLM 모델</p>
+            <p id="dLlmModel" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">청크 크기</p>
+            <p id="dChunkSize" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">청크 오버랩</p>
+            <p id="dChunkOverlap" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">검색 Top-K</p>
+            <p id="dTopK" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 빌드 결과 -->
+      <div class="modal-section rounded-xl p-4 transition-colors duration-300">
+        <p class="text-xs font-extrabold modal-title-txt mb-3 transition-colors duration-300">빌드 결과</p>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">청크 수</p>
+            <p id="dChunkCount" class="modal-value text-sm font-extrabold transition-colors duration-300" style="color:#6C63FF"></p>
+          </div>
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">총 토큰</p>
+            <p id="dTotalTokens" class="modal-value text-sm font-extrabold transition-colors duration-300" style="color:#22C55E"></p>
+          </div>
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">빌드 시간</p>
+            <p id="dBuildTime" class="modal-value text-sm font-extrabold transition-colors duration-300" style="color:#F97316"></p>
+          </div>
+        </div>
+        <div id="dErrorRow" class="hidden mt-3 p-3 rounded-xl" style="background:rgba(239,68,68,.1)">
+          <p class="text-xs font-bold mb-1" style="color:#EF4444">오류 메시지</p>
+          <p id="dErrorMsg" class="text-xs" style="color:#EF4444"></p>
+        </div>
+      </div>
+
+      <!-- 메타 정보 -->
+      <div class="modal-section rounded-xl p-4 transition-colors duration-300">
+        <p class="text-xs font-extrabold modal-title-txt mb-3 transition-colors duration-300">메타 정보</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">생성자</p>
+            <p id="dCreatedBy" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">생성일시</p>
+            <p id="dCreatedAt" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+          <div>
+            <p class="modal-label text-xs mb-0.5 transition-colors duration-300">수정일시</p>
+            <p id="dUpdatedAt" class="modal-value text-xs font-bold transition-colors duration-300"></p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 모달 푸터 -->
+    <div class="flex items-center justify-end gap-2 px-6 py-4 flex-shrink-0" style="border-top:1px solid rgba(108,99,255,.15)">
+      <a id="detailEditBtn" href="#" class="btn-primary text-white text-xs font-bold px-4 py-2 rounded-xl no-underline">
+        설정 편집
+      </a>
+      <button onclick="closeDetail()" class="export-btn text-xs font-bold px-4 py-2 rounded-xl transition-colors duration-300">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let isDark = false;
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.classList.toggle('dark', isDark);
+  document.documentElement.classList.toggle('light', !isDark);
+}
+document.getElementById('menuBtn').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('show');
+});
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+function _openUpload()   { window.location.href = '{% url "rag_add" %}'; }
+function _rebuildIndex() { window.location.href = '{% url "rag_setting" %}'; }
+
+// ════════════════════════════════════════
+//  상세 모달
+// ════════════════════════════════════════
+const STATUS_BADGE = {
+  ready:      ['badge-green',  '완료'],
+  processing: ['badge-yellow', '빌드 중'],
+  pending:    ['badge-gray',   '대기'],
+  error:      ['badge-red',    '오류'],
+  disabled:   ['badge-gray',   '비활성'],
+};
+const FILETYPE_CLS = {
+  pdf:'filetype-pdf', docx:'filetype-docx', txt:'filetype-txt',
+  xlsx:'filetype-xlsx', csv:'filetype-xlsx', md:'filetype-md',
+};
+
+async function openDetail(docId) {
+  const modal = document.getElementById('detailModal');
+  modal.classList.remove('hidden');
+  document.getElementById('detailName').textContent = '불러오는 중...';
+
+  try {
+    const res  = await fetch(`/chatbot/docs/${docId}/`);
+    const d    = await res.json();
+
+    // 헤더
+    const [bCls, bTxt] = STATUS_BADGE[d.status] || ['badge-gray', d.status];
+    const iconEl = document.getElementById('detailFileIcon');
+    iconEl.className = `w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${FILETYPE_CLS[d.source_file_type] || 'filetype-other'}`;
+
+    document.getElementById('detailName').textContent = d.name;
+    document.getElementById('detailFileName').textContent = d.source_file_name;
+    const badge = document.getElementById('detailStatusBadge');
+    badge.className = `badge ${bCls} transition-colors duration-300`;
+    badge.textContent = bTxt;
+
+    // 설명
+    if (d.description && d.description !== '-') {
+      document.getElementById('detailDescRow').classList.remove('hidden');
+      document.getElementById('detailDesc').textContent = d.description;
+    } else {
+      document.getElementById('detailDescRow').classList.add('hidden');
+    }
+
+    // 파일 정보
+    document.getElementById('dFileName').textContent   = d.source_file_name;
+    document.getElementById('dFileType').textContent   = d.source_file_type.toUpperCase();
+    document.getElementById('dFileSize').textContent   = d.source_file_size;
+    document.getElementById('dResultPath').textContent = d.result_file_path;
+
+    // 모델 설정
+    document.getElementById('dEmbedModel').textContent  = d.embedding_model;
+    document.getElementById('dLlmModel').textContent    = d.llm_model;
+    document.getElementById('dChunkSize').textContent   = d.chunk_size + ' tokens';
+    document.getElementById('dChunkOverlap').textContent= d.chunk_overlap + ' tokens';
+    document.getElementById('dTopK').textContent        = 'Top-' + d.top_k;
+
+    // 빌드 결과
+    document.getElementById('dChunkCount').textContent   = d.chunk_count.toLocaleString();
+    document.getElementById('dTotalTokens').textContent  = d.total_tokens.toLocaleString();
+    document.getElementById('dBuildTime').textContent    = d.build_time;
+    if (d.error_message && d.error_message !== '-') {
+      document.getElementById('dErrorRow').classList.remove('hidden');
+      document.getElementById('dErrorMsg').textContent = d.error_message;
+    } else {
+      document.getElementById('dErrorRow').classList.add('hidden');
+    }
+
+    // 메타 정보
+    document.getElementById('dCreatedBy').textContent  = d.created_by;
+    document.getElementById('dCreatedAt').textContent  = d.created_at;
+    document.getElementById('dUpdatedAt').textContent  = d.updated_at;
+
+    // 편집 버튼
+    document.getElementById('detailEditBtn').href = `/chatbot/rag/${d.id}/edit/`;
+
+  } catch (e) {
+    document.getElementById('detailName').textContent = '불러오기 실패';
+    console.error(e);
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detailModal').classList.add('hidden');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetail();
+});
+</script>
+</body>
+</html>

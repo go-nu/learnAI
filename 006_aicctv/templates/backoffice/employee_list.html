@@ -1,0 +1,207 @@
+{% extends 'backoffice/base.html' %}
+
+{% block title %}직원 관리{% endblock %}
+{% block page_title %}직원 관리{% endblock %}
+{% block page_sub %}전체 직원 목록 및 CCTV 등록 관리{% endblock %}
+
+{% block content %}
+
+<!-- 검색 + 추가 버튼 -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+  <form method="get" action="{% url 'bo_employee_list' %}" class="flex items-center gap-2 w-full sm:w-auto">
+    <div class="relative flex-1 sm:w-72">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" name="q" value="{{ q }}" placeholder="이름, 사원번호, 부서 검색..."
+             class="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-[#d94f1e] bg-white">
+    </div>
+    <button type="submit" class="btn-primary text-sm py-2.5 px-4">검색</button>
+    {% if q %}
+    <a href="{% url 'bo_employee_list' %}" class="btn-ghost text-sm py-2.5 px-4">초기화</a>
+    {% endif %}
+  </form>
+
+  <a href="{% url 'bo_employee_create' %}" class="btn-primary text-sm flex items-center gap-2 whitespace-nowrap">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    직원 추가
+  </a>
+</div>
+
+<!-- 총 인원 -->
+<div class="mono text-[11px] text-slate-400 uppercase tracking-widest mb-3">
+  총 {{ employees|length }}명{% if q %} · "{{ q }}" 검색 결과{% endif %}
+</div>
+
+<!-- 테이블 -->
+<div class="card overflow-hidden">
+  {% if employees %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-slate-100 bg-slate-50">
+          <th class="text-left font-semibold text-slate-500 px-5 py-3 mono text-[11px] uppercase tracking-wider">사진</th>
+          <th class="text-left font-semibold text-slate-500 px-5 py-3 mono text-[11px] uppercase tracking-wider">사원번호</th>
+          <th class="text-left font-semibold text-slate-500 px-5 py-3 mono text-[11px] uppercase tracking-wider">이름</th>
+          <th class="text-left font-semibold text-slate-500 px-5 py-3 mono text-[11px] uppercase tracking-wider">부서</th>
+          <th class="text-left font-semibold text-slate-500 px-5 py-3 mono text-[11px] uppercase tracking-wider">직책</th>
+          <th class="text-left font-semibold text-slate-500 px-5 py-3 mono text-[11px] uppercase tracking-wider">접근레벨</th>
+          <th class="text-left font-semibold text-slate-500 px-5 py-3 mono text-[11px] uppercase tracking-wider">CCTV</th>
+          <th class="text-right font-semibold text-slate-500 px-5 py-3 mono text-[11px] uppercase tracking-wider">관리</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for emp in employees %}
+        <tr class="tbl-row" id="row-{{ emp.pk }}">
+          <!-- 사진 -->
+          <td class="px-5 py-3">
+            {% if emp.photo %}
+            <img src="{{ emp.photo.url }}" alt="{{ emp.name }}"
+                 class="w-10 h-10 rounded-full object-cover border-2 border-slate-100">
+            {% else %}
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm"
+                 style="background: #0f172a;">
+              {{ emp.name|first }}
+            </div>
+            {% endif %}
+          </td>
+          <!-- 사원번호 -->
+          <td class="px-5 py-3 mono text-slate-500 text-xs">{{ emp.employee_id }}</td>
+          <!-- 이름 -->
+          <td class="px-5 py-3">
+            <div class="font-semibold text-slate-800">{{ emp.name }}</div>
+            {% if emp.name_en %}<div class="text-xs text-slate-400 italic">{{ emp.name_en }}</div>{% endif %}
+          </td>
+          <!-- 부서 -->
+          <td class="px-5 py-3 text-slate-600">{{ emp.department }}</td>
+          <!-- 직책 -->
+          <td class="px-5 py-3 text-slate-500">{{ emp.role|default:"—" }}</td>
+          <!-- 접근레벨 -->
+          <td class="px-5 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mono
+              {% if emp.access_level >= 3 %}text-white{% else %}text-slate-700{% endif %}"
+              style="background: {% if emp.access_level >= 3 %}#d94f1e{% elif emp.access_level == 2 %}#dbeafe{% else %}#f1f5f9{% endif %};">
+              Lv.{{ emp.access_level }}
+            </span>
+          </td>
+          <!-- CCTV 등록 여부 -->
+          <td class="px-5 py-3">
+            {% if emp.photo and emp.name_en %}
+            <span class="inline-flex items-center gap-1 text-xs font-medium" style="color:#5a7d3a;">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              등록됨
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 text-xs font-medium text-slate-400">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              미등록
+            </span>
+            {% endif %}
+          </td>
+          <!-- 관리 버튼 -->
+          <td class="px-5 py-3 text-right">
+            <div class="flex items-center justify-end gap-2">
+              <a href="{% url 'bo_employee_edit' emp.pk %}"
+                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-colors"
+                 style="background:#1e293b;">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                수정
+              </a>
+              <button onclick="deleteEmployee({{ emp.pk }}, '{{ emp.name }}')"
+                      class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                      style="background: rgba(217,79,30,0.1); color:#d94f1e;">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+                삭제
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div class="py-20 text-center">
+    <svg class="w-16 h-16 mx-auto mb-4 text-slate-200" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+    <p class="text-slate-400 font-medium mb-2">
+      {% if q %}검색 결과가 없습니다.{% else %}등록된 직원이 없습니다.{% endif %}
+    </p>
+    <a href="{% url 'bo_employee_create' %}" class="inline-block text-sm font-semibold mt-2" style="color:#d94f1e;">
+      + 첫 직원 추가하기
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- CCTV 안내 -->
+<div class="mt-4 p-4 rounded-xl border border-slate-100 bg-slate-50 flex items-start gap-3">
+  <svg class="w-4 h-4 flex-shrink-0 mt-0.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/>
+  </svg>
+  <p class="text-xs text-slate-500 leading-relaxed">
+    CCTV 얼굴 인식을 위해서는 <strong class="text-slate-700">사진</strong>과 <strong class="text-slate-700">영문 이름(name_en)</strong>이 모두 등록되어야 합니다.
+    직원 등록 후 FAISS 모델을 재학습하면 실시간 인식에 반영됩니다.
+  </p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function getCsrfToken() {
+    return document.cookie.split(';')
+      .find(c => c.trim().startsWith('csrftoken='))
+      ?.split('=')[1] || '';
+  }
+
+  function deleteEmployee(pk, name) {
+    Swal.fire({
+      title: '직원 삭제',
+      html: `<b>${name}</b>님을 정말 삭제하시겠습니까?<br><small class="text-slate-500">이 작업은 되돌릴 수 없습니다.</small>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d94f1e',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: '삭제',
+      cancelButtonText: '취소',
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      fetch(`/backoffice/employee/${pk}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById(`row-${pk}`).remove();
+          Swal.fire({
+            icon: 'success',
+            title: '삭제 완료',
+            text: data.message,
+            confirmButtonColor: '#d94f1e',
+            timer: 2000,
+            timerProgressBar: true,
+          });
+        } else {
+          Swal.fire({ icon: 'error', title: '오류', text: '삭제에 실패했습니다.', confirmButtonColor: '#d94f1e' });
+        }
+      });
+    });
+  }
+</script>
+{% endblock %}

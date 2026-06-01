@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI 챗봇</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Google Fonts (Noto Sans KR - 네이버 스타일 한글 폰트) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'naver-green': '#03C75A',
+                        'naver-green-dark': '#02B351',
+                        'naver-bg': '#F5F6F7',
+                        'naver-border': '#E5E7EB',
+                        'naver-text': '#191919',
+                        'naver-gray': '#767676',
+                    },
+                    fontFamily: {
+                        'noto': ['Noto Sans KR', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        * {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        
+        body {
+            background-color: #F5F6F7;
+        }
+        
+        /* 스크롤바 스타일 */
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-container::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        /* 메시지 애니메이션 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-animate {
+            animation: fadeInUp 0.3s ease-out;
+        }
+        
+        /* 로딩 점 애니메이션 */
+        @keyframes blink {
+            0%, 80%, 100% { opacity: 0.3; }
+            40% { opacity: 1; }
+        }
+        
+        .loading-dot {
+            animation: blink 1.4s infinite;
+        }
+        
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        /* 사이드바 슬라이드 애니메이션 (모바일) */
+        .sidebar-mobile {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        /* 입력 영역 그림자 */
+        .input-shadow {
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+        }
+        
+        /* 사용자 메시지 말풍선 */
+        .user-bubble {
+            background: linear-gradient(135deg, #03C75A 0%, #02B351 100%);
+        }
+        
+        /* AI 응답 영역 */
+        .ai-bubble {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+        }
+        
+        /* 코드 블록 스타일 */
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        
+        /* 네이버 스타일 로고 */
+        .naver-logo {
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+        
+        /* 반응형 텍스트 영역 */
+        textarea {
+            resize: none;
+            min-height: 24px;
+            max-height: 200px;
+        }
+    </style>
+</head>
+<body class="font-noto">
+
+    <!-- 전체 컨테이너 -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- 사이드바 (모바일에서 숨김) -->
+        <aside id="sidebar" class="sidebar-mobile fixed lg:relative w-64 h-full bg-white border-r border-naver-border z-40 transform -translate-x-full lg:translate-x-0">
+            <div class="flex flex-col h-full">
+                <!-- 사이드바 헤더 -->
+                <div class="p-4 border-b border-naver-border">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 bg-naver-green rounded-md flex items-center justify-center">
+                            <span class="text-white naver-logo text-lg">N</span>
+                        </div>
+                        <span class="naver-logo text-lg text-naver-text">Gemini</span>
+                    </div>
+                    <button onclick="newChat()" class="w-full bg-naver-green hover:bg-naver-green-dark text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        새 대화 시작
+                    </button>
+                </div>
+                
+                <!-- 대화 목록 -->
+                <div class="flex-1 overflow-y-auto p-2">
+                    <div class="text-xs text-naver-gray font-medium px-3 py-2">최근 대화</div>
+                    <div id="chatHistory" class="space-y-1">
+                        <!-- 대화 기록이 여기에 추가됩니다 -->
+                    </div>
+                </div>
+                
+                <!-- 사이드바 하단 -->
+                <div class="p-4 border-t border-naver-border">
+                    <button onclick="showApiKeySettings()" class="w-full text-left text-sm text-naver-text hover:bg-naver-bg py-2 px-3 rounded-lg transition-colors flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        API 키 설정
+                    </button>
+                    <button onclick="clearAllChats()" class="w-full text-left text-sm text-red-500 hover:bg-red-50 py-2 px-3 rounded-lg transition-colors flex items-center gap-2 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        전체 대화 삭제
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- 사이드바 오버레이 (모바일) -->
+        <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
+        
+        <!-- 메인 채팅 영역 -->
+        <main class="flex-1 flex flex-col h-full bg-white">
+            
+            <!-- 상단 헤더 -->
+            <header class="bg-white border-b border-naver-border px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="lg:hidden p-1.5 hover:bg-naver-bg rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-naver-green rounded-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-base font-bold text-naver-text">Gemini AI</h1>
+                            <p class="text-xs text-naver-gray">gemini-2.5-flash</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span id="connectionStatus" class="flex items-center gap-1.5 text-xs text-naver-gray">
+                        <span class="w-2 h-2 bg-naver-green rounded-full"></span>
+                        연결됨
+                    </span>
+                </div>
+            </header>
+            
+            <!-- 채팅 메시지 영역 -->
+            <div id="chatContainer" class="chat-container flex-1 overflow-y-auto px-4 py-6 bg-naver-bg">
+                <div class="max-w-3xl mx-auto">
+                    
+                    <!-- 환영 메시지 -->
+                    <div id="welcomeScreen" class="flex flex-col items-center justify-center py-12 text-center">
+                        <div class="w-16 h-16 bg-naver-green rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl md:text-3xl font-bold text-naver-text mb-3">
+                            안녕하세요! <span class="text-naver-green">Gemini</span>입니다
+                        </h2>
+                        <p class="text-sm md:text-base text-naver-gray mb-8 max-w-md">
+                            궁금한 점을 무엇이든 물어보세요. 최선을 다해 답변해드립니다.
+                        </p>
+                        
+                        <!-- 추천 질문 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
+                            <button onclick="sendSuggestion('파이썬으로 간단한 계산기 만드는 코드 알려줘')" class="text-left p-4 bg-white border border-naver-border rounded-xl hover:border-naver-green hover:shadow-md transition-all">
+                                <div class="text-2xl mb-2">💻</div>
+                                <div class="font-medium text-sm text-naver-text mb-1">코딩 도움</div>
+                                <div class="text-xs text-naver-gray">파이썬 계산기 코드 작성</div>
+                            </button>
+                            <button onclick="sendSuggestion('서울에서 가볼만한 관광지 추천해줘')" class="text-left p-4 bg-white border border-naver-border rounded-xl hover:border-naver-green hover:shadow-md transition-all">
+                                <div class="text-2xl mb-2">🗺️</div>
+                                <div class="font-medium text-sm text-naver-text mb-1">여행 정보</div>
+                                <div class="text-xs text-naver-gray">서울 관광지 추천</div>
+                            </button>
+                            <button onclick="sendSuggestion('맛있는 김치찌개 레시피 알려줘')" class="text-left p-4 bg-white border border-naver-border rounded-xl hover:border-naver-green hover:shadow-md transition-all">
+                                <div class="text-2xl mb-2">🍳</div>
+                                <div class="font-medium text-sm text-naver-text mb-1">요리 레시피</div>
+                                <div class="text-xs text-naver-gray">김치찌개 만드는 법</div>
+                            </button>
+                            <button onclick="sendSuggestion('영어 공부 효과적으로 하는 방법')" class="text-left p-4 bg-white border border-naver-border rounded-xl hover:border-naver-green hover:shadow-md transition-all">
+                                <div class="text-2xl mb-2">📚</div>
+                                <div class="font-medium text-sm text-naver-text mb-1">학습 팁</div>
+                                <div class="text-xs text-naver-gray">효과적인 영어 공부법</div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 메시지가 여기에 추가됩니다 -->
+                    <div id="messages" class="space-y-6"></div>
+                    
+                </div>
+            </div>
+            
+            <!-- 입력 영역 -->
+            <div class="bg-white border-t border-naver-border input-shadow">
+                <div class="max-w-3xl mx-auto px-4 py-4">
+                    <div class="relative flex items-end gap-2 bg-naver-bg rounded-2xl border border-naver-border focus-within:border-naver-green transition-colors p-2">
+                        <textarea 
+                            id="userInput" 
+                            placeholder="Gemini에게 메시지 보내기..."
+                            rows="1"
+                            class="flex-1 bg-transparent border-0 outline-none px-3 py-2 text-sm text-naver-text placeholder-naver-gray"
+                            onkeydown="handleKeyDown(event)"
+                            oninput="autoResize(this)"
+                        ></textarea>
+                        <button 
+                            id="sendBtn"
+                            onclick="sendMessage()" 
+                            class="bg-naver-green hover:bg-naver-green-dark disabled:bg-gray-300 text-white p-2.5 rounded-xl transition-colors flex-shrink-0"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-naver-gray text-center mt-2">
+                        Gemini는 실수할 수 있습니다. 중요한 정보는 다시 한번 확인해주세요.
+                    </p>
+                </div>
+            </div>
+            
+        </main>
+    </div>
+    
+    <script>
+        // ===== 전역 변수 =====
+        let API_KEY = localStorage.getItem('GEMINI_API_KEY') || '';
+        const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+        let chatHistory = [];
+        let currentChatId = null;
+        let allChats = JSON.parse(localStorage.getItem('allChats') || '[]');
+        
+        // ===== 초기화 =====
+        window.addEventListener('DOMContentLoaded', () => {
+            renderChatHistory();
+            
+            // API 키가 없으면 설정 안내
+            if (!API_KEY) {
+                setTimeout(() => {
+                    showApiKeyPrompt();
+                }, 500);
+            }
+        });
+        
+        // ===== API 키 설정 =====
+        function showApiKeyPrompt() {
+            Swal.fire({
+                title: 'Gemini API 키 설정',
+                html: `
+                    <div class="text-left text-sm text-gray-600 mb-3">
+                        Gemini AI를 사용하려면 API 키가 필요합니다.<br>
+                        <a href="https://aistudio.google.com/apikey" target="_blank" class="text-green-600 underline">Google AI Studio</a>에서 무료로 발급받을 수 있습니다.
+                    </div>
+                `,
+                input: 'password',
+                inputPlaceholder: 'API 키를 입력하세요 (AIza...)',
+                inputValue: API_KEY,
+                showCancelButton: true,
+                confirmButtonText: '저장',
+                cancelButtonText: '취소',
+                confirmButtonColor: '#03C75A',
+                cancelButtonColor: '#767676',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'API 키를 입력해주세요!';
+                    }
+                    if (!value.startsWith('AIza')) {
+                        return '올바른 Gemini API 키 형식이 아닙니다.';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    API_KEY = result.value;
+                    localStorage.setItem('GEMINI_API_KEY', API_KEY);
+                    Swal.fire({
+                        icon: 'success',
+                        title: '설정 완료!',
+                        text: 'API 키가 저장되었습니다.',
+                        confirmButtonColor: '#03C75A',
+                        timer: 1500
+                    });
+                }
+            });
+        }
+        
+        function showApiKeySettings() {
+            showApiKeyPrompt();
+        }
+        
+        // ===== 사이드바 토글 =====
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+        
+        // ===== 입력창 자동 크기 조절 =====
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        }
+        
+        // ===== 키보드 이벤트 =====
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+        
+        // ===== 추천 질문 클릭 =====
+        function sendSuggestion(text) {
+            document.getElementById('userInput').value = text;
+            sendMessage();
+        }
+        
+        // ===== 메시지 전송 =====
+        async function sendMessage() {
+            const inputEl = document.getElementById('userInput');
+            const message = inputEl.value.trim();
+            
+            if (!message) return;
+            
+            // API 키 확인
+            if (!API_KEY) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'API 키가 필요합니다',
+                    text: 'Gemini API 키를 먼저 설정해주세요.',
+                    confirmButtonColor: '#03C75A',
+                    confirmButtonText: '설정하기'
+                }).then(() => {
+                    showApiKeyPrompt();
+                });
+                return;
+            }
+            
+            // 환영 화면 숨기기
+            document.getElementById('welcomeScreen').style.display = 'none';
+            
+            // 사용자 메시지 추가
+            addMessage('user', message);
+            chatHistory.push({ role: 'user', content: message });
+            
+            // 입력창 초기화
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
+            
+            // 전송 버튼 비활성화
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            
+            // 로딩 메시지 추가
+            const loadingId = addLoadingMessage();
+            
+            try {
+                // axios를 이용한 Gemini API 호출
+                const response = await axios.post(
+                    `${API_URL}?key=${API_KEY}`,
+                    {
+                        contents: [{
+                            parts: [{ text: message }]
+                        }]
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                
+                // 로딩 메시지 제거
+                removeLoadingMessage(loadingId);
+                
+                // AI 응답 추출
+                const aiResponse = response.data.candidates[0].content.parts[0].text;
+                
+                // AI 메시지 추가
+                addMessage('ai', aiResponse);
+                chatHistory.push({ role: 'ai', content: aiResponse });
+                
+                // 대화 저장
+                saveCurrentChat();
+                
+            } catch (error) {
+                removeLoadingMessage(loadingId);
+                
+                let errorMessage = '오류가 발생했습니다.';
+                if (error.response) {
+                    if (error.response.status === 400) {
+                        errorMessage = 'API 키가 잘못되었거나 요청이 올바르지 않습니다.';
+                    } else if (error.response.status === 403) {
+                        errorMessage = 'API 키가 유효하지 않습니다. 다시 확인해주세요.';
+                    } else if (error.response.status === 429) {
+                        errorMessage = '요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
+                    } else {
+                        errorMessage = error.response.data?.error?.message || errorMessage;
+                    }
+                } else if (error.request) {
+                    errorMessage = '서버에 연결할 수 없습니다. 인터넷 연결을 확인해주세요.';
+                }
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: '오류',
+                    text: errorMessage,
+                    confirmButtonColor: '#03C75A'
+                });
+                
+                addMessage('ai', `❌ ${errorMessage}`);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+        
+        // ===== 메시지 추가 =====
+        function addMessage(role, content) {
+            const messagesDiv = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message-animate';
+            
+            if (role === 'user') {
+                messageEl.innerHTML = `
+                    <div class="flex justify-end">
+                        <div class="flex items-start gap-3 max-w-[85%] md:max-w-[75%]">
+                            <div class="user-bubble text-white px-4 py-3 rounded-2xl rounded-tr-sm shadow-sm">
+                                <p class="text-sm whitespace-pre-wrap break-words">${escapeHtml(content)}</p>
+                            </div>
+                            <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                messageEl.innerHTML = `
+                    <div class="flex justify-start">
+                        <div class="flex items-start gap-3 max-w-[85%] md:max-w-[75%]">
+                            <div class="w-8 h-8 bg-naver-green rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                    <path d="M2 17l10 5 10-5"></path>
+                                    <path d="M2 12l10 5 10-5"></path>
+                                </svg>
+                            </div>
+                            <div class="ai-bubble px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm">
+                                <div class="text-sm text-naver-text whitespace-pre-wrap break-words">${formatAIResponse(content)}</div>
+                                <div class="flex gap-2 mt-3 pt-2 border-t border-gray-100">
+                                    <button onclick="copyMessage(this)" data-content="${escapeHtml(content)}" class="text-xs text-naver-gray hover:text-naver-green flex items-center gap-1 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
+                                        복사
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            messagesDiv.appendChild(messageEl);
+            scrollToBottom();
+        }
+        
+        // ===== 로딩 메시지 =====
+        function addLoadingMessage() {
+            const messagesDiv = document.getElementById('messages');
+            const loadingId = 'loading-' + Date.now();
+            const loadingEl = document.createElement('div');
+            loadingEl.id = loadingId;
+            loadingEl.className = 'message-animate';
+            loadingEl.innerHTML = `
+                <div class="flex justify-start">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-naver-green rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                        </div>
+                        <div class="ai-bubble px-5 py-4 rounded-2xl rounded-tl-sm shadow-sm">
+                            <div class="flex gap-1.5">
+                                <div class="loading-dot w-2 h-2 bg-naver-green rounded-full"></div>
+                                <div class="loading-dot w-2 h-2 bg-naver-green rounded-full"></div>
+                                <div class="loading-dot w-2 h-2 bg-naver-green rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(loadingEl);
+            scrollToBottom();
+            return loadingId;
+        }
+        
+        function removeLoadingMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+        
+        // ===== 메시지 복사 =====
+        function copyMessage(btn) {
+            const content = btn.getAttribute('data-content');
+            // HTML 엔티티 디코딩
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = content;
+            const decodedContent = textarea.value;
+            
+            navigator.clipboard.writeText(decodedContent).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: '복사되었습니다',
+                    showConfirmButton: false,
+                    timer: 1000,
+                    toast: true,
+                    position: 'top-end'
+                });
+            });
+        }
+        
+        // ===== 스크롤 하단 이동 =====
+        function scrollToBottom() {
+            const container = document.getElementById('chatContainer');
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
+        }
+        
+        // ===== HTML 이스케이프 =====
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ===== AI 응답 포맷팅 (마크다운 간단 처리) =====
+        function formatAIResponse(text) {
+            let formatted = escapeHtml(text);
+            
+            // 코드 블록 (```...```)
+            formatted = formatted.replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
+                return `<pre><code>${code.trim()}</code></pre>`;
+            });
+            
+            // 인라인 코드 (`...`)
+            formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // 굵은 글씨 (**...**)
+            formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            
+            // 기울임 (*...*)
+            formatted = formatted.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            
+            return formatted;
+        }
+        
+        // ===== 새 대화 시작 =====
+        function newChat() {
+            if (chatHistory.length > 0) {
+                Swal.fire({
+                    title: '새 대화를 시작할까요?',
+                    text: '현재 대화는 자동으로 저장됩니다.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#03C75A',
+                    cancelButtonColor: '#767676',
+                    confirmButtonText: '시작',
+                    cancelButtonText: '취소'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        startNewChat();
+                    }
+                });
+            } else {
+                startNewChat();
+            }
+            
+            // 모바일에서 사이드바 닫기
+            if (window.innerWidth < 1024) {
+                toggleSidebar();
+            }
+        }
+        
+        function startNewChat() {
+            chatHistory = [];
+            currentChatId = null;
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('welcomeScreen').style.display = 'flex';
+        }
+        
+        // ===== 대화 저장 =====
+        function saveCurrentChat() {
+            if (chatHistory.length === 0) return;
+            
+            const title = chatHistory[0].content.substring(0, 30) + (chatHistory[0].content.length > 30 ? '...' : '');
+            
+            if (currentChatId) {
+                // 기존 대화 업데이트
+                const idx = allChats.findIndex(c => c.id === currentChatId);
+                if (idx !== -1) {
+                    allChats[idx].messages = chatHistory;
+                    allChats[idx].updatedAt = Date.now();
+                }
+            } else {
+                // 새 대화 생성
+                currentChatId = Date.now().toString();
+                allChats.unshift({
+                    id: currentChatId,
+                    title: title,
+                    messages: [...chatHistory],
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                });
+                
+                // 최대 20개까지만 저장
+                if (allChats.length > 20) {
+                    allChats = allChats.slice(0, 20);
+                }
+            }
+            
+            localStorage.setItem('allChats', JSON.stringify(allChats));
+            renderChatHistory();
+        }
+        
+        // ===== 대화 목록 렌더링 =====
+        function renderChatHistory() {
+            const historyEl = document.getElementById('chatHistory');
+            if (allChats.length === 0) {
+                historyEl.innerHTML = '<div class="text-xs text-naver-gray px-3 py-2">대화 기록이 없습니다</div>';
+                return;
+            }
+            
+            historyEl.innerHTML = allChats.map(chat => `
+                <div class="group flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-naver-bg cursor-pointer transition-colors ${currentChatId === chat.id ? 'bg-naver-bg' : ''}">
+                    <div onclick="loadChat('${chat.id}')" class="flex-1 min-w-0">
+                        <div class="text-sm text-naver-text truncate">${escapeHtml(chat.title)}</div>
+                    </div>
+                    <button onclick="deleteChat('${chat.id}', event)" class="opacity-0 group-hover:opacity-100 text-naver-gray hover:text-red-500 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        // ===== 대화 불러오기 =====
+        function loadChat(chatId) {
+            const chat = allChats.find(c => c.id === chatId);
+            if (!chat) return;
+            
+            currentChatId = chatId;
+            chatHistory = [...chat.messages];
+            
+            document.getElementById('welcomeScreen').style.display = 'none';
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '';
+            
+            chatHistory.forEach(msg => addMessage(msg.role, msg.content));
+            renderChatHistory();
+            
+            // 모바일에서 사이드바 닫기
+            if (window.innerWidth < 1024) {
+                toggleSidebar();
+            }
+        }
+        
+        // ===== 대화 삭제 =====
+        function deleteChat(chatId, event) {
+            event.stopPropagation();
+            
+            Swal.fire({
+                title: '이 대화를 삭제할까요?',
+                text: '삭제된 대화는 복구할 수 없습니다.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#767676',
+                confirmButtonText: '삭제',
+                cancelButtonText: '취소'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    allChats = allChats.filter(c => c.id !== chatId);
+                    localStorage.setItem('allChats', JSON.stringify(allChats));
+                    
+                    if (currentChatId === chatId) {
+                        startNewChat();
+                    }
+                    
+                    renderChatHistory();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: '삭제되었습니다',
+                        showConfirmButton: false,
+                        timer: 1000,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                }
+            });
+        }
+        
+        // ===== 전체 대화 삭제 =====
+        function clearAllChats() {
+            if (allChats.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: '삭제할 대화가 없습니다',
+                    confirmButtonColor: '#03C75A'
+                });
+                return;
+            }
+            
+            Swal.fire({
+                title: '모든 대화를 삭제할까요?',
+                text: '저장된 모든 대화 기록이 삭제됩니다.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#767676',
+                confirmButtonText: '전체 삭제',
+                cancelButtonText: '취소'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    allChats = [];
+                    localStorage.removeItem('allChats');
+                    startNewChat();
+                    renderChatHistory();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: '삭제 완료',
+                        text: '모든 대화가 삭제되었습니다.',
+                        confirmButtonColor: '#03C75A',
+                        timer: 1500
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html>

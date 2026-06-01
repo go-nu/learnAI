@@ -1,0 +1,63 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+.env
+
+# Python packages
+*.whl
+
+# Data files
+*.csv
+
+# AI/ML model files (large binaries)
+*.pt
+*.pth
+*.onnx
+*.bin
+*.safetensors
+*.pkl
+
+# Video / media files
+*.mp4
+*.avi
+*.mkv
+*.mov
+
+# PDF documents
+*.pdf
+
+# Database files
+*.sqlite3
+*.db
+
+# ChromaDB / vector store directories
+chroma_db*/
+rag_db/
+**/chroma_db*/
+**/rag_db/
+
+# YOLO training runs
+runs/
+
+# Model weight directories
+weights/
+weights(good)/
+weights*/
+
+# Installation packages
+install/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

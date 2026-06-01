@@ -1,0 +1,228 @@
+{% extends 'backoffice/base.html' %}
+
+{% block title %}{% if mode == 'edit' %}직원 수정{% else %}직원 추가{% endif %}{% endblock %}
+{% block page_title %}{% if mode == 'edit' %}직원 정보 수정{% else %}신규 직원 등록{% endif %}{% endblock %}
+{% block page_sub %}{% if mode == 'edit' %}{{ employee.name }}님의 정보 수정{% else %}직원 정보 및 CCTV 얼굴 사진 등록{% endif %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .photo-drop {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .photo-drop:hover, .photo-drop.drag-over {
+    border-color: #d94f1e;
+    background: rgba(217,79,30,0.04);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+
+  {% if error %}
+  <div class="mb-5 px-5 py-4 rounded-xl text-sm"
+       style="background: rgba(217,79,30,0.1); border: 1px solid rgba(217,79,30,0.3); color: #b03d11;">
+    <div class="flex items-center gap-2 font-semibold mb-1">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/>
+      </svg>
+      오류
+    </div>
+    <pre class="whitespace-pre-wrap text-xs mt-1">{{ error }}</pre>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data"
+        action="{% if mode == 'edit' %}{% url 'bo_employee_edit' employee.pk %}{% else %}{% url 'bo_employee_create' %}{% endif %}">
+    {% csrf_token %}
+
+    <div class="card p-8 mb-5">
+      <!-- Section 1: 기본 정보 -->
+      <h3 class="text-sm font-semibold text-slate-700 mb-5 flex items-center gap-2">
+        <span class="w-5 h-5 rounded text-white text-xs flex items-center justify-center" style="background:#d94f1e;">1</span>
+        기본 정보
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1.5">
+            사원번호 <span style="color:#d94f1e">*</span>
+          </label>
+          <input type="text" name="employee_id"
+                 value="{{ employee.employee_id|default:form_data.employee_id }}"
+                 class="form-input" placeholder="예: EMP-001" required>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1.5">
+            이름 (한글) <span style="color:#d94f1e">*</span>
+          </label>
+          <input type="text" name="name"
+                 value="{{ employee.name|default:form_data.name }}"
+                 class="form-input" placeholder="예: 홍길동" required>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1.5">
+            이름 (영문)
+            <span class="text-xs font-normal text-slate-400 ml-1">CCTV 인식에 필요</span>
+          </label>
+          <input type="text" name="name_en"
+                 value="{{ employee.name_en|default:form_data.name_en }}"
+                 class="form-input" placeholder="예: HongGildong">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1.5">
+            부서 <span style="color:#d94f1e">*</span>
+          </label>
+          <input type="text" name="department"
+                 value="{{ employee.department|default:form_data.department }}"
+                 class="form-input" placeholder="예: Engineering" required>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1.5">직책</label>
+          <input type="text" name="role"
+                 value="{{ employee.role|default:form_data.role }}"
+                 class="form-input" placeholder="예: Senior ML Engineer">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1.5">접근 레벨</label>
+          <select name="access_level" class="form-input">
+            <option value="1" {% if employee.access_level == 1 or form_data.access_level == "1" %}selected{% endif %}>Level 1 — 일반</option>
+            <option value="2" {% if employee.access_level == 2 or form_data.access_level == "2" %}selected{% endif %}>Level 2 — 중간</option>
+            <option value="3" {% if employee.access_level == 3 or form_data.access_level == "3" %}selected{% endif %}>Level 3 — 관리자</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section 2: 사진 업로드 -->
+      <div class="border-t border-slate-100 pt-6">
+        <h3 class="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+          <span class="w-5 h-5 rounded text-white text-xs flex items-center justify-center" style="background:#d94f1e;">2</span>
+          얼굴 사진 업로드
+          <span class="text-xs font-normal text-slate-400">CCTV 인식에 사용됩니다</span>
+        </h3>
+        <p class="text-xs text-slate-400 mb-4 ml-7">정면 사진, 1장 이상 권장 · JPG/PNG · 5MB 이하</p>
+
+        <div class="flex flex-col sm:flex-row gap-6 items-start">
+
+          <!-- 현재 사진 미리보기 -->
+          <div class="flex-shrink-0 text-center">
+            <div id="preview-wrap" class="w-28 h-28 rounded-xl overflow-hidden border-2 border-slate-100 bg-slate-50 flex items-center justify-center">
+              {% if employee.photo %}
+              <img id="photo-preview" src="{{ employee.photo.url }}" alt="{{ employee.name }}" class="w-full h-full object-cover">
+              {% else %}
+              <svg id="photo-placeholder" class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+              </svg>
+              <img id="photo-preview" class="w-full h-full object-cover hidden" alt="미리보기">
+              {% endif %}
+            </div>
+            <p class="mono text-[10px] text-slate-400 uppercase tracking-wider mt-2">
+              {% if employee.photo %}현재 사진{% else %}사진 없음{% endif %}
+            </p>
+          </div>
+
+          <!-- 드래그앤드롭 영역 -->
+          <div class="flex-1 w-full">
+            <label for="photo-input" class="photo-drop block p-6 text-center" id="drop-zone">
+              <svg class="w-8 h-8 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <p class="text-sm text-slate-500 mb-1">
+                클릭하거나 사진을 여기에 드래그하세요
+              </p>
+              <p class="mono text-[11px] text-slate-400 uppercase tracking-wider">JPG · PNG · 최대 5MB</p>
+              <input type="file" name="photo" id="photo-input" accept="image/*" class="hidden">
+            </label>
+
+            <div id="file-name" class="mono text-[11px] text-slate-400 uppercase tracking-wider mt-2 hidden">
+              <svg class="w-3.5 h-3.5 inline mr-1 -mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              <span id="file-name-text"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CCTV 안내 박스 -->
+    <div class="p-4 rounded-xl border border-slate-100 bg-amber-50 flex gap-3 mb-5">
+      <svg class="w-5 h-5 flex-shrink-0 mt-0.5" style="color:#d94f1e" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.36a1 1 0 0 1-1.447.89L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/>
+      </svg>
+      <div class="text-xs text-slate-600 leading-relaxed">
+        <strong class="text-slate-700">CCTV 얼굴 인식 안내:</strong>
+        사진 업로드 시 <code class="bg-white px-1 py-0.5 rounded text-[11px] border border-slate-200">dataset/org_data/&lt;영문이름&gt;/</code> 경로에 자동 저장됩니다.
+        등록 후 FAISS 모델을 재학습(<code class="bg-white px-1 py-0.5 rounded text-[11px] border border-slate-200">fr.run_pipeline()</code>)하면 CCTV에서 자동 인식됩니다.
+      </div>
+    </div>
+
+    <!-- 버튼 -->
+    <div class="flex items-center gap-3">
+      <button type="submit" class="btn-primary flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </svg>
+        {% if mode == 'edit' %}수정 저장{% else %}직원 등록{% endif %}
+      </button>
+      <a href="{% url 'bo_employee_list' %}" class="btn-ghost">취소</a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const input    = document.getElementById('photo-input');
+  const preview  = document.getElementById('photo-preview');
+  const placeholder = document.getElementById('photo-placeholder');
+  const fileNameDiv  = document.getElementById('file-name');
+  const fileNameText = document.getElementById('file-name-text');
+  const dropZone = document.getElementById('drop-zone');
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({ icon: 'error', title: '파일 크기 초과', text: '5MB 이하 파일만 업로드 가능합니다.', confirmButtonColor: '#d94f1e' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      preview.classList.remove('hidden');
+      if (placeholder) placeholder.classList.add('hidden');
+      fileNameDiv.classList.remove('hidden');
+      fileNameText.textContent = file.name;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  input.addEventListener('change', () => handleFile(input.files[0]));
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const dt = e.dataTransfer;
+    if (dt.files.length) {
+      const transfer = new DataTransfer();
+      transfer.items.add(dt.files[0]);
+      input.files = transfer.files;
+      handleFile(dt.files[0]);
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,158 @@
+﻿<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside id="sidebar" class="w-64 flex flex-col flex-shrink-0 overflow-y-auto transition-colors duration-300">
+
+  <!-- 시스템 상태 -->
+  <div class="px-4 py-3 flex items-center gap-2">
+    <span class="status-dot status-dot-online"></span>
+    <span class="text-xs sys-status-txt transition-colors duration-300">시스템 정상 운영 중</span>
+  </div>
+
+  <hr class="sidebar-divider mx-3 transition-colors duration-300" />
+
+  <!-- 메뉴 -->
+  <nav class="px-3 py-2 flex flex-col gap-0.5">
+    <p class="text-xs font-bold uppercase tracking-widest mb-2 px-1 section-label transition-colors duration-300">메뉴</p>
+
+    <!-- 개요 -->
+    <a href="{% url 'dashboard' %}"
+       class="nav-item {% if active_nav == 'overview' %}active{% endif %} flex items-center gap-2.5 px-3 py-2 text-sm no-underline">
+      <svg class="w-4 h-4 flex-shrink-0 {% if active_nav == 'overview' %}text-primary{% else %}text-primary opacity-60{% endif %}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+      </svg>
+      <span class="nav-txt transition-colors duration-300">개요</span>
+    </a>
+
+    <!-- 사용자 관리 -->
+    <a href="{% url 'user_list' %}"
+       class="nav-item {% if active_nav == 'users' %}active{% endif %} flex items-center gap-2.5 px-3 py-2 text-sm no-underline">
+      <svg class="w-4 h-4 flex-shrink-0 text-primary opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+      </svg>
+      <span class="nav-txt transition-colors duration-300">사용자 관리</span>
+    </a>
+
+    <!-- 로그 관리 -->
+    <a href="{% url 'log_history' %}"
+       class="nav-item {% if active_nav == 'logs' %}active{% endif %} flex items-center gap-2.5 px-3 py-2 text-sm no-underline">
+      <svg class="w-4 h-4 flex-shrink-0 text-primary opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+      </svg>
+      <span class="nav-txt transition-colors duration-300">로그 관리</span>
+    </a>
+
+    <!-- 채팅 세션 -->
+    <a href="{% url 'chatting_list' %}"
+       class="nav-item {% if active_nav == 'sessions' %}active{% endif %} flex items-center gap-2.5 px-3 py-2 text-sm no-underline">
+      <svg class="w-4 h-4 flex-shrink-0 text-primary opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+      <span class="nav-txt transition-colors duration-300">채팅 세션</span>
+      <span id="sidebarSessionCount" class="ml-auto badge badge-blue">…</span>
+    </a>
+
+    <!-- 문서 관리 -->
+    <a href="{% url 'doc_list' %}"
+       class="nav-item {% if active_nav == 'documents' %}active{% endif %} flex items-center gap-2.5 px-3 py-2 text-sm no-underline">
+      <svg class="w-4 h-4 flex-shrink-0 text-primary opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <span class="nav-txt transition-colors duration-300">문서 관리</span>
+    </a>
+
+    <!-- 분석 및 통계 -->
+    <a href="{% url 'chart_list' %}"
+       class="nav-item {% if active_nav == 'analytics' %}active{% endif %} flex items-center gap-2.5 px-3 py-2 text-sm no-underline">
+      <svg class="w-4 h-4 flex-shrink-0 text-primary opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <span class="nav-txt transition-colors duration-300">분석 및 통계</span>
+    </a>
+
+    <!-- RAG 설정 -->
+    <a href="{% url 'rag_setting' %}"
+       class="nav-item {% if active_nav == 'rag_setting' %}active{% endif %} flex items-center gap-2.5 px-3 py-2 text-sm no-underline">
+      <svg class="w-4 h-4 flex-shrink-0 text-primary opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      <span class="nav-txt transition-colors duration-300">RAG 설정</span>
+    </a>
+  </nav>
+
+  <hr class="sidebar-divider mx-3 my-1 transition-colors duration-300" />
+
+  <!-- 빠른 액션 -->
+  <div class="px-3 py-2">
+    <p class="text-xs font-bold uppercase tracking-widest mb-2 px-1 section-label transition-colors duration-300">빠른 액션</p>
+    <button onclick="openUpload()" class="w-full quick-btn text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-2 mb-1.5 transition-colors duration-300">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+      </svg>
+      문서 업로드
+    </button>
+    <button onclick="rebuildIndex()" class="w-full quick-btn text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-2 transition-colors duration-300">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+      인덱스 재구성
+    </button>
+  </div>
+
+  <div class="flex-1"></div>
+
+  <hr class="sidebar-divider mx-3 my-1 transition-colors duration-300" />
+
+  <!-- 로그아웃 -->
+  <div class="px-3 py-2">
+    <button onclick="confirmLogout()"
+      class="nav-item w-full flex items-center gap-2.5 px-3 py-2 text-sm"
+      style="background:none;border:none;text-align:left;cursor:pointer;">
+      <svg class="w-4 h-4 flex-shrink-0 text-primary opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+      </svg>
+      <span class="nav-txt transition-colors duration-300">로그아웃</span>
+    </button>
+  </div>
+
+  <!-- 버전 정보 -->
+  <div class="px-4 py-2 pb-3">
+    <p class="text-xs section-label transition-colors duration-300">RAG Engine v1.0 · BGE-M3</p>
+  </div>
+</aside>
+
+<script>
+function confirmLogout() {
+  Swal.fire({
+    title: '로그아웃',
+    text: '로그아웃을 하시겠습니까?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#6C63FF',
+    cancelButtonColor: '#9CA3AF',
+    confirmButtonText: '로그아웃',
+    cancelButtonText: '취소',
+  }).then(r => {
+    if (r.isConfirmed) {
+      window.location.href = '{% url "logout" %}';
+    }
+  });
+}
+
+/* 빠른 액션 - dashboard가 아닌 페이지에서 호출 시 대시보드로 이동 */
+function openUpload() {
+  if (typeof _openUpload === 'function') { _openUpload(); }
+  else { window.location.href = '{% url "dashboard" %}'; }
+}
+function rebuildIndex() {
+  if (typeof _rebuildIndex === 'function') { _rebuildIndex(); }
+  else { window.location.href = '{% url "dashboard" %}'; }
+}
+
+// 채팅 세션 카운트 배지
+fetch('{% url "chatting_count" %}')
+  .then(r => r.json())
+  .then(d => {
+    const el = document.getElementById('sidebarSessionCount');
+    if (el) el.textContent = d.count;
+  }).catch(() => {});
+</script>

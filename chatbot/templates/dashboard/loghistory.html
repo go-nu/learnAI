@@ -1,0 +1,548 @@
+﻿<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>로그 관리 · RAG챗봇 V1.0</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        fontFamily: { nanum: ['"Nanum Gothic"', 'sans-serif'] },
+        colors: { primary:'#6C63FF', accent:'#4F46E5' },
+      }},
+    };
+  </script>
+
+  <style>
+    * { font-family: 'Nanum Gothic', sans-serif; box-sizing: border-box; }
+
+    /* ── Light ── */
+    html.light body { background: linear-gradient(135deg,#1e3a8a,#1d4ed8 35%,#2563eb 60%,#3b82f6 85%,#60a5fa); min-height:100vh; }
+    html.light #appHeader      { background:#fff; border-bottom:1px solid #E5E7EB; }
+    html.light .header-logo-txt{ color:#1E1B4B; }
+    html.light .breadcrumb-txt { color:#9CA3AF; }
+    html.light .breadcrumb-last{ color:#4F46E5; font-weight:700; }
+    html.light .header-cfg     { color:#6B7280; font-size:13px; }
+    html.light .header-icon-btn{ color:#6C63FF; }
+    html.light .header-icon-btn:hover{ background:#EEF0FF; }
+    html.light .export-btn     { background:#1E1B4B; color:#fff; }
+    html.light .export-btn:hover{ background:#4F46E5; }
+    html.light #sidebar        { background:#F8F8FC; border-right:1px solid #E5E7EB; }
+    html.light .nav-item:hover { background:#EEEEFF; }
+    html.light .nav-item.active{ background:#EEF0FF; }
+    html.light .nav-txt        { color:#6B7280; }
+    html.light .nav-item.active .nav-txt{ color:#6C63FF; font-weight:700; }
+    html.light .section-label  { color:#9CA3AF; }
+    html.light .sidebar-divider{ border-color:#E5E7EB; }
+    html.light .quick-btn      { background:#EEF0FF; color:#4F46E5; border:1px solid #C7D2FE; }
+    html.light .quick-btn:hover{ background:#DDD8FF; }
+    html.light .status-dot-online{ background:#22C55E; }
+    html.light .sys-status-txt { color:#6B7280; }
+    html.light #pageMain       { background:#F5F6FF; }
+    html.light .page-title     { color:#1E1B4B; }
+    html.light .page-sub       { color:#9CA3AF; }
+    html.light .stat-card      { background:#fff; border:1px solid #E5E7EB; box-shadow:0 2px 8px rgba(108,99,255,.06); }
+    html.light .stat-label     { color:#9CA3AF; }
+    html.light .stat-value     { color:#1E1B4B; }
+    html.light .section-card   { background:#fff; border:1px solid #E5E7EB; box-shadow:0 2px 8px rgba(108,99,255,.06); }
+    html.light .section-head-txt{ color:#1E1B4B; }
+    html.light .section-sub-txt { color:#9CA3AF; }
+    html.light .tbl-head       { background:#F3F4F6; }
+    html.light .tbl-th         { color:#6B7280; }
+    html.light .tbl-row        { border-bottom:1px solid #F3F4F6; }
+    html.light .tbl-row:hover  { background:#F9F9FF; }
+    html.light .tbl-td         { color:#374151; }
+    html.light .tbl-td-sub     { color:#9CA3AF; }
+    html.light .badge-green    { background:#DCFCE7; color:#15803D; }
+    html.light .badge-blue     { background:#DBEAFE; color:#1D4ED8; }
+    html.light .badge-yellow   { background:#FEF9C3; color:#A16207; }
+    html.light .badge-red      { background:#FEE2E2; color:#DC2626; }
+    html.light .badge-gray     { background:#F3F4F6; color:#6B7280; }
+    html.light .badge-purple   { background:#EEF0FF; color:#6C63FF; }
+    html.light .search-box     { background:#F3F4F6; border:1px solid #E5E7EB; color:#374151; }
+    html.light .search-box:focus{ border-color:#6C63FF; background:#fff; }
+    html.light .search-box::placeholder{ color:#9CA3AF; }
+
+    /* ── Dark ── */
+    html.dark body { background:linear-gradient(135deg,#0c1a3a,#0f2460 35%,#1a3a7a 60%,#1e4d96 85%,#1d6bbb); min-height:100vh; }
+    html.dark #appHeader       { background:#1a1f35; border-bottom:1px solid #2d3561; }
+    html.dark .header-logo-txt { color:#e2e8f0; }
+    html.dark .breadcrumb-txt  { color:#64748b; }
+    html.dark .breadcrumb-last { color:#818cf8; font-weight:700; }
+    html.dark .header-cfg      { color:#64748b; font-size:13px; }
+    html.dark .header-icon-btn { color:#818cf8; }
+    html.dark .header-icon-btn:hover{ background:#2d3561; }
+    html.dark .export-btn      { background:#2d3561; color:#e2e8f0; }
+    html.dark .export-btn:hover{ background:#4F46E5; color:#fff; }
+    html.dark #sidebar         { background:#151929; border-right:1px solid #2d3561; }
+    html.dark .nav-item:hover  { background:#1e2a4a; }
+    html.dark .nav-item.active { background:#1e2a4a; }
+    html.dark .nav-txt         { color:#94a3b8; }
+    html.dark .nav-item.active .nav-txt{ color:#818cf8; font-weight:700; }
+    html.dark .section-label   { color:#475569; }
+    html.dark .sidebar-divider { border-color:#2d3561; }
+    html.dark .quick-btn       { background:#1e2a4a; color:#818cf8; border:1px solid #2d3561; }
+    html.dark .quick-btn:hover { background:#2d3561; }
+    html.dark .status-dot-online{ background:#22C55E; }
+    html.dark .sys-status-txt  { color:#64748b; }
+    html.dark #pageMain        { background:#111827; }
+    html.dark .page-title      { color:#e2e8f0; }
+    html.dark .page-sub        { color:#475569; }
+    html.dark .stat-card       { background:#1a1f35; border:1px solid #2d3561; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    html.dark .stat-label      { color:#64748b; }
+    html.dark .stat-value      { color:#e2e8f0; }
+    html.dark .section-card    { background:#1a1f35; border:1px solid #2d3561; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    html.dark .section-head-txt{ color:#e2e8f0; }
+    html.dark .section-sub-txt { color:#475569; }
+    html.dark .tbl-head        { background:#151929; }
+    html.dark .tbl-th          { color:#64748b; }
+    html.dark .tbl-row         { border-bottom:1px solid #1e2a4a; }
+    html.dark .tbl-row:hover   { background:#1e2a4a; }
+    html.dark .tbl-td          { color:#cbd5e1; }
+    html.dark .tbl-td-sub      { color:#475569; }
+    html.dark .badge-green     { background:#14532D; color:#4ADE80; }
+    html.dark .badge-blue      { background:#1e3a5f; color:#60A5FA; }
+    html.dark .badge-yellow    { background:#713F12; color:#FDE047; }
+    html.dark .badge-red       { background:#7F1D1D; color:#FCA5A5; }
+    html.dark .badge-gray      { background:#1e2a4a; color:#94a3b8; }
+    html.dark .badge-purple    { background:#1e2a4a; color:#818cf8; }
+    html.dark .search-box      { background:#111827; border:1px solid #2d3561; color:#e2e8f0; }
+    html.dark .search-box:focus{ border-color:#818cf8; }
+    html.dark .search-box::placeholder{ color:#475569; }
+
+    /* ── Shared ── */
+    #appShell { box-shadow:0 25px 60px rgba(0,0,0,.35); border-radius:16px; overflow:hidden; }
+    ::-webkit-scrollbar{ width:5px; height:5px; }
+    ::-webkit-scrollbar-track{ background:transparent; }
+    ::-webkit-scrollbar-thumb{ background:#6C63FF55; border-radius:10px; }
+    #sidebar{ transition:transform .3s ease; }
+    @media(max-width:768px){
+      #sidebar{ position:fixed!important; left:0; top:0; bottom:0; z-index:50; transform:translateX(-100%); width:260px!important; }
+      #sidebar.open{ transform:translateX(0)!important; }
+    }
+    #sidebarOverlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+    #sidebarOverlay.show{ display:block; }
+
+    .nav-item{ transition:background .15s; border-radius:8px; cursor:pointer; display:block; }
+    .nav-item.active .nav-txt { font-weight:700; }
+    a.nav-item { text-decoration:none; }
+
+    .stat-card{ border-radius:14px; padding:20px; transition:all .2s; }
+    .stat-card:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(108,99,255,.15)!important; }
+    .section-card{ border-radius:14px; }
+    .badge{ font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; }
+
+    .btn-primary{ background:linear-gradient(135deg,#6C63FF,#4F46E5); transition:opacity .2s,transform .1s; }
+    .btn-primary:hover{ opacity:.9; transform:translateY(-1px); }
+
+    .icon-bg-purple{ background:linear-gradient(135deg,#6C63FF,#4F46E5); }
+    .icon-bg-green { background:linear-gradient(135deg,#22C55E,#16A34A); }
+    .icon-bg-red   { background:linear-gradient(135deg,#EF4444,#DC2626); }
+    .icon-bg-orange{ background:linear-gradient(135deg,#F97316,#EA580C); }
+
+    .status-dot{ width:8px; height:8px; border-radius:50%; }
+    .status-dot-online{ animation:pulse-green 2s infinite; }
+    @keyframes pulse-green{
+      0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,.4); }
+      50%{ box-shadow:0 0 0 4px rgba(34,197,94,0); }
+    }
+
+    @keyframes fadeUp{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in{ animation:fadeUp .35s ease forwards; }
+
+    #themeBtn{ transition:transform .4s; }
+    #themeBtn:hover{ transform:rotate(20deg); }
+    .sun-icon,.moon-icon{ transition:opacity .3s,transform .3s; position:absolute; }
+    html.dark  .sun-icon { opacity:1; transform:rotate(0deg); }
+    html.dark  .moon-icon{ opacity:0; transform:rotate(-90deg); }
+    html.light .sun-icon { opacity:0; transform:rotate(90deg); }
+    html.light .moon-icon{ opacity:1; transform:rotate(0deg); }
+
+    .empty-state{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; opacity:.5; }
+
+    /* 페이지네이션 */
+    .page-btn{ padding:4px 10px; border-radius:8px; font-size:13px; font-weight:700; transition:all .15s; cursor:pointer; }
+    html.light .page-btn       { background:#F3F4F6; color:#374151; border:1px solid #E5E7EB; }
+    html.light .page-btn:hover { background:#EEF0FF; border-color:#C7D2FE; color:#4F46E5; }
+    html.light .page-btn.active{ background:#6C63FF; color:#fff; border-color:#6C63FF; }
+    html.dark  .page-btn       { background:#1e2a4a; color:#94a3b8; border:1px solid #2d3561; }
+    html.dark  .page-btn:hover { background:#2d3561; color:#818cf8; }
+    html.dark  .page-btn.active{ background:#6C63FF; color:#fff; border-color:#6C63FF; }
+    .page-btn:disabled{ opacity:.4; cursor:default; pointer-events:none; }
+
+    /* 액션 컬러 */
+    .action-login  { color:#16A34A; font-weight:700; }
+    .action-logout { color:#6C63FF; font-weight:700; }
+    .action-fail   { color:#DC2626; font-weight:700; }
+    html.dark .action-login  { color:#4ADE80; }
+    html.dark .action-logout { color:#818cf8; }
+    html.dark .action-fail   { color:#FCA5A5; }
+
+    .ua-cell{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  </style>
+</head>
+
+<body class="h-screen flex items-stretch justify-stretch overflow-hidden p-0 md:p-4">
+
+  <div id="appShell" class="flex flex-col w-full h-full md:h-[calc(100vh-2rem)] md:rounded-2xl overflow-hidden">
+
+    <!-- ── HEADER ── -->
+    <header id="appHeader" class="flex items-center px-4 h-14 gap-3 z-30 flex-shrink-0 transition-colors duration-300">
+      <button id="menuBtn" class="md:hidden p-1.5 rounded-lg header-icon-btn">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <div class="flex items-center gap-2 mr-2">
+        <div class="w-7 h-7 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+        </div>
+        <a href="{% url 'dashboard' %}" class="font-extrabold text-base hidden sm:block header-logo-txt transition-colors duration-300 no-underline">RAG챗봇 V1.0</a>
+      </div>
+
+      <div class="hidden md:flex items-center gap-1.5 flex-1 text-sm">
+        <span class="breadcrumb-txt transition-colors duration-300">관리 대시보드</span>
+        <span class="breadcrumb-txt">/</span>
+        <span class="breadcrumb-last transition-colors duration-300">로그 관리</span>
+      </div>
+
+      <div class="ml-auto flex items-center gap-1.5">
+        <span class="hidden sm:block header-cfg transition-colors duration-300">Log Management</span>
+
+        <a href="{% url 'dashboard' %}" class="export-btn flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-colors duration-300">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="hidden sm:inline">대시보드</span>
+        </a>
+
+        <span class="hidden md:flex items-center gap-1.5 text-xs header-cfg transition-colors duration-300">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          {{ request.user.get_full_name|default:request.user.username }}
+        </span>
+
+        <button id="themeBtn" onclick="toggleTheme()" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300 relative w-8 h-8 flex items-center justify-center" title="테마 전환">
+          <svg class="sun-icon w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+          <svg class="moon-icon w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+
+        <a href="{% url 'logout' %}" onclick="return confirmLogoutHeader(event)" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300" title="로그아웃">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- ── BODY ── -->
+    <div class="flex flex-1 overflow-hidden relative">
+      <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+      {% include "dashboard/inc_left.html" %}
+
+      <!-- ── MAIN ── -->
+      <main id="pageMain" class="flex-1 flex flex-col overflow-hidden transition-colors duration-300">
+        <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+          <!-- 페이지 헤더 -->
+          <div class="fade-in flex items-center justify-between">
+            <div>
+              <h1 class="text-xl font-extrabold page-title transition-colors duration-300">로그 관리</h1>
+              <p class="text-xs mt-0.5 page-sub transition-colors duration-300">사용자 및 관리자의 로그인 · 로그아웃 · 실패 이력</p>
+            </div>
+            <button onclick="loadLogs()" class="btn-primary text-white font-bold text-sm px-4 py-2 rounded-xl flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              새로고침
+            </button>
+          </div>
+
+          <!-- 통계 카드 -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 fade-in">
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-purple rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </div>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300">{{ total_logs }}</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">전체 로그</p>
+            </div>
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-green rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300">{{ login_count }}</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">로그인 성공</p>
+            </div>
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-red rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300">{{ fail_count }}</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">로그인 실패</p>
+            </div>
+            <div class="stat-card transition-colors duration-300">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 icon-bg-orange rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                </div>
+              </div>
+              <p class="text-2xl font-extrabold stat-value transition-colors duration-300">{{ logout_count }}</p>
+              <p class="text-xs mt-0.5 stat-label transition-colors duration-300">로그아웃</p>
+            </div>
+          </div>
+
+          <!-- 테이블 카드 -->
+          <div class="section-card overflow-hidden fade-in transition-colors duration-300">
+
+            <!-- 검색 & 필터 -->
+            <div class="flex items-center gap-3 p-4 flex-wrap">
+              <div class="relative flex-1 min-w-48">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style="color:#9CA3AF" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input id="searchInput" type="text" placeholder="사용자명 / 이메일 / IP 검색..."
+                  class="search-box text-sm pl-9 pr-4 py-2 rounded-xl outline-none w-full transition-all duration-200"
+                  oninput="filterTable()" />
+              </div>
+              <select id="actionFilter" class="search-box text-sm px-3 py-2 rounded-xl outline-none transition-all duration-200" onchange="filterTable()">
+                <option value="">전체 액션</option>
+                <option value="login">로그인</option>
+                <option value="logout">로그아웃</option>
+                <option value="fail">실패</option>
+              </select>
+              <select id="roleFilter" class="search-box text-sm px-3 py-2 rounded-xl outline-none transition-all duration-200" onchange="filterTable()">
+                <option value="">전체 역할</option>
+                <option value="admin">관리자</option>
+                <option value="user">일반 사용자</option>
+              </select>
+              <input id="dateFrom" type="date" title="시작일"
+                class="search-box text-sm px-3 py-2 rounded-xl outline-none transition-all duration-200"
+                onchange="filterTable()" />
+              <input id="dateTo" type="date" title="종료일"
+                class="search-box text-sm px-3 py-2 rounded-xl outline-none transition-all duration-200"
+                onchange="filterTable()" />
+              <button onclick="resetFilters()" class="p-2 rounded-xl header-icon-btn transition-colors duration-300" title="필터 초기화">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <!-- 테이블 -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="tbl-head transition-colors duration-300">
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300 w-10">#</th>
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300">일시</th>
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300">사용자명</th>
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300 hidden md:table-cell">이메일</th>
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300">역할</th>
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300">액션</th>
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300 hidden sm:table-cell">접속 IP</th>
+                    <th class="tbl-th text-left text-xs font-bold py-3 px-4 transition-colors duration-300 hidden lg:table-cell">브라우저</th>
+                  </tr>
+                </thead>
+                <tbody id="logTableBody">
+                  <tr>
+                    <td colspan="8" class="text-center py-12">
+                      <div class="empty-state">
+                        <svg class="w-12 h-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <p class="text-sm font-bold">불러오는 중...</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 페이지네이션 & 결과수 -->
+            <div class="flex items-center justify-between px-4 py-3">
+              <p class="text-xs page-sub transition-colors duration-300" id="resultInfo">—</p>
+              <div class="flex items-center gap-1" id="pagination"></div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+  // ════════════════════════════════
+  //  THEME
+  // ════════════════════════════════
+  let isDark = false;
+  function toggleTheme() {
+    isDark = !isDark;
+    document.documentElement.classList.toggle('dark', isDark);
+    document.documentElement.classList.toggle('light', !isDark);
+    Swal.fire({ icon:'info', title: isDark?'🌙 다크 모드':'☀️ 라이트 모드', timer:1200, showConfirmButton:false, toast:true, position:'top-end' });
+  }
+
+  // ════════════════════════════════
+  //  DATA
+  // ════════════════════════════════
+  let allLogs = [];
+  let filteredLogs = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 20;
+
+  async function loadLogs() {
+    try {
+      const resp = await fetch(window.location.href, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const data = await resp.json();
+      allLogs = data.logs || [];
+      filterTable();
+      Swal.fire({ icon:'success', title:'목록 갱신 완료', timer:900, showConfirmButton:false, toast:true, position:'top-end' });
+    } catch {
+      Swal.fire({ icon:'error', title:'불러오기 실패', text:'서버와 연결할 수 없습니다.', confirmButtonColor:'#6C63FF' });
+    }
+  }
+
+  function filterTable() {
+    const q      = document.getElementById('searchInput').value.toLowerCase();
+    const action = document.getElementById('actionFilter').value;
+    const role   = document.getElementById('roleFilter').value;
+    const from   = document.getElementById('dateFrom').value;
+    const to     = document.getElementById('dateTo').value;
+
+    filteredLogs = allLogs.filter(l => {
+      const matchQ = !q || l.username.toLowerCase().includes(q)
+                       || l.email.toLowerCase().includes(q)
+                       || l.client_ip.toLowerCase().includes(q);
+      const matchAction = !action || l.action === action;
+      const matchRole = !role
+        || (role === 'admin' && l.is_admin)
+        || (role === 'user'  && !l.is_admin);
+      const logDate = l.created_at.slice(0, 10);
+      const matchFrom = !from || logDate >= from;
+      const matchTo   = !to   || logDate <= to;
+      return matchQ && matchAction && matchRole && matchFrom && matchTo;
+    });
+
+    currentPage = 1;
+    renderTable();
+    renderPagination();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('logTableBody');
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageLogs = filteredLogs.slice(start, start + PAGE_SIZE);
+
+    document.getElementById('resultInfo').textContent =
+      `${filteredLogs.length.toLocaleString()}건 중 ${start+1}–${Math.min(start+PAGE_SIZE, filteredLogs.length)}건 표시`;
+
+    if (!pageLogs.length) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state page-sub"><svg class="w-10 h-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p class="text-sm font-bold">결과가 없습니다.</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = pageLogs.map((l, i) => {
+      const num = start + i + 1;
+
+      let roleHtml;
+      if (l.is_admin) roleHtml = '<span class="badge badge-blue">관리자</span>';
+      else            roleHtml = '<span class="badge badge-gray">일반 사용자</span>';
+
+      let actionHtml;
+      if (l.action === 'login')       actionHtml = '<span class="badge badge-green">로그인</span>';
+      else if (l.action === 'logout') actionHtml = '<span class="badge badge-purple">로그아웃</span>';
+      else                            actionHtml = '<span class="badge badge-red">실패</span>';
+
+      return `<tr class="tbl-row transition-colors duration-300">
+        <td class="tbl-td-sub py-3 px-4 text-xs transition-colors duration-300">${num}</td>
+        <td class="tbl-td py-3 px-4 text-xs transition-colors duration-300" style="white-space:nowrap">${escHtml(l.created_at)}</td>
+        <td class="tbl-td py-3 px-4 transition-colors duration-300">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg icon-bg-purple flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0">
+              ${escHtml((l.username||'?').charAt(0).toUpperCase())}
+            </div>
+            <span class="font-bold text-sm">${escHtml(l.username||'-')}</span>
+          </div>
+        </td>
+        <td class="tbl-td-sub py-3 px-4 text-xs hidden md:table-cell transition-colors duration-300">${escHtml(l.email||'-')}</td>
+        <td class="py-3 px-4">${roleHtml}</td>
+        <td class="py-3 px-4">${actionHtml}</td>
+        <td class="tbl-td-sub py-3 px-4 text-xs hidden sm:table-cell transition-colors duration-300">${escHtml(l.client_ip||'-')}</td>
+        <td class="tbl-td-sub py-3 px-4 text-xs hidden lg:table-cell transition-colors duration-300">
+          <div class="ua-cell" title="${escHtml(l.user_agent)}">${escHtml(l.user_agent)||'-'}</div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderPagination() {
+    const total = Math.ceil(filteredLogs.length / PAGE_SIZE);
+    const pg = document.getElementById('pagination');
+    if (total <= 1) { pg.innerHTML = ''; return; }
+
+    let html = '';
+    if (currentPage > 1)
+      html += `<button class="page-btn" onclick="goPage(${currentPage-1})">‹</button>`;
+    for (let i = 1; i <= total; i++) {
+      if (i === 1 || i === total || Math.abs(i - currentPage) <= 1)
+        html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+      else if (Math.abs(i - currentPage) === 2)
+        html += `<span class="page-btn" style="cursor:default">…</span>`;
+    }
+    if (currentPage < total)
+      html += `<button class="page-btn" onclick="goPage(${currentPage+1})">›</button>`;
+    pg.innerHTML = html;
+  }
+
+  function goPage(p) { currentPage = p; renderTable(); renderPagination(); }
+
+  function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('actionFilter').value = '';
+    document.getElementById('roleFilter').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    filterTable();
+  }
+
+  function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ════════════════════════════════
+  //  LOGOUT (헤더 버튼)
+  // ════════════════════════════════
+  function confirmLogoutHeader(e) {
+    e.preventDefault();
+    const href = e.currentTarget.href;
+    Swal.fire({
+      title:'로그아웃', text:'로그아웃을 하시겠습니까?', icon:'question',
+      showCancelButton:true, confirmButtonColor:'#6C63FF', cancelButtonColor:'#9CA3AF',
+      confirmButtonText:'로그아웃', cancelButtonText:'취소',
+    }).then(r => { if (r.isConfirmed) window.location.href = href; });
+    return false;
+  }
+
+  // ════════════════════════════════
+  //  MOBILE SIDEBAR
+  // ════════════════════════════════
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('show');
+  });
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
+
+  // ════════════════════════════════
+  //  INIT
+  // ════════════════════════════════
+  loadLogs();
+  </script>
+</body>
+</html>

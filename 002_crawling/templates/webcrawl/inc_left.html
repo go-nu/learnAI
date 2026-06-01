@@ -1,0 +1,23 @@
+<!-- ── 좌측 사이드바 ── -->
+    <aside class="sidebar">
+      <p class="sidebar-title">메뉴</p>
+
+      <div class="sidebar-item active" id="menu-search" onclick="switchTab('search')">
+        <span class="icon">🔍</span>
+        영화 API 검색
+      </div>
+
+      <div class="sidebar-item" id="menu-saved" onclick="switchTab('saved')">
+        <span class="icon">🎞️</span>
+        저장 영화 보기
+        <span class="badge" id="saved-badge" style="display:none">0</span>
+      </div>
+
+      <div class="divider" style="margin: 14px 0;"></div>
+      <p class="sidebar-title">정보</p>
+
+      <div class="sidebar-item" onclick="showInfo()">
+        <span class="icon">ℹ️</span>
+        도움말
+      </div>
+    </aside>

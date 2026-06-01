@@ -1,0 +1,521 @@
+﻿<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG 수정 · RAG챗봇 V1.0</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        fontFamily: { nanum: ['"Nanum Gothic"', 'sans-serif'] },
+        colors: { primary:'#6C63FF', accent:'#4F46E5' },
+      }},
+    };
+  </script>
+
+  <style>
+    * { font-family: 'Nanum Gothic', sans-serif; box-sizing: border-box; }
+
+    /* ── Light ── */
+    html.light body { background: linear-gradient(135deg,#1e3a8a,#1d4ed8 35%,#2563eb 60%,#3b82f6 85%,#60a5fa); min-height:100vh; }
+    html.light #appHeader      { background:#fff; border-bottom:1px solid #E5E7EB; }
+    html.light .header-logo-txt{ color:#1E1B4B; }
+    html.light .breadcrumb-txt { color:#9CA3AF; }
+    html.light .breadcrumb-last{ color:#4F46E5; font-weight:700; }
+    html.light .header-cfg     { color:#6B7280; font-size:13px; }
+    html.light .header-icon-btn{ color:#6C63FF; }
+    html.light .header-icon-btn:hover{ background:#EEF0FF; }
+    html.light .export-btn     { background:#1E1B4B; color:#fff; }
+    html.light .export-btn:hover{ background:#4F46E5; }
+    html.light #sidebar        { background:#F8F8FC; border-right:1px solid #E5E7EB; }
+    html.light .nav-item:hover { background:#EEEEFF; }
+    html.light .nav-item.active{ background:#EEF0FF; }
+    html.light .nav-txt        { color:#6B7280; }
+    html.light .nav-item.active .nav-txt{ color:#6C63FF; font-weight:700; }
+    html.light .section-label  { color:#9CA3AF; }
+    html.light .sidebar-divider{ border-color:#E5E7EB; }
+    html.light .quick-btn      { background:#EEF0FF; color:#4F46E5; border:1px solid #C7D2FE; }
+    html.light .quick-btn:hover{ background:#DDD8FF; }
+    html.light .status-dot-online{ background:#22C55E; }
+    html.light .sys-status-txt { color:#6B7280; }
+    html.light #pageMain       { background:#F5F6FF; }
+    html.light .page-title     { color:#1E1B4B; }
+    html.light .page-sub       { color:#9CA3AF; }
+    html.light .section-card   { background:#fff; border:1px solid #E5E7EB; box-shadow:0 2px 8px rgba(108,99,255,.06); }
+    html.light .section-head-txt{ color:#1E1B4B; }
+    html.light .section-sub-txt { color:#9CA3AF; }
+    html.light .form-label     { color:#374151; }
+    html.light .form-input     { background:#F5F6FF; border:1px solid #E5E7EB; color:#1E1B4B; }
+    html.light .form-input:focus{ border-color:#6C63FF; background:#fff; box-shadow:0 0 0 3px rgba(108,99,255,.1); }
+    html.light .form-input::placeholder{ color:#9CA3AF; }
+    html.light .drop-zone      { border:2px dashed #C7D2FE; background:#F5F6FF; }
+    html.light .drop-zone:hover{ border-color:#6C63FF; background:#EEF0FF; }
+    html.light .drop-zone.dragover{ border-color:#6C63FF; background:#EEF0FF; }
+    html.light .drop-zone-txt  { color:#9CA3AF; }
+    html.light .drop-zone-icon { color:#C7D2FE; }
+    html.light .file-selected  { background:#EEF0FF; border-color:#6C63FF; }
+    html.light .file-selected .drop-zone-txt { color:#4F46E5; }
+    html.light .current-file   { background:#F3F4F6; border:1px solid #E5E7EB; }
+    html.light .current-file-txt{ color:#374151; }
+    html.light .toggle-bg      { background:#E5E7EB; }
+    html.light .toggle-label   { color:#374151; }
+    html.light .toggle-sub     { color:#9CA3AF; }
+
+    /* ── Dark ── */
+    html.dark body { background:linear-gradient(135deg,#0c1a3a,#0f2460 35%,#1a3a7a 60%,#1e4d96 85%,#1d6bbb); min-height:100vh; }
+    html.dark #appHeader       { background:#1a1f35; border-bottom:1px solid #2d3561; }
+    html.dark .header-logo-txt { color:#e2e8f0; }
+    html.dark .breadcrumb-txt  { color:#64748b; }
+    html.dark .breadcrumb-last { color:#818cf8; font-weight:700; }
+    html.dark .header-cfg      { color:#64748b; font-size:13px; }
+    html.dark .header-icon-btn { color:#818cf8; }
+    html.dark .header-icon-btn:hover{ background:#2d3561; }
+    html.dark .export-btn      { background:#2d3561; color:#e2e8f0; }
+    html.dark .export-btn:hover{ background:#4F46E5; color:#fff; }
+    html.dark #sidebar         { background:#151929; border-right:1px solid #2d3561; }
+    html.dark .nav-item:hover  { background:#1e2a4a; }
+    html.dark .nav-item.active { background:#1e2a4a; }
+    html.dark .nav-txt         { color:#94a3b8; }
+    html.dark .nav-item.active .nav-txt{ color:#818cf8; font-weight:700; }
+    html.dark .section-label   { color:#475569; }
+    html.dark .sidebar-divider { border-color:#2d3561; }
+    html.dark .quick-btn       { background:#1e2a4a; color:#818cf8; border:1px solid #2d3561; }
+    html.dark .quick-btn:hover { background:#2d3561; }
+    html.dark .status-dot-online{ background:#22C55E; }
+    html.dark .sys-status-txt  { color:#64748b; }
+    html.dark #pageMain        { background:#111827; }
+    html.dark .page-title      { color:#e2e8f0; }
+    html.dark .page-sub        { color:#475569; }
+    html.dark .section-card    { background:#1a1f35; border:1px solid #2d3561; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    html.dark .section-head-txt{ color:#e2e8f0; }
+    html.dark .section-sub-txt { color:#475569; }
+    html.dark .form-label      { color:#cbd5e1; }
+    html.dark .form-input      { background:#111827; border:1px solid #2d3561; color:#e2e8f0; }
+    html.dark .form-input:focus{ border-color:#818cf8; box-shadow:0 0 0 3px rgba(129,140,248,.15); }
+    html.dark .form-input::placeholder{ color:#475569; }
+    html.dark .drop-zone       { border:2px dashed #2d3561; background:#111827; }
+    html.dark .drop-zone:hover { border-color:#818cf8; background:#1e2a4a; }
+    html.dark .drop-zone.dragover{ border-color:#818cf8; background:#1e2a4a; }
+    html.dark .drop-zone-txt   { color:#475569; }
+    html.dark .drop-zone-icon  { color:#2d3561; }
+    html.dark .file-selected   { background:#1e2a4a; border-color:#818cf8; }
+    html.dark .file-selected .drop-zone-txt { color:#818cf8; }
+    html.dark .current-file    { background:#1e2a4a; border:1px solid #2d3561; }
+    html.dark .current-file-txt{ color:#cbd5e1; }
+    html.dark .toggle-bg       { background:#2d3561; }
+    html.dark .toggle-label    { color:#cbd5e1; }
+    html.dark .toggle-sub      { color:#475569; }
+
+    /* ── Shared ── */
+    #appShell { box-shadow:0 25px 60px rgba(0,0,0,.35); border-radius:16px; overflow:hidden; }
+    ::-webkit-scrollbar{ width:5px; height:5px; }
+    ::-webkit-scrollbar-track{ background:transparent; }
+    ::-webkit-scrollbar-thumb{ background:#6C63FF55; border-radius:10px; }
+    #sidebar{ transition:transform .3s ease; }
+    @media(max-width:768px){
+      #sidebar{ position:fixed!important; left:0; top:0; bottom:0; z-index:50; transform:translateX(-100%); width:260px!important; }
+      #sidebar.open{ transform:translateX(0)!important; }
+    }
+    #sidebarOverlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+    #sidebarOverlay.show{ display:block; }
+
+    .nav-item{ transition:background .15s; border-radius:8px; cursor:pointer; display:block; }
+    .nav-item.active .nav-txt { font-weight:700; }
+    a.nav-item { text-decoration:none; }
+
+    .section-card{ border-radius:14px; }
+
+    .btn-primary{ background:linear-gradient(135deg,#6C63FF,#4F46E5); transition:opacity .2s,transform .1s; }
+    .btn-primary:hover{ opacity:.9; transform:translateY(-1px); }
+
+    .status-dot{ width:8px; height:8px; border-radius:50%; }
+    .status-dot-online{ animation:pulse-green 2s infinite; }
+    @keyframes pulse-green{
+      0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,.4); }
+      50%{ box-shadow:0 0 0 4px rgba(34,197,94,0); }
+    }
+
+    @keyframes fadeUp{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in{ animation:fadeUp .35s ease forwards; }
+
+    #themeBtn{ transition:transform .4s; }
+    #themeBtn:hover{ transform:rotate(20deg); }
+    .sun-icon,.moon-icon{ transition:opacity .3s,transform .3s; position:absolute; }
+    html.dark  .sun-icon { opacity:1; transform:rotate(0deg); }
+    html.dark  .moon-icon{ opacity:0; transform:rotate(-90deg); }
+    html.light .sun-icon { opacity:0; transform:rotate(90deg); }
+    html.light .moon-icon{ opacity:1; transform:rotate(0deg); }
+
+    .form-input{ border-radius:10px; padding:9px 14px; width:100%; outline:none; font-size:14px; transition:all .2s; }
+
+    .drop-zone{ border-radius:12px; padding:24px 20px; text-align:center; cursor:pointer; transition:all .2s; }
+    .current-file{ border-radius:10px; padding:10px 14px; }
+
+    /* 토글 스위치 */
+    .toggle-switch{ position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+    .toggle-switch input{ opacity:0; width:0; height:0; }
+    .toggle-slider{ position:absolute; inset:0; border-radius:24px; cursor:pointer; transition:.3s; background:#9CA3AF; }
+    .toggle-switch input:checked + .toggle-slider{ background:#6C63FF; }
+    .toggle-slider:before{ content:''; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+    .toggle-switch input:checked + .toggle-slider:before{ transform:translateX(20px); }
+  </style>
+</head>
+
+<body class="h-screen flex items-stretch justify-stretch overflow-hidden p-0 md:p-4">
+
+  <div id="appShell" class="flex flex-col w-full h-full md:h-[calc(100vh-2rem)] md:rounded-2xl overflow-hidden">
+
+    <!-- ── HEADER ── -->
+    <header id="appHeader" class="flex items-center px-4 h-14 gap-3 z-30 flex-shrink-0 transition-colors duration-300">
+      <button id="menuBtn" class="md:hidden p-1.5 rounded-lg header-icon-btn">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <div class="flex items-center gap-2 mr-2">
+        <div class="w-7 h-7 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+        </div>
+        <a href="{% url 'dashboard' %}" class="font-extrabold text-base hidden sm:block header-logo-txt transition-colors duration-300 no-underline">RAG챗봇 V1.0</a>
+      </div>
+
+      <div class="hidden md:flex items-center gap-1.5 flex-1 text-sm">
+        <span class="breadcrumb-txt transition-colors duration-300">관리 대시보드</span>
+        <span class="breadcrumb-txt">/</span>
+        <a href="{% url 'rag_setting' %}" class="breadcrumb-txt no-underline hover:underline transition-colors duration-300">RAG 설정</a>
+        <span class="breadcrumb-txt">/</span>
+        <span class="breadcrumb-last transition-colors duration-300">RAG 수정</span>
+      </div>
+
+      <div class="ml-auto flex items-center gap-1.5">
+        <span class="hidden sm:block header-cfg transition-colors duration-300">RAG Edit</span>
+
+        <a href="{% url 'dashboard' %}" class="export-btn flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-colors duration-300">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="hidden sm:inline">대시보드</span>
+        </a>
+
+        <span class="hidden md:flex items-center gap-1.5 text-xs header-cfg transition-colors duration-300">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          {{ request.user.get_full_name|default:request.user.username }}
+        </span>
+
+        <button id="themeBtn" onclick="toggleTheme()" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300 relative w-8 h-8 flex items-center justify-center" title="테마 전환">
+          <svg class="sun-icon w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+          <svg class="moon-icon w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+
+        <a href="{% url 'logout' %}" onclick="return confirmLogoutHeader(event)" class="p-1.5 rounded-lg header-icon-btn transition-colors duration-300" title="로그아웃">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- ── BODY ── -->
+    <div class="flex flex-1 overflow-hidden relative">
+      <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+      {% include "dashboard/inc_left.html" %}
+
+      <!-- ── MAIN ── -->
+      <main id="pageMain" class="flex-1 flex flex-col overflow-hidden transition-colors duration-300">
+        <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+          <!-- 페이지 헤더 -->
+          <div class="fade-in flex items-center justify-between">
+            <div>
+              <h1 class="text-xl font-extrabold page-title transition-colors duration-300">RAG 수정</h1>
+              <p class="text-xs mt-0.5 page-sub transition-colors duration-300">{{ rag.name }}</p>
+            </div>
+            <a href="{% url 'rag_setting' %}" class="flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-xl transition-all duration-200 no-underline" style="background:#9CA3AF;color:#fff">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+              취소
+            </a>
+          </div>
+
+          <!-- 폼 레이아웃 -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 fade-in">
+
+            <!-- 왼쪽: 기본 정보 + 파일 -->
+            <div class="lg:col-span-2 space-y-4">
+
+              <!-- 기본 정보 카드 -->
+              <div class="section-card p-5 transition-colors duration-300">
+                <h2 class="font-extrabold text-sm section-head-txt mb-4 transition-colors duration-300">기본 정보</h2>
+
+                <!-- RAG명 -->
+                <div class="mb-4">
+                  <label class="form-label text-xs font-bold block mb-1.5 transition-colors duration-300">
+                    RAG명 <span class="text-red-500">*</span>
+                  </label>
+                  <input id="fName" type="text" value="{{ rag.name }}" class="form-input transition-all duration-200" />
+                </div>
+
+                <!-- 설명 -->
+                <div class="mb-4">
+                  <label class="form-label text-xs font-bold block mb-1.5 transition-colors duration-300">설명</label>
+                  <textarea id="fDescription" rows="3" class="form-input transition-all duration-200" style="resize:vertical">{{ rag.description }}</textarea>
+                </div>
+
+                <!-- 활성 여부 토글 -->
+                <div class="flex items-center justify-between pt-2">
+                  <div>
+                    <p class="toggle-label text-sm font-bold transition-colors duration-300">RAG 활성화</p>
+                    <p class="toggle-sub text-xs transition-colors duration-300">비활성 시 챗봇에서 사용되지 않습니다</p>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="fIsActive" {% if rag.is_active %}checked{% endif %} />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 파일 업로드 카드 -->
+              <div class="section-card p-5 transition-colors duration-300">
+                <h2 class="font-extrabold text-sm section-head-txt mb-3 transition-colors duration-300">소스 파일</h2>
+
+                <!-- 현재 파일 정보 -->
+                <div class="current-file flex items-center gap-3 mb-3 transition-colors duration-300">
+                  <svg class="w-8 h-8 flex-shrink-0" style="color:#6C63FF" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <div>
+                    <p class="current-file-txt text-sm font-bold transition-colors duration-300">{{ rag.source_file_name|default:"파일 없음" }}</p>
+                    <p class="text-xs section-sub-txt transition-colors duration-300">{{ rag.source_file_size_display }} · {{ rag.get_source_file_type_display }}</p>
+                  </div>
+                </div>
+
+                <p class="text-xs section-sub-txt mb-3 transition-colors duration-300">새 파일을 선택하면 기존 파일이 교체됩니다. 선택하지 않으면 기존 파일이 유지됩니다.</p>
+
+                <div id="dropZone" class="drop-zone transition-all duration-200" onclick="document.getElementById('fileInput').click()"
+                  ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                  <svg id="dropIcon" class="w-10 h-10 mx-auto mb-2 drop-zone-icon transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                  </svg>
+                  <p id="dropText" class="text-sm font-bold drop-zone-txt transition-colors duration-300">새 파일 선택 (선택 사항)</p>
+                  <p id="dropSubText" class="text-xs mt-1 drop-zone-txt transition-colors duration-300">PDF, DOCX, TXT, MD, CSV, XLSX 지원</p>
+                </div>
+                <input id="fileInput" type="file" class="hidden" accept=".pdf,.docx,.txt,.md,.csv,.xlsx,.html" onchange="handleFileSelect(event)" />
+              </div>
+            </div>
+
+            <!-- 오른쪽: 설정 패널 -->
+            <div class="space-y-4">
+              <div class="section-card p-5 transition-colors duration-300">
+                <h2 class="font-extrabold text-sm section-head-txt mb-4 transition-colors duration-300">모델 설정</h2>
+
+                <div class="mb-4">
+                  <label class="form-label text-xs font-bold block mb-1.5 transition-colors duration-300">임베딩 모델</label>
+                  <input id="fEmbedModel" type="text" value="{{ rag.embedding_model }}" class="form-input transition-all duration-200" />
+                </div>
+
+                <div>
+                  <label class="form-label text-xs font-bold block mb-1.5 transition-colors duration-300">LLM 모델</label>
+                  <input id="fLlmModel" type="text" value="{{ rag.llm_model }}" class="form-input transition-all duration-200" />
+                </div>
+              </div>
+
+              <div class="section-card p-5 transition-colors duration-300">
+                <h2 class="font-extrabold text-sm section-head-txt mb-4 transition-colors duration-300">청크 설정</h2>
+
+                <div class="mb-4">
+                  <label class="form-label text-xs font-bold block mb-1.5 transition-colors duration-300">청크 크기</label>
+                  <input id="fChunkSize" type="number" value="{{ rag.chunk_size }}" min="100" max="4000" class="form-input transition-all duration-200" />
+                  <p class="text-xs mt-1 section-sub-txt transition-colors duration-300">권장: 500~1000</p>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label text-xs font-bold block mb-1.5 transition-colors duration-300">청크 오버랩</label>
+                  <input id="fChunkOverlap" type="number" value="{{ rag.chunk_overlap }}" min="0" max="500" class="form-input transition-all duration-200" />
+                </div>
+
+                <div>
+                  <label class="form-label text-xs font-bold block mb-1.5 transition-colors duration-300">Top-K</label>
+                  <input id="fTopK" type="number" value="{{ rag.top_k }}" min="1" max="20" class="form-input transition-all duration-200" />
+                  <p class="text-xs mt-1 section-sub-txt transition-colors duration-300">검색 시 반환할 청크 수</p>
+                </div>
+              </div>
+
+              <!-- 빌드 상태 정보 -->
+              {% if rag.chunk_count or rag.build_time_ms %}
+              <div class="section-card p-5 transition-colors duration-300">
+                <h2 class="font-extrabold text-sm section-head-txt mb-3 transition-colors duration-300">빌드 정보</h2>
+                {% if rag.chunk_count %}
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs section-sub-txt transition-colors duration-300">청크 수</span>
+                  <span class="text-xs font-bold section-head-txt transition-colors duration-300">{{ rag.chunk_count }}</span>
+                </div>
+                {% endif %}
+                {% if rag.build_time_ms %}
+                <div class="flex items-center justify-between">
+                  <span class="text-xs section-sub-txt transition-colors duration-300">빌드 시간</span>
+                  <span class="text-xs font-bold section-head-txt transition-colors duration-300">{{ rag.build_time_ms }}ms</span>
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              <!-- 저장 버튼 -->
+              <button id="submitBtn" onclick="submitForm()" class="btn-primary w-full text-white font-bold text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                수정 저장
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+  // ════════════════════════════════
+  //  THEME
+  // ════════════════════════════════
+  let isDark = false;
+  function toggleTheme() {
+    isDark = !isDark;
+    document.documentElement.classList.toggle('dark', isDark);
+    document.documentElement.classList.toggle('light', !isDark);
+    Swal.fire({ icon:'info', title: isDark?'🌙 다크 모드':'☀️ 라이트 모드', timer:1200, showConfirmButton:false, toast:true, position:'top-end' });
+  }
+
+  // ════════════════════════════════
+  //  CSRF
+  // ════════════════════════════════
+  function getCookie(name) {
+    let v = null;
+    for (const p of document.cookie.split(';')) {
+      const [k, val] = p.trim().split('=');
+      if (k === name) { v = decodeURIComponent(val); break; }
+    }
+    return v;
+  }
+
+  // ════════════════════════════════
+  //  FILE UPLOAD
+  // ════════════════════════════════
+  let selectedFile = null;
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) setFile(file);
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.add('dragover');
+  }
+
+  function handleDragLeave(e) {
+    document.getElementById('dropZone').classList.remove('dragover');
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) setFile(file);
+  }
+
+  function setFile(file) {
+    selectedFile = file;
+    const zone = document.getElementById('dropZone');
+    zone.classList.add('file-selected');
+    document.getElementById('dropIcon').innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>`;
+    document.getElementById('dropText').textContent = file.name;
+    const size = file.size < 1024 ? file.size + ' B'
+               : file.size < 1048576 ? (file.size/1024).toFixed(1) + ' KB'
+               : (file.size/1048576).toFixed(1) + ' MB';
+    document.getElementById('dropSubText').textContent = size + ' (교체 예정)';
+  }
+
+  // ════════════════════════════════
+  //  SUBMIT
+  // ════════════════════════════════
+  async function submitForm() {
+    const name        = document.getElementById('fName').value.trim();
+    const description = document.getElementById('fDescription').value.trim();
+    const embedModel  = document.getElementById('fEmbedModel').value.trim();
+    const llmModel    = document.getElementById('fLlmModel').value.trim();
+    const chunkSize   = document.getElementById('fChunkSize').value;
+    const chunkOverlap= document.getElementById('fChunkOverlap').value;
+    const topK        = document.getElementById('fTopK').value;
+    const isActive    = document.getElementById('fIsActive').checked;
+
+    if (!name) {
+      return Swal.fire({ icon:'warning', title:'RAG명을 입력해 주세요.', confirmButtonColor:'#6C63FF' });
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> 저장 중...';
+
+    const fd = new FormData();
+    fd.append('name', name);
+    fd.append('description', description);
+    fd.append('embedding_model', embedModel);
+    fd.append('llm_model', llmModel);
+    fd.append('chunk_size', chunkSize);
+    fd.append('chunk_overlap', chunkOverlap);
+    fd.append('top_k', topK);
+    fd.append('is_active', isActive ? 'true' : 'false');
+    if (selectedFile) fd.append('source_file', selectedFile);
+
+    try {
+      const resp = await fetch('/chatbot/rag/{{ rag.id }}/edit/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        body: fd,
+      });
+      const data = await resp.json();
+      btn.disabled = false;
+      btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg> 수정 저장';
+
+      if (data.success) {
+        await Swal.fire({ icon:'success', title:'수정 완료', text:`"${data.rag.name}" RAG가 수정되었습니다.`, timer:1500, showConfirmButton:false, toast:true, position:'top-end' });
+        window.location.href = '/chatbot/rag/';
+      } else {
+        Swal.fire({ icon:'error', title:'저장 실패', text: data.error, confirmButtonColor:'#6C63FF' });
+      }
+    } catch {
+      btn.disabled = false;
+      btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg> 수정 저장';
+      Swal.fire({ icon:'error', title:'서버 오류', text:'잠시 후 다시 시도해 주세요.', confirmButtonColor:'#6C63FF' });
+    }
+  }
+
+  // ════════════════════════════════
+  //  LOGOUT
+  // ════════════════════════════════
+  function confirmLogoutHeader(e) {
+    e.preventDefault();
+    const href = e.currentTarget.href;
+    Swal.fire({
+      title:'로그아웃', text:'로그아웃을 하시겠습니까?', icon:'question',
+      showCancelButton:true, confirmButtonColor:'#6C63FF', cancelButtonColor:'#9CA3AF',
+      confirmButtonText:'로그아웃', cancelButtonText:'취소',
+    }).then(r => { if (r.isConfirmed) window.location.href = href; });
+    return false;
+  }
+
+  // ════════════════════════════════
+  //  MOBILE SIDEBAR
+  // ════════════════════════════════
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('show');
+  });
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
+  </script>
+</body>
+</html>

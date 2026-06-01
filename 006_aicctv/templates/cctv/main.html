@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FACE GATE — Access Management Console</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,300;1,9..144,400;1,9..144,600&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream:        #f3eee2;
+    --cream-soft:   #ebe4d2;
+    --paper:        #fbf8f0;
+    --paper-pure:   #ffffff;
+    --ink:          #1a1813;
+    --ink-2:        #2c2820;
+    --ink-dim:      #6b6558;
+    --ink-mute:     #a39d8e;
+    --line:         #d8d0bd;
+    --line-strong:  #b8ad94;
+    --orange:       #d94f1e;
+    --orange-deep:  #b03d11;
+    --orange-soft:  #f9dcc9;
+    --navy:         #1c2940;
+    --moss:         #5a7d3a;
+    --rust:         #8a3318;
+  }
+  html, body { background: var(--cream); color: var(--ink); }
+  body {
+    font-family: 'Geist', system-ui, sans-serif;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(26,24,19,0.04) 1px, transparent 0);
+    background-size: 22px 22px;
+  }
+  .display { font-family: 'Fraunces', serif; letter-spacing: -0.02em; font-feature-settings: "ss01"; }
+  .mono    { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .italic-display { font-family: 'Fraunces', serif; font-style: italic; font-weight: 400; }
+
+  /* paper card with subtle inner shadow */
+  .paper {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 0 var(--line), 0 0 0 1px rgba(0,0,0,0.0);
+  }
+
+  /* corner brackets - light theme version */
+  .ink-corner { position: absolute; width: 12px; height: 12px; border: 1.5px solid var(--ink); }
+  .ink-corner.tl { top: 8px; left: 8px;     border-right: 0; border-bottom: 0; }
+  .ink-corner.tr { top: 8px; right: 8px;    border-left: 0;  border-bottom: 0; }
+  .ink-corner.bl { bottom: 8px; left: 8px;  border-right: 0; border-top: 0; }
+  .ink-corner.br { bottom: 8px; right: 8px; border-left: 0;  border-top: 0; }
+
+  /* camera viewfinder corners - red */
+  .cam-corner {
+    position: absolute; width: 36px; height: 36px;
+    border: 2.5px solid #d94f1e;
+    z-index: 4;
+  }
+  .cam-corner.tl { top: 14px; left: 14px;     border-right: 0; border-bottom: 0; }
+  .cam-corner.tr { top: 14px; right: 14px;    border-left: 0;  border-bottom: 0; }
+  .cam-corner.bl { bottom: 14px; left: 14px;  border-right: 0; border-top: 0; }
+  .cam-corner.br { bottom: 14px; right: 14px; border-left: 0;  border-top: 0; }
+
+  .pulse-dot { position: relative; }
+  .pulse-dot::after {
+    content: ""; position: absolute; inset: -4px; border-radius: 9999px;
+    border: 1px solid currentColor; opacity: 0.6;
+    animation: pulse 1.6s ease-out infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(0.8); opacity: 0.7; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  .blink { animation: blink 1.4s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0.25; } }
+
+  .ticker-tape { display: flex; gap: 2.5rem; animation: tape 50s linear infinite; white-space: nowrap; }
+  @keyframes tape { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* scan-line on camera */
+  .scan {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(217,79,30,0.7), transparent);
+    box-shadow: 0 0 12px rgba(217,79,30,0.5);
+    animation: scanmove 3.5s ease-in-out infinite;
+    pointer-events: none; z-index: 3;
+  }
+  @keyframes scanmove {
+    0%, 100% { top: 12%; }
+    50%      { top: 88%; }
+  }
+
+  /* big editorial drop cap number */
+  .drop {
+    font-family: 'Fraunces', serif;
+    font-weight: 300; font-size: 100px; line-height: 0.85;
+    letter-spacing: -0.06em; font-style: italic;
+    color: var(--orange);
+  }
+
+  /* subtle row hover */
+  .row-hover:hover { background: var(--paper-pure); }
+
+  /* status banner */
+  .access-grant {
+    background: var(--orange);
+    color: var(--paper);
+  }
+  .access-grant::before {
+    content: ""; position: absolute; inset: -4px;
+    border: 1px dashed var(--orange);
+    pointer-events: none;
+  }
+
+  /* progress dot rail */
+  .rail {
+    background: var(--line);
+    height: 2px; position: relative;
+  }
+  .rail-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--orange);
+  }
+
+  /* grain texture for paper feel */
+  .grain {
+    position: relative;
+  }
+  .grain::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgba(0,0,0,0.015) 0.5px, transparent 1px),
+      radial-gradient(circle at 75% 75%, rgba(0,0,0,0.015) 0.5px, transparent 1px);
+    background-size: 7px 7px;
+    mix-blend-mode: multiply;
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+
+  .stagger > * { opacity: 0; animation: rise .6s ease forwards; }
+  .stagger > *:nth-child(1) { animation-delay: .05s; }
+  .stagger > *:nth-child(2) { animation-delay: .14s; }
+  .stagger > *:nth-child(3) { animation-delay: .23s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header class="border-b border-[var(--line)] bg-[var(--cream)]/85 backdrop-blur sticky top-0 z-40">
+  <div class="max-w-[1600px] mx-auto px-8 py-4 flex items-center gap-8">
+    <!-- Logo block -->
+    <div class="flex items-center gap-3">
+      <div class="relative w-11 h-11 border border-[var(--ink)] flex items-center justify-center">
+        <svg viewBox="0 0 32 32" class="w-6 h-6" fill="none" stroke="var(--ink)" stroke-width="1.5">
+          <circle cx="16" cy="13" r="6"/>
+          <path d="M5 28c0-6 5-10 11-10s11 4 11 10"/>
+          <circle cx="13" cy="12" r="0.8" fill="var(--ink)"/>
+          <circle cx="19" cy="12" r="0.8" fill="var(--ink)"/>
+        </svg>
+      </div>
+      <div class="leading-tight">
+        <div class="display text-[20px] font-bold tracking-tight">FACE<span class="italic-display text-[var(--orange)] mx-0.5">·</span>GATE</div>
+        <div class="text-[10px] text-[var(--ink-mute)] uppercase tracking-[0.22em] mono">Access Management v3.2</div>
+      </div>
+    </div>
+
+    <!-- Camera selector -->
+    <div class="hidden md:flex items-center gap-1 text-[11px] uppercase tracking-widest pl-6 border-l border-[var(--line)] h-9 mono">
+      <span class="text-[var(--ink-mute)] mr-2">cam</span>
+      <button class="px-2.5 py-1 bg-[var(--ink)] text-[var(--paper)]">01</button>
+      <button class="px-2.5 py-1 text-[var(--ink-dim)] hover:text-[var(--ink)] border border-transparent hover:border-[var(--line-strong)]">02</button>
+      <button class="px-2.5 py-1 text-[var(--ink-dim)] hover:text-[var(--ink)] border border-transparent hover:border-[var(--line-strong)]">03</button>
+      <button class="px-2.5 py-1 text-[var(--ink-mute)]">04</button>
+    </div>
+
+    <div class="flex-1"></div>
+
+    <!-- Live time -->
+    <div class="hidden lg:block text-right mono">
+      <div id="live-time" class="text-[18px] font-medium tabular-nums tracking-tight"></div>
+      <div id="live-date" class="text-[9px] uppercase tracking-[0.25em] text-[var(--ink-mute)]"></div>
+    </div>
+
+    <!-- Status -->
+    <div class="flex items-center gap-2 px-3 py-2 border border-[var(--ink)]">
+      <span class="pulse-dot w-1.5 h-1.5 rounded-full bg-[var(--orange)] text-[var(--orange)]"></span>
+      <span class="text-[10px] uppercase tracking-[0.2em] mono">live</span>
+    </div>
+  </div>
+
+  <!-- ticker -->
+  <div class="border-t border-[var(--line)] overflow-hidden bg-[var(--ink)] text-[var(--cream)]">
+    <div class="ticker-tape py-1.5 text-[10px] mono uppercase tracking-widest">
+      <span><span class="text-[var(--orange-soft)]">●</span> mediapipe face_mesh · 468 landmarks</span>
+      <span><span class="text-[var(--orange-soft)]">●</span> dlib · 128-d face_recognition encoder</span>
+      <span><span class="text-[var(--orange-soft)]">●</span> opencv · 4.10  haar+dnn cascade</span>
+      <span><span class="text-[var(--orange-soft)]">●</span> threshold euclidean ≤ 0.42</span>
+      <span><span class="text-[var(--orange-soft)]">●</span> registered employees · 248</span>
+      <span><span class="text-[var(--orange-soft)]">●</span> mediapipe face_mesh · 468 landmarks</span>
+      <span><span class="text-[var(--orange-soft)]">●</span> dlib · 128-d face_recognition encoder</span>
+      <span><span class="text-[var(--orange-soft)]">●</span> opencv · 4.10  haar+dnn cascade</span>
+      <span><span class="text-[var(--orange-soft)]">●</span> threshold euclidean ≤ 0.42</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-[1600px] mx-auto px-8 py-10">
+
+  <!-- ═══════════════════ HERO ═══════════════════ -->
+  <section class="grid grid-cols-12 gap-8 mb-12 stagger">
+    <div class="col-span-12 md:col-span-8">
+      <div class="text-[10px] uppercase tracking-[0.3em] mono text-[var(--orange)] mb-4">— session 0427 / front entrance</div>
+      <h1 class="display text-6xl md:text-7xl font-light leading-[0.92] tracking-tight">
+        <span class="italic-display">Recognized.</span><br>
+        <span class="text-[var(--ink-dim)]">Granted access.</span>
+      </h1>
+    </div>
+    <div class="col-span-12 md:col-span-4 md:text-right">
+      <div class="inline-block text-left">
+        <div class="text-[10px] uppercase tracking-[0.25em] mono text-[var(--ink-mute)] mb-2">Today · <span id="hero-date">—</span></div>
+        <div id="hero-total" class="display italic-display text-7xl text-[var(--ink)] tabular-nums leading-none">—</div>
+        <div id="hero-sub" class="text-[11px] mono uppercase tracking-widest text-[var(--ink-dim)] mt-2">loading…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ MAIN: CAMERA + PERSON INFO ═══════════════════ -->
+  <section class="grid grid-cols-12 gap-6 mb-16">
+
+    <!-- ╭─ LEFT: CAMERA + FACE MESH ─╮ -->
+    <div class="col-span-12 lg:col-span-7">
+      <div class="paper grain">
+        <!-- top toolbar -->
+        <div class="flex items-center justify-between px-5 py-3 border-b border-[var(--line)]">
+          <div class="flex items-center gap-3">
+            <span class="drop text-[34px] leading-none">01</span>
+            <div>
+              <div class="text-[10px] uppercase tracking-[0.25em] mono text-[var(--ink-mute)]">Live Feed</div>
+              <div class="display text-lg font-semibold leading-tight">Front Entrance · CAM-01</div>
+            </div>
+          </div>
+          <div class="text-right text-[10px] uppercase tracking-widest mono text-[var(--ink-dim)]">
+            <div>1920 × 1080 · 30fps</div>
+            <div class="text-[var(--ink-mute)]">h.264 · 8.4 mbps</div>
+          </div>
+        </div>
+
+        <!-- CAMERA CANVAS -->
+        <div class="relative aspect-[4/3] bg-[#0a0a09] overflow-hidden">
+          <img width="100%" height="100%" src="http://localhost:8000/cctv/video_feed/" />
+        </div>
+
+        <!-- camera footer / metrics -->
+        <div class="grid grid-cols-4 border-t border-[var(--line)] divide-x divide-[var(--line)]">
+          <div class="px-4 py-3">
+            <div class="text-[9px] uppercase tracking-widest mono text-[var(--ink-mute)]">detect</div>
+            <div class="display text-lg font-semibold tabular-nums">8.2<span class="text-xs text-[var(--ink-dim)] ml-1">ms</span></div>
+          </div>
+          <div class="px-4 py-3">
+            <div class="text-[9px] uppercase tracking-widest mono text-[var(--ink-mute)]">landmark</div>
+            <div class="display text-lg font-semibold tabular-nums">5.4<span class="text-xs text-[var(--ink-dim)] ml-1">ms</span></div>
+          </div>
+          <div class="px-4 py-3">
+            <div class="text-[9px] uppercase tracking-widest mono text-[var(--ink-mute)]">encode</div>
+            <div class="display text-lg font-semibold tabular-nums">12.1<span class="text-xs text-[var(--ink-dim)] ml-1">ms</span></div>
+          </div>
+          <div class="px-4 py-3">
+            <div class="text-[9px] uppercase tracking-widest mono text-[var(--ink-mute)]">match</div>
+            <div class="display text-lg font-semibold tabular-nums text-[var(--orange)]">3.0<span class="text-xs text-[var(--ink-dim)] ml-1">ms</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ╭─ RIGHT: CURRENT PERSON + RECENT ENTRIES ─╮ -->
+    <div class="col-span-12 lg:col-span-5 space-y-6">
+
+      <!-- ── ACCESS STATUS BANNER (동적) ── -->
+      <div id="access-banner" class="relative">
+        <div id="banner-inner" class="relative px-6 py-4 flex items-center justify-between"
+             style="background:var(--ink-2); color:var(--cream);">
+          <div class="flex items-center gap-4">
+            <svg id="banner-icon" viewBox="0 0 24 24" class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+            <div>
+              <div class="text-[10px] uppercase tracking-[0.3em] mono opacity-80">// access</div>
+              <div id="banner-label" class="display text-3xl font-semibold leading-none">Standby</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div id="banner-conf" class="text-[10px] uppercase tracking-[0.2em] mono opacity-80">awaiting detection</div>
+            <div id="banner-ts" class="text-[10px] uppercase tracking-[0.2em] mono opacity-80">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CURRENTLY RECOGNIZED PERSON (동적) ── -->
+      <div class="paper grain">
+        <div class="px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="drop text-[34px] leading-none">02</span>
+            <div>
+              <div class="text-[10px] uppercase tracking-[0.25em] mono text-[var(--ink-mute)]">Currently recognized</div>
+              <div class="display text-lg font-semibold leading-tight">Profile</div>
+            </div>
+          </div>
+          <span id="profile-ts" class="text-[10px] mono uppercase tracking-widest text-[var(--ink-mute)]">—</span>
+        </div>
+
+        <div class="p-5 flex gap-5">
+          <!-- 사진 -->
+          <div class="flex-shrink-0">
+            <div class="relative w-32 h-40 border border-[var(--ink)] bg-[var(--cream-soft)] overflow-hidden">
+              <span class="ink-corner tl"></span><span class="ink-corner tr"></span>
+              <span class="ink-corner bl"></span><span class="ink-corner br"></span>
+              <!-- 사진 없을 때 placeholder -->
+              <svg id="profile-avatar-placeholder" viewBox="0 0 200 250" class="absolute inset-0 w-full h-full">
+                <rect width="200" height="250" fill="#ebe4d2"/>
+                <ellipse cx="100" cy="220" rx="90" ry="60" fill="#1c2940"/>
+                <ellipse cx="100" cy="100" rx="55" ry="68" fill="#3a322a"/>
+                <path d="M 50 90 Q 60 50 100 42 Q 140 50 150 90 L 150 110 Q 130 95 100 95 Q 70 95 50 110 Z" fill="#1a1612"/>
+                <circle cx="82" cy="100" r="3" fill="#0a0a09"/>
+                <circle cx="118" cy="100" r="3" fill="#0a0a09"/>
+                <path d="M 90 130 Q 100 135 110 130" stroke="#0a0a09" stroke-width="1.5" fill="none"/>
+              </svg>
+              <!-- 실제 사진 -->
+              <img id="profile-avatar-img" src="" alt=""
+                   class="absolute inset-0 w-full h-full object-cover hidden">
+              <div id="profile-emp-id" class="absolute bottom-1 left-1 right-1 mono text-[8px] uppercase tracking-widest text-[var(--ink)] bg-[var(--paper)]/85 px-1.5 py-0.5 text-center">
+                —
+              </div>
+            </div>
+          </div>
+
+          <!-- 정보 -->
+          <div class="flex-1 min-w-0">
+            <div id="profile-badge" class="text-[10px] uppercase tracking-[0.25em] mono text-[var(--ink-mute)] mb-1">standby · —</div>
+            <h3 id="profile-name" class="display text-3xl font-semibold leading-tight">—</h3>
+            <div id="profile-name-en" class="italic-display text-base text-[var(--ink-dim)] mb-4">Waiting for face detection</div>
+            <dl class="grid grid-cols-2 gap-y-2 text-[12px]">
+              <dt class="text-[var(--ink-mute)] uppercase tracking-widest mono text-[10px]">dept</dt>
+              <dd id="profile-dept" class="text-right">—</dd>
+              <dt class="text-[var(--ink-mute)] uppercase tracking-widest mono text-[10px]">role</dt>
+              <dd id="profile-role" class="text-right">—</dd>
+              <dt class="text-[var(--ink-mute)] uppercase tracking-widest mono text-[10px]">level</dt>
+              <dd id="profile-level" class="text-right tabular-nums mono">—</dd>
+              <dt class="text-[var(--ink-mute)] uppercase tracking-widest mono text-[10px]">emp id</dt>
+              <dd id="profile-empid-dd" class="text-right tabular-nums mono">—</dd>
+            </dl>
+          </div>
+        </div>
+
+        <!-- match bar -->
+        <div class="px-5 py-3 border-t border-[var(--line)] bg-[var(--cream-soft)]/50">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] uppercase tracking-widest mono text-[var(--ink-dim)]">match confidence</span>
+            <span id="conf-pct" class="mono text-sm tabular-nums font-medium text-[var(--orange)]">—</span>
+          </div>
+          <div class="rail">
+            <div id="conf-bar" class="rail-fill" style="width:0%"></div>
+          </div>
+          <div class="flex justify-between mt-2 text-[9px] uppercase tracking-widest mono text-[var(--ink-mute)]">
+            <span>threshold · 60%</span>
+            <span id="conf-votes" class="blink">polling…</span>
+            <span>encoder · dlib_128</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RECENT ENTRIES (동적) ── -->
+      <div class="paper grain">
+        <div class="px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="drop text-[34px] leading-none">03</span>
+            <div>
+              <div class="text-[10px] uppercase tracking-[0.25em] mono text-[var(--ink-mute)]">Recent entries</div>
+              <div class="display text-lg font-semibold leading-tight">Last 5 minutes</div>
+            </div>
+          </div>
+          <a href="#log" class="text-[10px] uppercase tracking-widest mono text-[var(--ink-dim)] hover:text-[var(--orange)]">view all →</a>
+        </div>
+        <ul id="recent-log" class="divide-y divide-[var(--line)]">
+          <li class="px-5 py-6 text-center text-[var(--ink-mute)] mono text-[11px] uppercase tracking-widest">
+            최근 5분 기록 없음
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════ ANALYTICS ═══════════════════ -->
+  <section class="mb-16">
+    <div class="flex items-end justify-between mb-6 pb-5 border-b border-[var(--line)]">
+      <div class="flex items-end gap-4">
+        <span class="drop">04</span>
+        <div>
+          <div class="text-[10px] uppercase tracking-[0.3em] mono text-[var(--orange)]">— analytics</div>
+          <h2 class="display text-3xl font-semibold leading-tight italic-display">Today, in numbers.</h2>
+        </div>
+      </div>
+      <div class="hidden md:flex items-center gap-1 text-[10px] uppercase tracking-widest mono">
+        <button class="px-3 py-1.5 bg-[var(--ink)] text-[var(--paper)]">today</button>
+        <button class="px-3 py-1.5 border border-[var(--line)] text-[var(--ink-dim)] hover:text-[var(--ink)]">week</button>
+        <button class="px-3 py-1.5 border border-[var(--line)] text-[var(--ink-dim)] hover:text-[var(--ink)]">month</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <!-- Hourly traffic -->
+      <div class="paper grain p-5">
+        <div class="flex items-baseline justify-between mb-1">
+          <h3 class="display text-lg font-semibold">Hourly Traffic</h3>
+          <span class="text-[10px] uppercase tracking-widest mono text-[var(--ink-mute)]">a</span>
+        </div>
+        <div class="italic-display text-sm text-[var(--ink-dim)] mb-4">peak at 09 — 38 entries</div>
+        <div class="h-[200px]"><canvas id="hourChart"></canvas></div>
+      </div>
+
+      <!-- Department donut -->
+      <div class="paper grain p-5">
+        <div class="flex items-baseline justify-between mb-1">
+          <h3 class="display text-lg font-semibold">By Department</h3>
+          <span class="text-[10px] uppercase tracking-widest mono text-[var(--ink-mute)]">b</span>
+        </div>
+        <div class="italic-display text-sm text-[var(--ink-dim)] mb-4">142 unique entries · 6 depts</div>
+        <div class="relative h-[200px]">
+          <canvas id="deptChart"></canvas>
+          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div class="display italic-display text-3xl font-semibold tabular-nums">142</div>
+            <div class="text-[9px] uppercase tracking-widest mono text-[var(--ink-mute)]">total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recognition timeline -->
+      <div class="paper grain p-5">
+        <div class="flex items-baseline justify-between mb-1">
+          <h3 class="display text-lg font-semibold">Match Confidence</h3>
+          <span class="text-[10px] uppercase tracking-widest mono text-[var(--ink-mute)]">c</span>
+        </div>
+        <div class="italic-display text-sm text-[var(--ink-dim)] mb-4">last 24 hours · μ 98.3%</div>
+        <div class="h-[200px]"><canvas id="confChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ FULL ACCESS LOG ═══════════════════ -->
+  <section id="log" class="mb-16">
+    <div class="flex items-end justify-between mb-6 pb-5 border-b border-[var(--line)]">
+      <div class="flex items-end gap-4">
+        <span class="drop">05</span>
+        <div>
+          <div class="text-[10px] uppercase tracking-[0.3em] mono text-[var(--orange)]">— ledger</div>
+          <h2 class="display text-3xl font-semibold leading-tight italic-display">Full access log.</h2>
+        </div>
+      </div>
+      <!-- 필터 버튼 -->
+      <div class="flex items-center gap-1 text-[10px] uppercase tracking-widest mono flex-wrap">
+        <button id="log-filter-all"     onclick="setLogFilter('all')"     class="px-3 py-1.5 bg-[var(--ink)] text-[var(--paper)]">all</button>
+        <button id="log-filter-granted" onclick="setLogFilter('granted')" class="px-3 py-1.5 border border-[var(--line)] text-[var(--ink-dim)] hover:text-[var(--ink)]">granted</button>
+        <button id="log-filter-denied"  onclick="setLogFilter('denied')"  class="px-3 py-1.5 border border-[var(--line)] text-[var(--ink-dim)] hover:text-[var(--ink)]">denied</button>
+        <button onclick="loadFullLog()" title="새로고침"
+                class="px-3 py-1.5 border border-[var(--line)] text-[var(--ink-dim)] hover:text-[var(--orange)]">↻</button>
+      </div>
+    </div>
+
+    <div class="paper grain overflow-hidden">
+      <!-- 검색 바 -->
+      <div class="px-5 py-3 border-b border-[var(--line)] flex items-center gap-3 bg-[var(--cream-soft)]/30">
+        <svg class="w-4 h-4 text-[var(--ink-mute)] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="log-search" type="text" placeholder="이름 또는 부서 검색…"
+               oninput="onLogSearch()"
+               class="flex-1 bg-transparent outline-none text-[13px] placeholder:text-[var(--ink-mute)] mono text-[var(--ink)]">
+        <span id="log-search-clear" onclick="clearLogSearch()"
+              class="hidden text-[10px] uppercase tracking-widest mono text-[var(--ink-mute)] cursor-pointer hover:text-[var(--orange)]">clear ×</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-[13px]">
+          <thead>
+            <tr class="border-b border-[var(--line)] text-[10px] uppercase tracking-widest mono text-[var(--ink-mute)] bg-[var(--cream-soft)]/40">
+              <th class="text-left font-normal px-5 py-3">#</th>
+              <th class="text-left font-normal px-5 py-3">name · employee</th>
+              <th class="text-left font-normal px-5 py-3">department</th>
+              <th class="text-left font-normal px-5 py-3">timestamp</th>
+              <th class="text-left font-normal px-5 py-3">direction</th>
+              <th class="text-left font-normal px-5 py-3">match</th>
+              <th class="text-right font-normal px-5 py-3">status</th>
+            </tr>
+          </thead>
+          <tbody id="full-log-tbody" class="tabular-nums">
+            <tr>
+              <td colspan="7" class="px-5 py-10 text-center mono text-[11px] uppercase tracking-widest text-[var(--ink-mute)]">로딩 중…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 페이지네이션 -->
+      <div class="px-5 py-3 border-t border-[var(--line)] flex items-center justify-between text-[10px] uppercase tracking-widest mono text-[var(--ink-dim)] bg-[var(--cream-soft)]/30 flex-wrap gap-2">
+        <span id="log-info">—</span>
+        <div class="flex items-center gap-3">
+          <button id="log-prev" onclick="prevLogPage()"
+                  class="hover:text-[var(--orange)] transition-opacity"
+                  style="opacity:0.4;cursor:not-allowed">← prev</button>
+          <span id="log-page-indicator" class="text-[var(--ink-mute)]">1 / 1</span>
+          <button id="log-next" onclick="nextLogPage()"
+                  class="hover:text-[var(--orange)] transition-opacity">next →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ FOOTER ═══════════════════ -->
+  <footer class="pt-8 border-t border-[var(--line)] flex items-center justify-between flex-wrap gap-4 text-[10px] uppercase tracking-widest mono text-[var(--ink-mute)]">
+    <div class="flex items-center gap-3">
+      <span><span class="text-[var(--moss)]">●</span> system nominal</span>
+      <span>·</span><span>build 3.2.1</span>
+      <span>·</span><span>opencv 4.10 / mediapipe 0.10 / dlib 19.24</span>
+    </div>
+    <div class="italic-display text-base text-[var(--ink-dim)] normal-case tracking-normal">
+      Watching the door, so you don't have to.
+    </div>
+  </footer>
+</main>
+
+<script>
+  // ─── Live clock (KST = UTC+9) ───
+  function updateClock() {
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    document.getElementById('live-time').textContent = `${hh}:${mm}:${ss}`;
+    document.getElementById('live-date').textContent = `${yyyy}.${mo}.${dd} · KST`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ─── Generate face mesh dots dynamically (Mediapipe-style) ───
+  (function() {
+    const meshDots = document.getElementById('meshDots');
+    if (!meshDots) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    const cx = 600, cy = 380;
+    const rx = 155, ry = 200;
+    const rows = 18;
+    const cols = 14;
+    const seed = 42;
+    let s = seed;
+    const rng = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+
+    for (let r = 0; r < rows; r++) {
+      const yRatio = (r - rows/2 + 0.5) / (rows/2);
+      const widthFactor = Math.sqrt(Math.max(0, 1 - yRatio*yRatio));
+      const colsAtY = Math.max(2, Math.floor(cols * widthFactor));
+      for (let c = 0; c < colsAtY; c++) {
+        const xRatio = (c - colsAtY/2 + 0.5) / (colsAtY/2);
+        const x = cx + xRatio * rx * widthFactor + (rng()-0.5)*8;
+        const y = cy + yRatio * ry + (rng()-0.5)*8;
+        const dot = document.createElementNS(NS, 'circle');
+        dot.setAttribute('cx', x);
+        dot.setAttribute('cy', y);
+        dot.setAttribute('r', '1.4');
+        dot.setAttribute('fill', '#fbf8f0');
+        dot.setAttribute('opacity', '0.55');
+        meshDots.appendChild(dot);
+      }
+    }
+  })();
+
+  // ─── Chart.js defaults ───
+  Chart.defaults.font.family = "'JetBrains Mono', monospace";
+  Chart.defaults.font.size = 10;
+  Chart.defaults.color = "#6b6558";
+  Chart.defaults.borderColor = "#d8d0bd";
+
+  // 1. Hourly traffic (bar)
+  new Chart(document.getElementById('hourChart'), {
+    type: 'bar',
+    data: {
+      labels: ['07','08','09','10','11','12','13','14','15','16','17','18'],
+      datasets: [{
+        data: [4, 28, 38, 22, 11, 6, 9, 14, 8, 5, 18, 14],
+        backgroundColor: (ctx) => {
+          const v = ctx.parsed?.y ?? 0;
+          if (v >= 30) return '#d94f1e';
+          if (v >= 15) return '#1a1813';
+          return '#cdc6b6';
+        },
+        borderRadius: 0, borderSkipped: false,
+        barPercentage: 0.78, categoryPercentage: 0.92
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#a39d8e', font: { size: 9 } }, border: { color: '#d8d0bd' } },
+        y: { grid: { color: '#ebe4d2' }, ticks: { color: '#a39d8e', font: { size: 9 } }, border: { display: false } }
+      }
+    }
+  });
+
+  // 2. Department donut
+  new Chart(document.getElementById('deptChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Engineering','Design','Marketing','HR','Sales','Operations'],
+      datasets: [{
+        data: [48, 24, 22, 18, 16, 14],
+        backgroundColor: ['#d94f1e','#1c2940','#8a3318','#5a7d3a','#b8ad94','#cdc6b6'],
+        borderColor: '#fbf8f0', borderWidth: 3, hoverOffset: 8
+      }]
+    },
+    options: {
+      cutout: '70%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { boxWidth: 8, boxHeight: 8, padding: 10, font: { size: 9, family: "'JetBrains Mono'" }, color: '#6b6558' }
+        }
+      },
+      animation: { animateRotate: true, duration: 900 }
+    }
+  });
+
+  // 3. Match confidence over time (line)
+  const confLabels = Array.from({length: 24}, (_, i) => `${String(i).padStart(2,'0')}`);
+  const confData = [97.5,97.8,98.1,98.4,98.6,98.9,99.0,98.7,98.3,98.1,97.9,98.2,98.5,98.7,98.4,98.1,97.8,98.0,98.3,98.6,98.4,98.2,98.0,97.9];
+  new Chart(document.getElementById('confChart'), {
+    type: 'line',
+    data: {
+      labels: confLabels,
+      datasets: [{
+        data: confData,
+        borderColor: '#d94f1e',
+        backgroundColor: 'rgba(217,79,30,0.08)',
+        fill: true, tension: 0.4, borderWidth: 2,
+        pointRadius: 0, pointHoverRadius: 4
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1813', borderColor: '#d94f1e', borderWidth: 1,
+          titleColor: '#f3eee2', bodyColor: '#fbf8f0', padding: 10, cornerRadius: 0,
+          titleFont: { family: "'JetBrains Mono'", size: 10 },
+          bodyFont:  { family: "'JetBrains Mono'", size: 11, weight: 'bold' }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#a39d8e', font: { size: 9 }, maxTicksLimit: 8 }, border: { color: '#d8d0bd' } },
+        y: {
+          grid: { color: '#ebe4d2' },
+          ticks: { color: '#a39d8e', font: { size: 9 }, callback: v => v + '%' },
+          border: { display: false },
+          min: 95, max: 100
+        }
+      }
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  //  실시간 인식 폴링 (2초마다 /cctv/status/ 호출)
+  // ═══════════════════════════════════════════════════════════
+
+  // DOM refs
+  const $ = id => document.getElementById(id);
+
+  // 배너 팔레트
+  const PALETTE = {
+    GRANTED: { bg: '#d94f1e', label: 'Granted',  icon: '<path d="M5 13l4 4L19 7"/>' },
+    DENIED:  { bg: '#8a3318', label: 'Denied',   icon: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' },
+    STANDBY: { bg: '#2c2820', label: 'Standby',  icon: '<circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>' },
+  };
+
+  function updateBanner(status, conf, ts) {
+    const p = PALETTE[status] || PALETTE.STANDBY;
+    $('banner-inner').style.background = p.bg;
+    $('banner-icon').innerHTML = p.icon;
+    $('banner-label').textContent = p.label;
+    $('banner-conf').textContent  = conf  ? `match · ${conf}%` : 'awaiting detection';
+    $('banner-ts').textContent    = ts    ? `time · ${ts}`      : '—';
+  }
+
+  function avatarHTML(photoUrl, name) {
+    if (photoUrl) {
+      $('profile-avatar-img').src = photoUrl;
+      $('profile-avatar-img').alt = name;
+      $('profile-avatar-img').classList.remove('hidden');
+      $('profile-avatar-placeholder').style.display = 'none';
+    } else {
+      $('profile-avatar-img').classList.add('hidden');
+      $('profile-avatar-placeholder').style.display = '';
+    }
+  }
+
+  function updateProfile(c) {
+    const granted = c.status === 'GRANTED';
+    const denied  = c.status === 'DENIED';
+
+    // 배너
+    updateBanner(c.status, c.confidence, c.timestamp);
+
+    // 사진
+    avatarHTML(c.photo_url, c.name);
+    $('profile-emp-id').textContent = c.employee_id || '—';
+
+    // 뱃지
+    $('profile-badge').textContent = granted
+      ? `verified · level ${c.access_level ?? '?'}`
+      : denied ? 'unknown · denied' : 'standby · —';
+    $('profile-badge').style.color = granted ? 'var(--orange)' : denied ? 'var(--rust)' : 'var(--ink-mute)';
+
+    // 이름
+    $('profile-name').textContent    = c.name    || '—';
+    $('profile-name-en').textContent = c.name_en || (c.status === 'STANDBY' ? 'Waiting for face detection' : 'Unregistered');
+    $('profile-dept').textContent    = c.department || '—';
+    $('profile-role').textContent    = c.role       || '—';
+    $('profile-level').textContent   = c.access_level != null ? `Lv.${c.access_level}` : '—';
+    $('profile-empid-dd').textContent= c.employee_id || '—';
+    $('profile-ts').textContent      = c.timestamp ? `match · ${c.timestamp}` : '—';
+
+    // confidence bar
+    const pct = c.confidence || 0;
+    $('conf-pct').textContent   = pct ? `${pct.toFixed(1)}%` : '—';
+    $('conf-bar').style.width   = `${pct}%`;
+    $('conf-votes').textContent = c.timestamp ? `detected · ${c.timestamp}` : 'polling…';
+  }
+
+  function buildLogItem(log, isFirst) {
+    const granted = log.status === 'GRANTED';
+    const initials = log.name ? log.name[0] : '?';
+
+    const avatarPart = log.photo_url
+      ? `<img src="${log.photo_url}" alt="${log.name}"
+              class="w-10 h-10 rounded-full object-cover border border-[var(--line)] flex-shrink-0">`
+      : granted
+        ? `<div class="w-10 h-10 rounded-full bg-[var(--cream-soft)] border border-[var(--line)]
+                      flex items-center justify-center display text-sm font-semibold flex-shrink-0">${initials}</div>`
+        : `<div class="w-10 h-10 rounded-full bg-[var(--cream-soft)] border border-dashed border-[var(--rust)]
+                      flex items-center justify-center text-[var(--rust)] text-lg flex-shrink-0">?</div>`;
+
+    const namePart = granted
+      ? `<span class="display text-base font-semibold">${log.name}</span>
+         <span class="italic-display text-xs text-[var(--ink-mute)]">${log.department}</span>`
+      : `<span class="display text-base font-semibold text-[var(--rust)]">Unknown</span>
+         <span class="italic-display text-xs text-[var(--ink-mute)]">unregistered face</span>`;
+
+    const dirBadge = log.direction === 'IN'
+      ? (isFirst
+          ? `<span class="text-[10px] uppercase tracking-widest mono px-2 py-0.5 bg-[var(--orange)] text-[var(--paper)]">IN</span>`
+          : `<span class="text-[10px] uppercase tracking-widest mono px-2 py-0.5 border border-[var(--ink)] text-[var(--ink)]">IN</span>`)
+      : `<span class="text-[10px] uppercase tracking-widest mono px-2 py-0.5 border border-[var(--ink-mute)] text-[var(--ink-mute)]">OUT</span>`;
+
+    const deniedBadge = !granted
+      ? `<span class="text-[10px] uppercase tracking-widest mono px-2 py-0.5 bg-[var(--rust)] text-[var(--paper)]">DENIED</span>`
+      : dirBadge;
+
+    const rowBg = isFirst
+      ? 'bg-[var(--orange-soft)]/30'
+      : (!granted ? 'bg-[var(--cream-soft)]/40' : '');
+
+    return `
+      <li class="px-5 py-3 flex items-center gap-4 row-hover ${rowBg}">
+        ${avatarPart}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline gap-2">${namePart}</div>
+          <div class="text-[10px] mono uppercase tracking-widest text-[var(--ink-dim)]">
+            ${log.employee_id || '—'} · ${log.timestamp}
+          </div>
+        </div>
+        <div class="text-right">
+          ${deniedBadge}
+          <div class="text-[10px] mono tabular-nums text-[var(--ink-dim)] mt-1">${log.confidence}%</div>
+        </div>
+      </li>`;
+  }
+
+  function updateLogs(logs) {
+    const ul = $('recent-log');
+    if (!logs || logs.length === 0) {
+      ul.innerHTML = `<li class="px-5 py-6 text-center text-[var(--ink-mute)] mono text-[11px] uppercase tracking-widest">최근 5분 기록 없음</li>`;
+      return;
+    }
+    ul.innerHTML = logs.map((log, i) => buildLogItem(log, i === 0)).join('');
+  }
+
+  async function pollStatus() {
+    try {
+      const res  = await fetch('/cctv/status/');
+      const data = await res.json();
+      updateProfile(data.current);
+      updateLogs(data.logs);
+    } catch (e) {
+      $('conf-votes').textContent = 'connection error';
+    }
+  }
+
+  // 즉시 1회 + 2초 간격 폴링
+  pollStatus();
+  setInterval(pollStatus, 2000);
+
+  // ═══ Full Access Log ═══
+  (function() {
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const el = document.getElementById('hero-date');
+    if (el) el.textContent = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+  })();
+
+  let _logPage = 1, _logFilter = 'all', _logTotalPages = 1;
+  let _logSearchTerm = '';
+  let _allLogRows = [];
+
+  function setLogFilter(filter) {
+    _logFilter = filter; _logPage = 1;
+    ['all', 'granted', 'denied'].forEach(f => {
+      const btn = document.getElementById('log-filter-' + f);
+      if (!btn) return;
+      if (f === filter) {
+        btn.className = 'px-3 py-1.5 bg-[var(--ink)] text-[var(--paper)]';
+      } else {
+        btn.className = 'px-3 py-1.5 border border-[var(--line)] text-[var(--ink-dim)] hover:text-[var(--ink)]';
+      }
+    });
+    loadFullLog();
+  }
+
+  function prevLogPage() { if (_logPage > 1) { _logPage--; loadFullLog(); } }
+  function nextLogPage() { if (_logPage < _logTotalPages) { _logPage++; loadFullLog(); } }
+
+  function onLogSearch() {
+    _logSearchTerm = document.getElementById('log-search').value.trim().toLowerCase();
+    document.getElementById('log-search-clear').classList.toggle('hidden', !_logSearchTerm);
+    renderFiltered();
+  }
+
+  function clearLogSearch() {
+    document.getElementById('log-search').value = '';
+    _logSearchTerm = '';
+    document.getElementById('log-search-clear').classList.add('hidden');
+    renderFiltered();
+  }
+
+  function renderFiltered() {
+    const filtered = _logSearchTerm
+      ? _allLogRows.filter(r =>
+          (r.name || '').toLowerCase().includes(_logSearchTerm) ||
+          (r.department || '').toLowerCase().includes(_logSearchTerm))
+      : _allLogRows;
+    const tbody = document.getElementById('full-log-tbody');
+    tbody.innerHTML = filtered.length
+      ? filtered.map(buildFullLogRow).join('')
+      : `<tr><td colspan="7" class="px-5 py-10 text-center mono text-[11px] uppercase tracking-widest" style="color:var(--ink-mute)">검색 결과 없음</td></tr>`;
+  }
+
+  function buildFullLogRow(log) {
+    const granted = log.status === 'GRANTED';
+    const rowStyle = !granted ? 'style="background:rgba(138,51,24,0.06)"' : '';
+    const namePart = granted
+      ? `<span class="display font-medium">${log.name}</span>${log.employee_id ? `<span class="mono text-xs ml-2" style="color:var(--ink-dim)">${log.employee_id}</span>` : ''}`
+      : `<span class="display font-medium" style="color:var(--rust)">${log.name}</span><span class="italic-display text-xs ml-2" style="color:var(--ink-mute)">unregistered</span>`;
+    let dirPart;
+    if (!granted) {
+      dirPart = `<span class="mono text-[10px] uppercase tracking-widest px-2 py-0.5" style="background:var(--rust);color:var(--paper)">DENIED</span>`;
+    } else if (log.direction === 'IN') {
+      dirPart = `<span class="mono text-[10px] uppercase tracking-widest px-2 py-0.5" style="background:var(--ink);color:var(--paper)">IN</span>`;
+    } else {
+      dirPart = `<span class="mono text-[10px] uppercase tracking-widest px-2 py-0.5 border" style="border-color:var(--ink-mute);color:var(--ink-dim)">OUT</span>`;
+    }
+    const matchColor = granted ? 'var(--orange)' : 'var(--rust)';
+    const statusPart = granted
+      ? `<span style="color:var(--moss)">● granted</span>`
+      : `<span style="color:var(--rust)">● denied</span>`;
+    return `<tr class="row-hover border-b border-[var(--line)]" ${rowStyle}>
+      <td class="px-5 py-3 mono text-xs" style="color:var(--ink-mute)">${log.seq}</td>
+      <td class="px-5 py-3">${namePart}</td>
+      <td class="px-5 py-3 italic-display text-sm" style="color:var(--ink-dim)">${log.department || '—'}</td>
+      <td class="px-5 py-3 mono text-xs">${log.timestamp}</td>
+      <td class="px-5 py-3">${dirPart}</td>
+      <td class="px-5 py-3 mono text-xs" style="color:${matchColor}">${log.confidence}%</td>
+      <td class="px-5 py-3 text-right mono text-[10px] uppercase tracking-widest">${statusPart}</td>
+    </tr>`;
+  }
+
+  async function loadFullLog() {
+    const tbody = document.getElementById('full-log-tbody');
+    tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-10 text-center mono text-[11px] uppercase tracking-widest" style="color:var(--ink-mute)">로딩 중…</td></tr>`;
+    try {
+      const res  = await fetch(`/cctv/full_log/?page=${_logPage}&filter=${_logFilter}`);
+      const data = await res.json();
+      _logTotalPages = data.total_pages || 1;
+      _allLogRows    = data.logs || [];
+
+      if (data.today) {
+        const ht = document.getElementById('hero-total');
+        const hs = document.getElementById('hero-sub');
+        if (ht) ht.textContent = data.today.total;
+        if (hs) hs.textContent = `entries · ${data.today.granted} granted · ${data.today.denied} denied`;
+      }
+
+      renderFiltered();
+
+      const s = (_logPage - 1) * (data.per_page || 20) + 1;
+      const e = Math.min(_logPage * (data.per_page || 20), data.total);
+      const logInfo = document.getElementById('log-info');
+      if (logInfo) logInfo.textContent = data.total > 0 ? `showing ${s}–${e} of ${data.total} entries` : 'no entries';
+
+      const pi = document.getElementById('log-page-indicator');
+      if (pi) pi.textContent = `${_logPage} / ${_logTotalPages}`;
+
+      const prev = document.getElementById('log-prev');
+      const next = document.getElementById('log-next');
+      if (prev) { prev.style.opacity = _logPage <= 1 ? '0.4' : '1'; prev.style.cursor = _logPage <= 1 ? 'not-allowed' : 'pointer'; }
+      if (next) { next.style.opacity = _logPage >= _logTotalPages ? '0.4' : '1'; next.style.cursor = _logPage >= _logTotalPages ? 'not-allowed' : 'pointer'; }
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-10 text-center mono text-[11px] uppercase tracking-widest" style="color:var(--rust)">로드 실패</td></tr>`;
+    }
+  }
+
+  loadFullLog();
+  setInterval(loadFullLog, 30000);
+
+</script>
+
+</body>
+</html>
