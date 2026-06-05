@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>분석 중 — AI 과실비율 판정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: { fontFamily: { sans: ['"Nanum Gothic"', 'sans-serif'] } } },
+  };
+</script>
+<style>
+  html, body { font-family: 'Nanum Gothic', sans-serif; }
+
+  /* Pulsing dot for current step */
+  @keyframes pulseRing {
+    0%   { transform: scale(0.9); opacity: 0.8; }
+    70%  { transform: scale(2.2); opacity: 0; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+  .pulse-ring::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 9999px;
+    background-color: #1B4FD8;
+    animation: pulseRing 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
+  /* Bouncing dots */
+  @keyframes bounceDot {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-4px); opacity: 1; }
+  }
+  .bdot { animation: bounceDot 1.2s infinite ease-in-out; }
+  .bdot:nth-child(2) { animation-delay: 0.15s; }
+  .bdot:nth-child(3) { animation-delay: 0.3s; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body class="bg-gray-50 text-slate-800 min-h-screen">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ---------- Icons ----------
+const Icon = ({ d, className = "w-6 h-6", stroke = 1.8 }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke}
+       strokeLinecap="round" strokeLinejoin="round" className={className}>{d}</svg>
+);
+const IconCheck = (p) => <Icon {...p} d={<><path d="M4 12l5 5L20 6" /></>} />;
+const IconClock = (p) => <Icon {...p} d={<>
+  <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+</>} />;
+
+// ---------- Navbar ----------
+function Navbar() {
+  return (
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="landing.html" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-md border-2 border-[#1B4FD8] flex items-center justify-center">
+            <div className="w-3 h-3 bg-[#1B4FD8] rounded-sm" />
+          </div>
+          <span className="font-extrabold text-lg text-slate-900">
+            과실<span className="text-[#1B4FD8]">AI</span>
+          </span>
+        </a>
+        <nav className="hidden md:flex items-center gap-8 text-sm text-slate-600">
+          <a href="#" className="hover:text-slate-900">사례 검색</a>
+          <a href="#" className="hover:text-slate-900">이용 안내</a>
+        </nav>
+        <button className="bg-[#1B4FD8] text-white rounded-lg font-medium px-4 py-2 text-sm hover:opacity-90">
+          시작하기
+        </button>
+      </div>
+    </header>
+  );
+}
+
+// ---------- Spinner ----------
+function Spinner() {
+  return (
+    <div className="relative w-20 h-20">
+      {/* track */}
+      <div className="absolute inset-0 rounded-full border-4 border-slate-100"></div>
+      {/* spinning arc */}
+      <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#1B4FD8] border-r-[#1B4FD8] animate-spin"></div>
+      {/* inner glow */}
+      <div className="absolute inset-3 rounded-full bg-[#1B4FD8]/5 flex items-center justify-center">
+        <span className="font-extrabold text-[#1B4FD8] text-sm tracking-wider">AI</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Step list ----------
+function StepList({ current }) {
+  const steps = [
+    "영상 수신 완료",
+    "프레임 추출 중",
+    "AI 영상 분석 중",
+    "법률 기준 검색 중",
+    "리포트 생성 중",
+  ];
+  return (
+    <ol className="space-y-3">
+      {steps.map((label, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <li
+            key={label}
+            className={[
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 border transition",
+              active ? "bg-blue-50 border-[#1B4FD8]/20" : "bg-white border-transparent",
+            ].join(" ")}
+          >
+            {/* indicator */}
+            <span className="relative w-6 h-6 rounded-full shrink-0 flex items-center justify-center">
+              {done ? (
+                <span className="w-6 h-6 rounded-full bg-[#10B981] text-white flex items-center justify-center">
+                  <IconCheck className="w-3.5 h-3.5" stroke={2.6} />
+                </span>
+              ) : active ? (
+                <span className="relative w-3 h-3">
+                  <span className="absolute inset-0 rounded-full bg-[#1B4FD8] pulse-ring"></span>
+                  <span className="absolute inset-0 rounded-full bg-[#1B4FD8]"></span>
+                </span>
+              ) : (
+                <span className="w-3 h-3 rounded-full bg-slate-200"></span>
+              )}
+            </span>
+
+            {/* label */}
+            <span className={[
+              "text-sm flex-1",
+              done ? "text-slate-500 line-through decoration-slate-300" :
+              active ? "text-slate-900 font-bold" :
+                       "text-slate-400",
+            ].join(" ")}>
+              {label}
+            </span>
+
+            {/* right-side state */}
+            {active && (
+              <span className="flex items-center gap-1 text-[#1B4FD8]">
+                <span className="bdot w-1.5 h-1.5 rounded-full bg-[#1B4FD8] inline-block"></span>
+                <span className="bdot w-1.5 h-1.5 rounded-full bg-[#1B4FD8] inline-block"></span>
+                <span className="bdot w-1.5 h-1.5 rounded-full bg-[#1B4FD8] inline-block"></span>
+              </span>
+            )}
+            {done && <span className="text-[10px] font-mono text-[#10B981]">DONE</span>}
+            {!done && !active && <span className="text-[10px] font-mono text-slate-300">WAIT</span>}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// ---------- App ----------
+function App() {
+  const TOTAL = 30;
+  const STEPS = 5;
+  const [secondsLeft, setSecondsLeft] = useState(TOTAL);
+  const startedAt = useRef(Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startedAt.current) / 1000);
+      setSecondsLeft(Math.max(0, TOTAL - elapsed));
+    }, 250);
+    return () => clearInterval(id);
+  }, []);
+
+  // Drive current step from elapsed time (each step ~ TOTAL/STEPS sec)
+  const elapsed = TOTAL - secondsLeft;
+  const currentStep = Math.min(STEPS - 1, Math.floor(elapsed / (TOTAL / STEPS)));
+  const stepLabels = [
+    "영상 수신 완료",
+    "프레임 추출 중",
+    "AI 영상 분석 중",
+    "법률 기준 검색 중",
+    "리포트 생성 중",
+  ];
+  const progress = Math.min(100, Math.round((elapsed / TOTAL) * 100));
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+
+      <main className="flex-1 flex items-start justify-center py-12 px-6">
+        <div className="w-full max-w-lg mx-auto">
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 md:p-10">
+            {/* Header: spinner + title */}
+            <div className="flex flex-col items-center text-center">
+              <Spinner />
+              <p className="mt-5 text-[11px] font-mono tracking-widest text-[#1B4FD8] uppercase">
+                STEP {currentStep + 1} / {STEPS} · 분석 중
+              </p>
+              <h1 className="mt-1 text-2xl font-extrabold text-slate-900">
+                {stepLabels[currentStep]}
+              </h1>
+              <p className="mt-2 text-sm text-slate-500">
+                Qwen-VL 모델이 영상을 분석하고 있습니다
+              </p>
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-7">
+              <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-1.5">
+                <span>진행률</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#1B4FD8] transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Step list */}
+            <div className="mt-7">
+              <StepList current={currentStep} />
+            </div>
+
+            {/* Countdown */}
+            <div className="mt-7 border border-gray-200 rounded-xl p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-lg bg-[#1B4FD8]/10 text-[#1B4FD8] flex items-center justify-center">
+                  <IconClock className="w-5 h-5" />
+                </span>
+                <div className="leading-tight">
+                  <p className="text-xs text-slate-500">예상 남은 시간</p>
+                  <p className="text-[11px] text-slate-400 font-mono">ESTIMATED</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="flex items-baseline gap-1 justify-end">
+                  <span className="text-4xl font-extrabold text-slate-900 tabular-nums tracking-tight">
+                    {String(secondsLeft).padStart(2, "0")}
+                  </span>
+                  <span className="text-sm font-bold text-slate-400">초</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer actions */}
+            <div className="mt-6 flex items-center justify-end">
+              <button className="text-slate-600 rounded-lg font-medium px-4 py-2 text-sm hover:bg-slate-100">
+                분석 취소
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom note */}
+          <p className="mt-5 text-center text-xs text-slate-500">
+            ⓘ 분석 중 창을 닫아도 결과를 나중에 <a href="#" className="text-[#1B4FD8] font-medium hover:underline">내 분석 기록</a>에서 확인할 수 있습니다.
+          </p>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

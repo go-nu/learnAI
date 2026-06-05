@@ -54,6 +54,9 @@ weights*/
 # Installation packages
 install/
 
+# Node.js
+node_modules/
+
 # IDE
 .vscode/
 .idea/

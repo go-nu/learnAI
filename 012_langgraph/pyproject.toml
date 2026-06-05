@@ -1,0 +1,18 @@
+[project]
+name = "012-langgraph"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "django>=5.2.15",
+    "django-cors-headers>=4.9.0",
+    "djangorestframework>=3.17.1",
+    "ipython>=9.14.0",
+    "langchain-core>=1.4.0",
+    "langchain-google-genai>=4.2.4",
+    "langgraph>=1.2.2",
+    "pydantic>=2.13.4",
+    "python-dotenv>=1.2.2",
+    "typing-extensions>=4.15.0",
+]

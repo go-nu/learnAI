@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>영상 업로드 — AI 과실비율 판정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: { fontFamily: { sans: ['"Nanum Gothic"', 'sans-serif'] } } },
+  };
+</script>
+<style>
+  html, body { font-family: 'Nanum Gothic', sans-serif; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body class="bg-gray-50 text-slate-800">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef } = React;
+
+// ---------- Icons ----------
+const Icon = ({ d, className = "w-6 h-6", stroke = 1.8 }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke}
+       strokeLinecap="round" strokeLinejoin="round" className={className}>{d}</svg>
+);
+const IconUpload = (p) => <Icon {...p} d={<><path d="M12 16V4" /><path d="M6 10l6-6 6 6" /><path d="M4 20h16" /></>} />;
+const IconCar = (p) => <Icon {...p} d={<>
+  <path d="M3 13l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5" />
+  <rect x="2" y="13" width="20" height="5" rx="1" />
+  <circle cx="7" cy="18" r="1.5" /><circle cx="17" cy="18" r="1.5" />
+</>} />;
+const IconWalk = (p) => <Icon {...p} d={<>
+  <circle cx="13" cy="4" r="1.5" />
+  <path d="M11 22l2-7-3-3 1-5 4 2 3 2" /><path d="M7 14l3-1" />
+</>} />;
+const IconCheck = (p) => <Icon {...p} d={<><path d="M4 12l5 5L20 6" /></>} />;
+const IconFile = (p) => <Icon {...p} d={<>
+  <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+  <path d="M14 3v5h5" />
+</>} />;
+const IconX = (p) => <Icon {...p} d={<><path d="M6 6l12 12M18 6L6 18" /></>} />;
+const IconLock = (p) => <Icon {...p} d={<>
+  <rect x="5" y="11" width="14" height="10" rx="2" />
+  <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+</>} />;
+
+// ---------- Navbar (matches landing) ----------
+function Navbar() {
+  return (
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="landing.html" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-md border-2 border-[#1B4FD8] flex items-center justify-center">
+            <div className="w-3 h-3 bg-[#1B4FD8] rounded-sm" />
+          </div>
+          <span className="font-extrabold text-lg text-slate-900">
+            과실<span className="text-[#1B4FD8]">AI</span>
+          </span>
+        </a>
+        <nav className="hidden md:flex items-center gap-8 text-sm text-slate-600">
+          <a href="#" className="hover:text-slate-900">사례 검색</a>
+          <a href="#" className="hover:text-slate-900">이용 안내</a>
+        </nav>
+        <button className="bg-[#1B4FD8] text-white rounded-lg font-medium px-4 py-2 text-sm hover:opacity-90">
+          시작하기
+        </button>
+      </div>
+    </header>
+  );
+}
+
+// ---------- Progress steps ----------
+function StepProgress({ current = 1 }) {
+  const steps = [
+    { n: 1, label: "업로드" },
+    { n: 2, label: "분석" },
+    { n: 3, label: "검색" },
+    { n: 4, label: "결과" },
+  ];
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <div className="flex items-center">
+        {steps.map((s, i) => {
+          const active = s.n === current;
+          const done = s.n < current;
+          return (
+            <React.Fragment key={s.n}>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className={[
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition",
+                  active ? "bg-[#1B4FD8] text-white border-[#1B4FD8]" :
+                  done   ? "bg-[#10B981] text-white border-[#10B981]" :
+                           "bg-white text-slate-400 border-gray-300",
+                ].join(" ")}>
+                  {done ? <IconCheck className="w-4 h-4" /> : s.n}
+                </div>
+                <div className="flex flex-col leading-tight">
+                  <span className={[
+                    "text-[10px] font-mono tracking-wider uppercase",
+                    active ? "text-[#1B4FD8]" : "text-slate-400",
+                  ].join(" ")}>STEP {String(s.n).padStart(2, "0")}</span>
+                  <span className={[
+                    "text-sm font-bold",
+                    active ? "text-slate-900" : done ? "text-slate-600" : "text-slate-400",
+                  ].join(" ")}>{s.label}</span>
+                </div>
+              </div>
+              {i < steps.length - 1 && (
+                <div className="flex-1 h-px mx-4 bg-gradient-to-r from-gray-200 to-gray-200 relative">
+                  <div className={[
+                    "absolute inset-y-0 left-0 transition-all",
+                    s.n < current ? "w-full bg-[#10B981]" : "w-0",
+                  ].join(" ")} />
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Accident type radio cards ----------
+function AccidentTypePicker({ value, onChange }) {
+  const opts = [
+    { id: "v2v", icon: <IconCar />,  title: "차대차",      desc: "차량 간 사고 (신호·차로변경·추돌 등)" },
+    { id: "v2p", icon: <IconWalk />, title: "차대보행자",  desc: "보행자와의 사고 (횡단보도·보도 등)" },
+  ];
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="flex items-baseline justify-between mb-4">
+        <h3 className="text-base font-extrabold text-slate-900">사고 유형 선택</h3>
+        <span className="text-xs text-slate-400">필수</span>
+      </div>
+      <div className="grid sm:grid-cols-2 gap-3">
+        {opts.map((o) => {
+          const selected = value === o.id;
+          return (
+            <label
+              key={o.id}
+              className={[
+                "cursor-pointer border rounded-xl p-4 flex items-start gap-3 transition",
+                selected
+                  ? "border-[#1B4FD8] bg-blue-50 ring-2 ring-[#1B4FD8]/15"
+                  : "border-gray-200 bg-white hover:border-[#1B4FD8] hover:bg-blue-50",
+              ].join(" ")}
+            >
+              <input
+                type="radio" name="accidentType" className="sr-only"
+                checked={selected} onChange={() => onChange(o.id)}
+              />
+              <div className={[
+                "w-11 h-11 rounded-lg flex items-center justify-center shrink-0 transition",
+                selected ? "bg-[#1B4FD8] text-white" : "bg-slate-100 text-slate-500",
+              ].join(" ")}>
+                {o.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={["font-bold", selected ? "text-[#1B4FD8]" : "text-slate-900"].join(" ")}>
+                    {o.title}
+                  </span>
+                  <span className={[
+                    "w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition",
+                    selected ? "border-[#1B4FD8]" : "border-gray-300",
+                  ].join(" ")}>
+                    {selected && <span className="w-2 h-2 rounded-full bg-[#1B4FD8]" />}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">{o.desc}</p>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Drag & drop dropzone ----------
+function Dropzone({ file, onFile }) {
+  const [hover, setHover] = useState(false);
+  const inputRef = useRef(null);
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setHover(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) onFile(f);
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="flex items-baseline justify-between mb-4">
+        <h3 className="text-base font-extrabold text-slate-900">블랙박스 영상 업로드</h3>
+        <span className="text-xs text-slate-400">필수 · 최대 500MB</span>
+      </div>
+
+      {!file ? (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setHover(true); }}
+          onDragLeave={() => setHover(false)}
+          onDrop={onDrop}
+          onClick={() => inputRef.current?.click()}
+          className={[
+            "border-2 border-dashed rounded-2xl px-6 py-14 text-center cursor-pointer transition",
+            hover
+              ? "border-[#1B4FD8] bg-blue-50"
+              : "border-gray-300 bg-gray-50/40 hover:border-[#1B4FD8] hover:bg-blue-50",
+          ].join(" ")}
+        >
+          <div className={[
+            "mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 transition",
+            hover ? "bg-[#1B4FD8] text-white" : "bg-white border border-gray-200 text-[#1B4FD8]",
+          ].join(" ")}>
+            <IconUpload className="w-7 h-7" />
+          </div>
+          <p className={["font-bold transition", hover ? "text-[#1B4FD8]" : "text-slate-900"].join(" ")}>
+            {hover ? "여기에 놓으면 업로드돼요" : "영상을 드래그해서 놓거나 클릭하여 선택"}
+          </p>
+          <p className="text-xs text-slate-500 mt-1.5">MP4, MOV, AVI · 최대 500MB · 720p 이상 권장</p>
+
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+            className="mt-5 inline-flex items-center gap-2 bg-white border border-[#1B4FD8] text-[#1B4FD8] rounded-lg font-medium px-4 py-2 text-sm hover:bg-[#1B4FD8] hover:text-white transition"
+          >
+            <IconFile className="w-4 h-4" /> 파일 선택
+          </button>
+
+          <input
+            ref={inputRef} type="file" accept="video/*" className="hidden"
+            onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
+          />
+        </div>
+      ) : (
+        <div className="border border-gray-200 rounded-2xl p-5 flex items-center gap-4 bg-gray-50/60">
+          <div className="w-12 h-12 rounded-lg bg-[#1B4FD8]/10 text-[#1B4FD8] flex items-center justify-center shrink-0">
+            <IconFile />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-slate-900 truncate">{file.name}</p>
+            <p className="text-xs text-slate-500">
+              {(file.size / (1024 * 1024)).toFixed(1)} MB · 업로드 준비 완료
+            </p>
+            <div className="mt-2 h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full w-2/3 bg-[#10B981]" />
+            </div>
+          </div>
+          <button
+            onClick={() => onFile(null)}
+            className="w-8 h-8 rounded-md border border-gray-200 text-slate-500 hover:bg-white hover:text-[#EF4444] flex items-center justify-center shrink-0"
+            title="제거"
+          >
+            <IconX className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Guidelines ----------
+function Guidelines() {
+  const items = [
+    { ok: true,  text: "충돌 발생 시점 전후 3초 이상이 영상에 포함되어야 합니다" },
+    { ok: true,  text: "전방 블랙박스 영상을 권장합니다 (후방·실내 영상은 보조용)" },
+    { ok: true,  text: "해상도 720p 이상, 프레임 24fps 이상이 정확합니다" },
+    { ok: false, text: "야간·우천 영상은 인식 정확도가 낮을 수 있습니다" },
+  ];
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="flex items-baseline justify-between mb-4">
+        <h3 className="text-base font-extrabold text-slate-900">업로드 가이드라인</h3>
+        <span className="text-xs text-slate-400">읽어보세요</span>
+      </div>
+      <ul className="space-y-3">
+        {items.map((it, i) => (
+          <li key={i} className="flex items-start gap-3">
+            <span className={[
+              "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+              it.ok ? "bg-[#10B981]/15 text-[#10B981]" : "bg-[#F59E0B]/15 text-[#F59E0B]",
+            ].join(" ")}>
+              {it.ok ? <IconCheck className="w-3.5 h-3.5" stroke={2.5} /> : <span className="font-bold text-[11px]">!</span>}
+            </span>
+            <span className="text-sm text-slate-700 leading-relaxed">{it.text}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ---------- Context input ----------
+function ContextInput({ value, onChange }) {
+  const chips = ["주간", "야간", "맑음", "비/눈", "신호위반", "제한속도 50", "제한속도 60", "어린이보호구역"];
+  const [picked, setPicked] = useState(new Set());
+
+  const toggle = (c) => {
+    const next = new Set(picked);
+    next.has(c) ? next.delete(c) : next.add(c);
+    setPicked(next);
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="flex items-baseline justify-between mb-4">
+        <h3 className="text-base font-extrabold text-slate-900">상황 보조 입력</h3>
+        <span className="text-xs text-slate-400">선택 입력</span>
+      </div>
+      <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+        영상에서 파악이 어려운 정보(신호 상태, 제한속도, 날씨 등)를 함께 알려주시면 분석 정확도가 올라갑니다.
+      </p>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {chips.map((c) => {
+          const on = picked.has(c);
+          return (
+            <button
+              key={c} type="button" onClick={() => toggle(c)}
+              className={[
+                "text-xs rounded-full border px-3 py-1.5 font-medium transition",
+                on
+                  ? "border-[#1B4FD8] bg-blue-50 text-[#1B4FD8]"
+                  : "border-gray-200 bg-white text-slate-600 hover:border-[#1B4FD8] hover:text-[#1B4FD8]",
+              ].join(" ")}
+            >
+              {on ? "✓ " : ""}{c}
+            </button>
+          );
+        })}
+      </div>
+
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={4}
+        placeholder="예) 편도 2차로 교차로, 신호등 황색 점멸, 제한속도 50km/h, 야간 비 내림. 상대 차량이 좌회전 중 직진하던 본인 차량 측면 충돌."
+        className="w-full text-sm rounded-lg border border-gray-300 bg-white p-3 placeholder:text-slate-400 focus:outline-none focus:border-[#1B4FD8] focus:ring-2 focus:ring-[#1B4FD8]/15 resize-none"
+      />
+      <div className="mt-1.5 text-right text-[11px] text-slate-400">{value.length} / 1000</div>
+    </div>
+  );
+}
+
+// ---------- App ----------
+function App() {
+  const [type, setType] = useState("v2v");
+  const [file, setFile] = useState(null);
+  const [memo, setMemo] = useState("");
+
+  const ready = !!type && !!file;
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+
+      <main className="flex-1">
+        <div className="max-w-6xl mx-auto px-6 py-10">
+          {/* Title */}
+          <div className="mb-6">
+            <p className="text-xs font-bold text-[#1B4FD8] tracking-widest mb-2">STEP 1 OF 4</p>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">블랙박스 영상 업로드</h1>
+            <p className="text-sm text-slate-500 mt-1.5">
+              사고 유형을 선택하고 영상을 업로드한 뒤 분석을 요청해 주세요.
+            </p>
+          </div>
+
+          {/* Progress */}
+          <div className="mb-6"><StepProgress current={1} /></div>
+
+          {/* Two-column layout */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <AccidentTypePicker value={type} onChange={setType} />
+              <Dropzone file={file} onFile={setFile} />
+              <ContextInput value={memo} onChange={setMemo} />
+            </div>
+            <div className="space-y-6">
+              <Guidelines />
+
+              {/* Privacy notice card */}
+              <div className="bg-white border border-gray-200 rounded-xl p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <IconLock className="w-4 h-4 text-[#10B981]" />
+                  <h3 className="text-sm font-extrabold text-slate-900">개인정보 보호</h3>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  업로드한 영상은 분석 완료 즉시 서버에서 삭제됩니다.
+                  차량 번호판·얼굴은 자동 비식별 처리되며,
+                  제3자에게 공유되지 않습니다.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer actions */}
+          <div className="mt-8 border-t border-gray-200 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <p className="text-xs text-slate-400 max-w-md leading-relaxed">
+              ⓘ 업로드한 영상 및 입력 정보는 분석 완료 즉시 자동 삭제되며, 별도로 저장·공유되지 않습니다.
+            </p>
+            <div className="flex items-center gap-3 sm:justify-end">
+              <button className="text-slate-600 rounded-lg font-medium px-5 py-2.5 text-sm hover:bg-slate-100">
+                취소
+              </button>
+              <button
+                disabled={!ready}
+                className={[
+                  "rounded-lg font-medium px-6 py-2.5 text-sm transition flex items-center gap-2",
+                  ready
+                    ? "bg-[#1B4FD8] text-white hover:opacity-90"
+                    : "bg-slate-200 text-slate-400 cursor-not-allowed",
+                ].join(" ")}
+              >
+                분석 요청
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                     strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <path d="M5 12h14" /><path d="M13 6l6 6-6 6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

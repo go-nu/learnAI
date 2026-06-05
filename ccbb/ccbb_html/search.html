@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>사례 검색 — GIAK 과실비율 인정기준</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: { fontFamily: { sans: ['"Nanum Gothic"', 'sans-serif'] } } },
+  };
+</script>
+<style>
+  html, body { font-family: 'Nanum Gothic', sans-serif; }
+
+  /* Custom dual range slider */
+  input[type="range"].dual {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    pointer-events: none;
+    position: absolute;
+    width: 100%;
+    height: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  input[type="range"].dual::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: auto;
+    width: 18px; height: 18px;
+    border-radius: 9999px;
+    background: white;
+    border: 3px solid #1B4FD8;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  input[type="range"].dual::-moz-range-thumb {
+    pointer-events: auto;
+    width: 18px; height: 18px;
+    border-radius: 9999px;
+    background: white;
+    border: 3px solid #1B4FD8;
+    cursor: pointer;
+  }
+
+  /* Modal animation */
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.92) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-in { animation: modalIn 0.18s ease-out both; }
+  .overlay-in { animation: overlayIn 0.18s ease-out both; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body class="bg-gray-50 text-slate-800 min-h-screen">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo, useEffect } = React;
+
+// ---------- Icons ----------
+const Icon = ({ d, className = "w-5 h-5", stroke = 1.8 }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke}
+       strokeLinecap="round" strokeLinejoin="round" className={className}>{d}</svg>
+);
+const IconSearch = (p) => <Icon {...p} d={<>
+  <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+</>} />;
+const IconX = (p) => <Icon {...p} d={<><path d="M6 6l12 12M18 6L6 18" /></>} />;
+const IconBook = (p) => <Icon {...p} d={<>
+  <path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V4z" />
+  <path d="M4 17a3 3 0 0 1 3-3h11" />
+</>} />;
+const IconLink = (p) => <Icon {...p} d={<>
+  <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" />
+  <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" />
+</>} />;
+const IconCar = (p) => <Icon {...p} d={<>
+  <path d="M3 13l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5" />
+  <rect x="2" y="13" width="20" height="5" rx="1" />
+  <circle cx="7" cy="18" r="1.5" /><circle cx="17" cy="18" r="1.5" />
+</>} />;
+
+// ---------- Navbar ----------
+function Navbar() {
+  return (
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="landing.html" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-md border-2 border-[#1B4FD8] flex items-center justify-center">
+            <div className="w-3 h-3 bg-[#1B4FD8] rounded-sm" />
+          </div>
+          <span className="font-extrabold text-lg text-slate-900">
+            과실<span className="text-[#1B4FD8]">AI</span>
+          </span>
+        </a>
+        <nav className="hidden md:flex items-center gap-8 text-sm text-slate-600">
+          <a href="#" className="text-slate-900 font-bold">사례 검색</a>
+          <a href="#" className="hover:text-slate-900">이용 안내</a>
+        </nav>
+        <button className="bg-[#1B4FD8] text-white rounded-lg font-medium px-4 py-2 text-sm hover:opacity-90">
+          시작하기
+        </button>
+      </div>
+    </header>
+  );
+}
+
+// ---------- Search header ----------
+function SearchHeader({ query, onQuery }) {
+  const suggestions = [
+    "신호위반 직진/좌회전 충돌",
+    "차로 변경 중 측면 충돌",
+    "주차장 후진 사고",
+    "횡단보도 보행자 사고",
+  ];
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-xs font-bold text-[#1B4FD8] tracking-widest mb-2">GIAK · 과실비율 인정기준</p>
+        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">사례 검색</h1>
+        <p className="text-sm text-slate-500 mt-1.5">
+          자연어로 사고 상황을 설명하면 가장 유사한 GIAK 사례를 찾아드립니다.
+        </p>
+      </div>
+
+      <div className="relative">
+        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">
+          <IconSearch className="w-5 h-5" />
+        </span>
+        <input
+          type="text" value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder="예) 신호등 있는 교차로에서 좌회전 중 직진 차량과 충돌했어요"
+          className="w-full rounded-xl border-2 border-gray-200 bg-white pl-12 pr-32 py-4 text-base
+                     placeholder:text-slate-400 focus:outline-none focus:border-[#1B4FD8]
+                     focus:ring-4 focus:ring-[#1B4FD8]/10 transition"
+        />
+        <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#1B4FD8] text-white rounded-lg font-medium px-5 py-2.5 text-sm hover:opacity-90">
+          검색
+        </button>
+      </div>
+
+      {/* Suggestion chips */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-slate-400">자주 찾는 검색어</span>
+        {suggestions.map((s) => (
+          <button
+            key={s} onClick={() => onQuery(s)}
+            className="text-xs text-slate-600 bg-white border border-gray-200 rounded-full px-3 py-1.5 hover:border-[#1B4FD8] hover:text-[#1B4FD8] transition"
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Filter sidebar ----------
+function FilterSidebar({ types, onToggleType, range, setRange, onReset }) {
+  const typeOptions = [
+    { id: "straight",  label: "직진/직진",       count: 38 },
+    { id: "left",      label: "직진/좌회전",     count: 27 },
+    { id: "lane",      label: "차선 변경",       count: 22 },
+    { id: "rear",      label: "추돌",            count: 19 },
+    { id: "park",      label: "주차장",          count: 14 },
+    { id: "ped",       label: "보행자",          count: 21 },
+    { id: "signal",    label: "신호 위반",       count: 16 },
+  ];
+  const [minP, maxP] = range;
+
+  return (
+    <aside className="w-64 shrink-0 space-y-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-extrabold text-slate-900">필터</h3>
+          <button onClick={onReset} className="text-xs text-[#1B4FD8] hover:underline">
+            초기화
+          </button>
+        </div>
+
+        {/* Accident type */}
+        <div className="mb-5">
+          <p className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-3">사고 유형</p>
+          <ul className="space-y-2">
+            {typeOptions.map((t) => {
+              const checked = types.includes(t.id);
+              return (
+                <li key={t.id}>
+                  <label className="flex items-center gap-2.5 cursor-pointer group">
+                    <input
+                      type="checkbox" checked={checked}
+                      onChange={() => onToggleType(t.id)}
+                      className="w-4 h-4 rounded accent-[#1B4FD8] cursor-pointer"
+                    />
+                    <span className={[
+                      "text-sm flex-1",
+                      checked ? "text-slate-900 font-bold" : "text-slate-600 group-hover:text-slate-900",
+                    ].join(" ")}>{t.label}</span>
+                    <span className="text-[11px] font-mono text-slate-400">{t.count}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* Fault range */}
+        <div>
+          <p className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-3">과실 비율 범위</p>
+          <div className="flex items-center justify-between text-xs mb-3">
+            <span className="font-mono text-slate-600">{minP}%</span>
+            <span className="text-slate-300">—</span>
+            <span className="font-mono text-slate-600">{maxP}%</span>
+          </div>
+
+          {/* dual slider */}
+          <div className="relative h-6 mb-2">
+            <div className="absolute top-1/2 -translate-y-1/2 w-full h-1.5 rounded-full bg-slate-200" />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 h-1.5 rounded-full bg-[#1B4FD8]"
+              style={{ left: `${minP}%`, right: `${100 - maxP}%` }}
+            />
+            <input
+              type="range" className="dual" min="0" max="100" step="5"
+              value={minP}
+              onChange={(e) => setRange([Math.min(+e.target.value, maxP - 5), maxP])}
+            />
+            <input
+              type="range" className="dual" min="0" max="100" step="5"
+              value={maxP}
+              onChange={(e) => setRange([minP, Math.max(+e.target.value, minP + 5)])}
+            />
+          </div>
+
+          <div className="flex justify-between text-[10px] font-mono text-slate-400">
+            <span>0%</span><span>50%</span><span>100%</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ---------- Cases data ----------
+const CASES = [
+  {
+    code: "차26",
+    typeId: "signal",
+    type: "신호 위반",
+    title: "신호등 있는 교차로 — 직진/좌회전",
+    range: [70, 80],
+    base: "20 : 80",
+    summary: "신호등 있는 교차로에서 직진 차량과 좌회전 차량의 충돌. 좌회전 차량이 신호위반한 경우.",
+    law: "도로교통법 제5조(신호 또는 지시에 따를 의무) 위반. 신호를 위반한 차량의 과실을 무겁게 본다.",
+  },
+  {
+    code: "차252",
+    typeId: "lane",
+    type: "차선 변경",
+    title: "동일방향 진행 중 진로 변경",
+    range: [20, 40],
+    base: "30 : 70",
+    summary: "후방에서 진행 중이던 차량이 진로를 변경하면서 직진 중인 차량과 충돌한 경우.",
+    law: "도로교통법 제19조③(진로 변경 시 방향지시등). 진로 변경 차량의 과실을 무겁게 본다.",
+  },
+  {
+    code: "차30",
+    typeId: "straight",
+    type: "직진/직진",
+    title: "교차로 진입 — 동시 진입 (신호기 없음)",
+    range: [40, 60],
+    base: "50 : 50",
+    summary: "신호기 없는 동일폭 교차로에서 양쪽 차량이 동시 진입하여 발생한 충돌.",
+    law: "도로교통법 제26조(교통정리 없는 교차로 통행방법). 우측 도로 차량 우선.",
+  },
+  {
+    code: "차38",
+    typeId: "rear",
+    type: "추돌",
+    title: "직진 중 후미 추돌",
+    range: [0, 10],
+    base: "0 : 100",
+    summary: "선행 차량이 정상 주행 중 후행 차량이 안전거리 미확보로 추돌한 경우.",
+    law: "도로교통법 제19조①(안전거리 확보 의무). 후행 차량의 과실을 전적으로 본다.",
+  },
+];
+
+// ---------- Case card ----------
+function CaseCard({ c, onOpen }) {
+  return (
+    <button
+      onClick={() => onOpen(c)}
+      className="text-left w-full bg-white border border-gray-200 rounded-xl p-5
+                 hover:border-[#1B4FD8] hover:shadow-[0_0_0_3px_rgba(27,79,216,0.06)]
+                 transition focus:outline-none focus:border-[#1B4FD8]"
+    >
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono bg-slate-100 text-slate-600 rounded px-2 py-0.5">
+            {c.code}
+          </span>
+          <span className="text-[11px] font-bold text-[#1B4FD8] bg-blue-50 rounded-full px-2 py-0.5">
+            {c.type}
+          </span>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] font-mono text-slate-400 uppercase">참고 과실</p>
+          <p className="text-sm font-extrabold text-[#1B4FD8] tabular-nums">
+            {c.range[0]} ~ {c.range[1]}%
+          </p>
+        </div>
+      </div>
+
+      <h3 className="font-extrabold text-slate-900 mt-3">{c.title}</h3>
+      <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">{c.summary}</p>
+
+      <div className="mt-4 flex items-center justify-between">
+        <span className="text-[11px] font-mono text-slate-400">기본값 {c.base}</span>
+        <span className="text-xs font-medium text-[#1B4FD8] flex items-center gap-1">
+          자세히 보기
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+               strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+            <path d="M5 12h14" /><path d="M13 6l6 6-6 6" />
+          </svg>
+        </span>
+      </div>
+    </button>
+  );
+}
+
+// ---------- Modal ----------
+function CaseModal({ case: c, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  if (!c) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm overlay-in"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-lg bg-white rounded-2xl border border-gray-200 modal-in
+                      shadow-[0_20px_60px_-15px_rgba(15,23,42,0.25)] overflow-hidden">
+        {/* close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-9 h-9 rounded-lg text-slate-500 hover:bg-slate-100 flex items-center justify-center"
+          aria-label="닫기"
+        >
+          <IconX className="w-5 h-5" />
+        </button>
+
+        {/* header */}
+        <div className="px-7 pt-7 pb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[10px] font-mono bg-slate-100 text-slate-600 rounded px-2 py-0.5">
+              {c.code}
+            </span>
+            <span className="text-[11px] font-bold text-[#1B4FD8] bg-blue-50 rounded-full px-2 py-0.5">
+              {c.type}
+            </span>
+          </div>
+          <h2 className="text-xl font-extrabold text-slate-900">{c.title}</h2>
+          <p className="text-sm text-slate-600 mt-2 leading-relaxed">{c.summary}</p>
+        </div>
+
+        {/* fault ratio panel */}
+        <div className="px-7 py-5 bg-blue-50/40 border-y border-blue-100">
+          <p className="text-[10px] font-mono text-[#1B4FD8] tracking-widest uppercase mb-1.5">
+            참고 과실 비율
+          </p>
+          <div className="flex items-end gap-3">
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-extrabold text-[#1B4FD8] tabular-nums leading-none">
+                {c.range[0]}
+              </span>
+              <span className="text-xl font-bold text-[#1B4FD8]">~</span>
+              <span className="text-4xl font-extrabold text-[#1B4FD8] tabular-nums leading-none">
+                {c.range[1]}
+              </span>
+              <span className="text-base font-bold text-[#1B4FD8] ml-0.5">%</span>
+            </div>
+            <span className="text-xs text-slate-500 mb-0.5">
+              기본값 <span className="font-mono text-slate-700">{c.base}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* law */}
+        <div className="px-7 py-5">
+          <div className="flex items-center gap-2 mb-2 text-xs font-bold text-slate-500 tracking-widest uppercase">
+            <IconBook className="w-4 h-4" /> 관련 법률 조항
+          </div>
+          <p className="text-sm text-slate-700 leading-relaxed">{c.law}</p>
+        </div>
+
+        {/* footer */}
+        <div className="px-7 py-4 bg-slate-50 border-t border-gray-200 flex items-center justify-between gap-3">
+          <a
+            href="https://accident.knia.or.kr" target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1B4FD8] hover:underline"
+          >
+            <IconLink className="w-4 h-4" /> GIAK 원문 보기
+          </a>
+          <button
+            onClick={onClose}
+            className="bg-[#1B4FD8] text-white rounded-lg font-medium px-5 py-2 text-sm hover:opacity-90"
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- App ----------
+function App() {
+  const [query, setQuery] = useState("");
+  const [types, setTypes] = useState([]);
+  const [range, setRange] = useState([0, 100]);
+  const [active, setActive] = useState(null);
+
+  const toggleType = (id) =>
+    setTypes((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+
+  const reset = () => {
+    setTypes([]); setRange([0, 100]); setQuery("");
+  };
+
+  const results = useMemo(() => {
+    return CASES.filter((c) => {
+      const inType = types.length === 0 || types.includes(c.typeId);
+      const inRange = c.range[0] >= range[0] && c.range[1] <= range[1];
+      const inQuery = !query ||
+        (c.title + c.summary + c.type + c.law).toLowerCase().includes(query.toLowerCase());
+      return inType && inRange && inQuery;
+    });
+  }, [types, range, query]);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+
+      <main className="flex-1">
+        <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+          <SearchHeader query={query} onQuery={setQuery} />
+
+          <div className="flex gap-6">
+            <FilterSidebar
+              types={types} onToggleType={toggleType}
+              range={range} setRange={setRange} onReset={reset}
+            />
+
+            <div className="flex-1 min-w-0 space-y-4">
+              {/* Result header */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <p className="text-sm text-slate-600">
+                  총 <span className="font-extrabold text-slate-900">{results.length}</span>개 사례
+                  {(types.length > 0 || query) && (
+                    <span className="text-slate-400"> · 필터 적용됨</span>
+                  )}
+                </p>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-400">정렬</span>
+                  <select className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-slate-700 focus:outline-none focus:border-[#1B4FD8]">
+                    <option>유사도 순</option>
+                    <option>과실 비율 높은 순</option>
+                    <option>과실 비율 낮은 순</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Active filter chips */}
+              {(types.length > 0 || range[0] !== 0 || range[1] !== 100) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {types.map((id) => (
+                    <span key={id} className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-[#1B4FD8] border border-[#1B4FD8]/20 rounded-full px-2.5 py-1">
+                      {{
+                        straight:"직진/직진", left:"직진/좌회전", lane:"차선 변경",
+                        rear:"추돌", park:"주차장", ped:"보행자", signal:"신호 위반",
+                      }[id]}
+                      <button onClick={() => toggleType(id)} className="hover:opacity-70">
+                        <IconX className="w-3 h-3" stroke={2.5} />
+                      </button>
+                    </span>
+                  ))}
+                  {(range[0] !== 0 || range[1] !== 100) && (
+                    <span className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-[#1B4FD8] border border-[#1B4FD8]/20 rounded-full px-2.5 py-1">
+                      {range[0]}% ~ {range[1]}%
+                      <button onClick={() => setRange([0, 100])} className="hover:opacity-70">
+                        <IconX className="w-3 h-3" stroke={2.5} />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Result cards */}
+              {results.length > 0 ? (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {results.map((c) => (
+                    <CaseCard key={c.code} c={c} onOpen={setActive} />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white border border-dashed border-gray-300 rounded-xl py-16 text-center">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+                    <IconSearch className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-700">조건에 맞는 사례가 없습니다</p>
+                  <p className="text-xs text-slate-500 mt-1">필터를 조정하거나 검색어를 변경해 보세요.</p>
+                  <button onClick={reset} className="mt-4 text-xs font-medium text-[#1B4FD8] hover:underline">
+                    필터 초기화
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {active && <CaseModal case={active} onClose={() => setActive(null)} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

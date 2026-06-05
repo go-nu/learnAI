@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 과실비율 판정 서비스 — 와이어프레임</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"Nanum Gothic"', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { font-family: 'Nanum Gothic', sans-serif; }
+  /* wireframe placeholder pattern */
+  .wf-placeholder {
+    background-image: repeating-linear-gradient(
+      45deg,
+      #e2e8f0,
+      #e2e8f0 6px,
+      #f8fafc 6px,
+      #f8fafc 12px
+    );
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body class="bg-white text-slate-800">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+// ---------- Tiny inline icons (line-style, wireframe-friendly) ----------
+const Icon = ({ d, className = "w-6 h-6" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+       strokeLinecap="round" strokeLinejoin="round" className={className}>
+    {d}
+  </svg>
+);
+const IconUpload = (p) => <Icon {...p} d={<>
+  <path d="M12 16V4" /><path d="M6 10l6-6 6 6" /><path d="M4 20h16" />
+</>} />;
+const IconCpu = (p) => <Icon {...p} d={<>
+  <rect x="5" y="5" width="14" height="14" rx="2" />
+  <rect x="9" y="9" width="6" height="6" />
+  <path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" />
+</>} />;
+const IconReport = (p) => <Icon {...p} d={<>
+  <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+  <path d="M14 3v5h5" /><path d="M9 13h6M9 17h4" />
+</>} />;
+const IconCar = (p) => <Icon {...p} d={<>
+  <path d="M3 13l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5" />
+  <rect x="2" y="13" width="20" height="5" rx="1" />
+  <circle cx="7" cy="18" r="1.5" /><circle cx="17" cy="18" r="1.5" />
+</>} />;
+const IconWalk = (p) => <Icon {...p} d={<>
+  <circle cx="13" cy="4" r="1.5" />
+  <path d="M11 22l2-7-3-3 1-5 4 2 3 2" />
+  <path d="M7 14l3-1" />
+</>} />;
+const IconArrow = (p) => <Icon {...p} d={<>
+  <path d="M5 12h14" /><path d="M13 6l6 6-6 6" />
+</>} />;
+
+// ---------- Wireframe annotation badge ----------
+const WFTag = ({ children }) => (
+  <span className="inline-block text-[10px] tracking-wider uppercase font-bold
+                   text-slate-500 bg-slate-100 border border-dashed border-slate-300
+                   rounded px-1.5 py-0.5">
+    {children}
+  </span>
+);
+
+// ---------- Components ----------
+function Navbar() {
+  return (
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-md border-2 border-[#1B4FD8] flex items-center justify-center">
+            <div className="w-3 h-3 bg-[#1B4FD8] rounded-sm" />
+          </div>
+          <span className="font-extrabold text-lg text-slate-900">
+            과실<span className="text-[#1B4FD8]">AI</span>
+          </span>
+          <WFTag>logo</WFTag>
+        </div>
+        <nav className="hidden md:flex items-center gap-8 text-sm text-slate-600">
+          <a href="#" className="hover:text-slate-900">사례 검색</a>
+          <a href="#" className="hover:text-slate-900">이용 안내</a>
+        </nav>
+        <button className="bg-[#1B4FD8] text-white rounded-lg font-medium px-4 py-2 text-sm hover:opacity-90">
+          시작하기
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function DisclaimerBanner() {
+  return (
+    <div className="w-full bg-[#FFFBEB] border-b border-[#F59E0B]/40">
+      <div className="max-w-6xl mx-auto px-6 py-2.5 flex items-center gap-3">
+        <span className="shrink-0 w-5 h-5 rounded-full bg-[#F59E0B] text-white text-[11px] font-bold flex items-center justify-center">!</span>
+        <p className="text-xs sm:text-sm text-[#92400E]">
+          본 서비스는 <strong>참고용</strong>이며 <strong>법적 효력이 없습니다</strong>.
+          정확한 판단은 보험사·법률 전문가의 상담을 통해 확인하세요.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="bg-[#F1F5F9] border-b border-gray-200">
+      <div className="max-w-6xl mx-auto px-6 py-20 md:py-28 text-center">
+        <div className="inline-flex items-center gap-2 text-xs font-medium text-[#1B4FD8] bg-white border border-[#1B4FD8]/20 rounded-full px-3 py-1 mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+          BETA · 블랙박스 영상 분석 v0.1
+        </div>
+        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight">
+          블랙박스 영상으로 알아보는<br />
+          <span className="text-[#1B4FD8]">AI 과실 비율 판정</span>
+        </h1>
+        <p className="mt-5 text-base md:text-lg text-slate-600 max-w-2xl mx-auto">
+          영상을 업로드하면 AI가 차량 궤적·신호·속도를 분석하여
+          예상 과실 비율과 근거를 리포트로 제공합니다.
+        </p>
+
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button className="bg-[#1B4FD8] text-white rounded-lg font-medium px-6 py-3 flex items-center gap-2 hover:opacity-90">
+            <IconUpload className="w-5 h-5" />
+            영상 분석 시작
+          </button>
+          <button className="border border-gray-300 bg-white text-slate-700 rounded-lg font-medium px-6 py-3 hover:bg-slate-50">
+            샘플 리포트 보기
+          </button>
+        </div>
+
+        {/* Wireframe video placeholder */}
+        <div className="mt-12 max-w-3xl mx-auto">
+          <div className="wf-placeholder border border-dashed border-slate-300 rounded-xl aspect-video flex items-center justify-center relative">
+            <div className="text-center">
+              <div className="mx-auto w-14 h-14 rounded-full bg-white border border-gray-300 flex items-center justify-center mb-2">
+                <div className="w-0 h-0 border-y-[8px] border-y-transparent border-l-[12px] border-l-[#1B4FD8] ml-1" />
+              </div>
+              <p className="text-xs font-mono text-slate-500">[ 시연 영상 / 데모 GIF ]</p>
+            </div>
+            <span className="absolute top-2 left-2"><WFTag>video placeholder</WFTag></span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Steps() {
+  const steps = [
+    { n: "01", icon: <IconUpload />, title: "영상 업로드", desc: "블랙박스 MP4·MOV 파일을 드래그하여 올립니다. 최대 500MB." },
+    { n: "02", icon: <IconCpu />,    title: "AI 분석",    desc: "차선·신호·속도·진행방향을 인식해 사고 시퀀스를 재구성합니다." },
+    { n: "03", icon: <IconReport />, title: "리포트 확인", desc: "예상 과실 비율과 판례 근거, 주요 프레임을 함께 제공합니다." },
+  ];
+  return (
+    <section className="bg-white">
+      <div className="max-w-6xl mx-auto px-6 py-20">
+        <div className="text-center mb-12">
+          <p className="text-xs font-bold text-[#1B4FD8] tracking-widest mb-2">HOW IT WORKS</p>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">3단계로 끝나는 분석</h2>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {steps.map((s, i) => (
+            <div key={s.n} className="relative bg-white border border-gray-200 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-11 h-11 rounded-lg bg-[#F1F5F9] text-[#1B4FD8] flex items-center justify-center">
+                  {s.icon}
+                </div>
+                <span className="text-xs font-mono text-slate-400">STEP {s.n}</span>
+              </div>
+              <h3 className="font-extrabold text-lg text-slate-900">{s.title}</h3>
+              <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">{s.desc}</p>
+
+              {i < steps.length - 1 && (
+                <div className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 w-10 h-10
+                                bg-white border border-gray-200 rounded-full items-center justify-center
+                                text-slate-400">
+                  <IconArrow className="w-4 h-4" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AccidentTypes() {
+  const types = [
+    {
+      icon: <IconCar />,
+      tag: "차대차",
+      title: "차량 간 사고",
+      desc: "차로변경, 신호위반, 추돌, 교차로 직진/좌회전 등 차량 사이에서 발생한 사고를 분석합니다.",
+      items: ["신호 교차로", "차로 변경", "후진·주정차", "추돌"],
+    },
+    {
+      icon: <IconWalk />,
+      tag: "차대보행자",
+      title: "보행자 사고",
+      desc: "횡단보도, 보도, 이면도로 등에서 보행자와 발생한 사고의 과실 요소를 식별합니다.",
+      items: ["횡단보도", "보도 침범", "이면도로", "야간·우천"],
+    },
+  ];
+  return (
+    <section className="bg-[#F8FAFC] border-y border-gray-200">
+      <div className="max-w-6xl mx-auto px-6 py-20">
+        <div className="flex items-end justify-between mb-10 flex-wrap gap-4">
+          <div>
+            <p className="text-xs font-bold text-[#1B4FD8] tracking-widest mb-2">SUPPORTED CASES</p>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">지원 사고 유형</h2>
+          </div>
+          <p className="text-sm text-slate-500 max-w-sm">
+            현재 두 가지 유형의 사고에 대해 분석을 제공합니다. 점진적으로 확장 예정입니다.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {types.map((t) => (
+            <div key={t.tag} className="bg-white border border-gray-200 rounded-xl p-7 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-lg bg-[#1B4FD8]/8 text-[#1B4FD8] border border-[#1B4FD8]/15 flex items-center justify-center">
+                  {t.icon}
+                </div>
+                <span className="text-xs font-bold text-[#1B4FD8] bg-[#1B4FD8]/8 rounded-full px-2.5 py-1">
+                  {t.tag}
+                </span>
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-900">{t.title}</h3>
+              <p className="text-sm text-slate-600 mt-2 leading-relaxed">{t.desc}</p>
+
+              <ul className="grid grid-cols-2 gap-2 mt-5">
+                {t.items.map((it) => (
+                  <li key={it} className="text-xs text-slate-600 border border-dashed border-gray-300 rounded-md px-2.5 py-1.5">
+                    · {it}
+                  </li>
+                ))}
+              </ul>
+
+              <a href="#" className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-[#1B4FD8] hover:underline">
+                자세히 보기 <IconArrow className="w-4 h-4" />
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-white border-t border-gray-200">
+      <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded border-2 border-slate-400 flex items-center justify-center">
+            <div className="w-2 h-2 bg-slate-400 rounded-sm" />
+          </div>
+          <span className="text-sm text-slate-500">
+            © 2026 과실AI · 본 서비스의 분석 결과는 참고용입니다.
+          </span>
+        </div>
+        <div className="flex items-center gap-6 text-sm text-slate-500">
+          <a href="#" className="hover:text-slate-700">개인정보처리방침</a>
+          <a href="#" className="hover:text-slate-700">이용약관</a>
+          <a href="#" className="hover:text-slate-700">문의</a>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function App() {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      <DisclaimerBanner />
+      <main className="flex-1">
+        <Hero />
+        <Steps />
+        <AccidentTypes />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

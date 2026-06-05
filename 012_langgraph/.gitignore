@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# uv
+.venv/
+.python-version
+
+# 환경변수
+.env
+
+# IDE
+.vscode/
+.idea/
