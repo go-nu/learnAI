@@ -12,4 +12,10 @@ dependencies = [
     "langchain-text-splitters>=1.1.2",
     "pdfplumber>=0.11.9",
     "sentence-transformers>=5.5.1",
+    "torch>=2.0.0",
+]
+
+[tool.uv]
+find-links = [
+    "https://download.pytorch.org/whl/cu121"  # CUDA 12.1 기준
 ]

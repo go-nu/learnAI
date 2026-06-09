@@ -1,9 +1,25 @@
 from abc import ABC, abstractmethod
 from typing import List
+import pdfplumber
 from models.chunk import Chunk
+
+SKIP_KEYWORDS = ["목차", "발간사", "머리말", "개정경과", "운영현황"]
 
 
 class BaseParser(ABC):
+
+    def is_skippable_page(self, page_text: str) -> bool:
+        """페이지가 목차·서문 등 파싱 불필요 페이지이면 True를 반환한다."""
+        return any(kw in page_text for kw in SKIP_KEYWORDS)
+
+    def _load_pages(self, pdf_path: str) -> List[str]:
+        """pdfplumber로 PDF 전체 페이지 텍스트를 리스트로 반환한다."""
+        pages = []
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                text = page.extract_text() or ""
+                pages.append(text)
+        return pages
 
     @abstractmethod
     def detect_cases(self, pages: List[str]) -> List[str]:
