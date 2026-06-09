@@ -2,23 +2,29 @@ from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 from typing import TypedDict, Annotated
 
+
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
+
 
 from typing import TypedDict, Annotated
 from operator import add
 
 from langgraph.graph import StateGraph
 
+
 class State(TypedDict):
     messages: Annotated[list[str], add]
 
+
 graph = StateGraph(State)
 
-def chatbot(state: State): # [ 1 ]
+
+def chatbot(state: State):  # [ 1 ]
     question = state["messages"]
-    answer = f"사용자 입력을 그대로 반환하는 챗봇입니다. {question} 라는 질문을 받았습니다." # [ 2 ]
-    return {"messages": [answer]} # [ 3 ]
+    answer = f"사용자 입력을 그대로 반환하는 챗봇입니다. {question} 라는 질문을 받았습니다."  # [ 2 ]
+    return {"messages": [answer]}  # [ 3 ]
+
 
 print(graph.add_node("chatbot", chatbot))
 

@@ -1,19 +1,11 @@
-# Python
+# Python-generated files
 __pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.egg-info/
-dist/
+*.py[oc]
 build/
-
-# uv
-.venv/
-.python-version
-
-# 환경변수
+dist/
+wheels/
+*.egg-info
 .env
 
-# IDE
-.vscode/
-.idea/
+# Virtual environments
+.venv

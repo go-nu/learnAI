@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image - AI 이미지 생성기</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== Reset & Base ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', -apple-system, sans-serif;
+            background: #fff;
+            color: #202020;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== Header (Naver-style) ===== */
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        }
+        .header-inner {
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .logo-ai { color: #03C75A; }
+        .logo-image { color: #202020; }
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            list-style: none;
+        }
+        .header-nav a {
+            color: #555;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .header-nav a:hover { background: #F0FFF6; color: #03C75A; }
+        .header-nav .btn-login {
+            background: #03C75A;
+            color: #fff;
+            border-radius: 4px;
+            padding: 6px 16px;
+        }
+        .header-nav .btn-login:hover { background: #02b350; color: #fff; }
+
+        /* ===== Hero Section ===== */
+        .hero {
+            background: linear-gradient(175deg, #F4FCF7 0%, #ffffff 60%);
+            padding: 56px 24px 44px;
+            text-align: center;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: #E8FAF0;
+            color: #03C75A;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            letter-spacing: 0.3px;
+        }
+        .hero-title {
+            font-size: 30px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+        .hero-title em { color: #03C75A; font-style: normal; }
+        .hero-sub {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        /* Search Bar */
+        .search-box {
+            max-width: 660px;
+            margin: 0 auto 16px;
+            display: flex;
+            border: 2px solid #03C75A;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(3,199,90,0.14);
+            background: #fff;
+        }
+        .search-box:focus-within {
+            box-shadow: 0 4px 24px rgba(3,199,90,0.28);
+        }
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 15px 20px;
+            font-size: 15px;
+            font-family: inherit;
+            color: #202020;
+            background: transparent;
+        }
+        .search-input::placeholder { color: #bbb; }
+        .search-btn {
+            background: #03C75A;
+            border: none;
+            color: #fff;
+            padding: 0 30px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .search-btn:hover { background: #02b350; }
+        .search-btn:active { background: #029e48; }
+        .search-btn svg { width: 16px; height: 16px; fill: #fff; }
+
+        /* Sample Tags */
+        .sample-tags {
+            max-width: 660px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        .sample-tag {
+            background: #fff;
+            border: 1px solid #D5F0E2;
+            color: #2DA861;
+            font-size: 12px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.18s;
+            font-family: inherit;
+        }
+        .sample-tag:hover { background: #03C75A; color: #fff; border-color: #03C75A; }
+
+        /* ===== Loading ===== */
+        .loading-bar {
+            height: 3px;
+            background: linear-gradient(90deg, #03C75A 0%, #02e067 50%, #03C75A 100%);
+            background-size: 200% 100%;
+            animation: loading-slide 1.2s linear infinite;
+            display: none;
+        }
+        @keyframes loading-slide { to { background-position: -200% 0; } }
+
+        .loading-section {
+            display: none;
+            text-align: center;
+            padding: 40px 24px;
+            background: #F9FCF9;
+            border-top: 1px solid #E8F5EE;
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid #D5F0E2;
+            border-top-color: #03C75A;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+            margin: 0 auto 14px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* ===== Tabs (Naver category bar) ===== */
+        .tabs-bar {
+            background: #fff;
+            border-bottom: 1px solid #E8E8E8;
+        }
+        .tabs-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+        }
+        .tab-btn {
+            padding: 13px 18px;
+            border: none;
+            background: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-family: inherit;
+            transition: color 0.15s, border-color 0.15s;
+            margin-bottom: -1px;
+        }
+        .tab-btn.active { color: #03C75A; border-bottom-color: #03C75A; font-weight: 700; }
+        .tab-btn:hover:not(.active) { color: #333; }
+
+        /* ===== Main Content ===== */
+        .main { flex: 1; }
+        .content-wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px 24px 48px;
+        }
+
+        /* Section header */
+        .section-hd {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #202020;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: #03C75A;
+            border-radius: 2px;
+        }
+        .section-more {
+            font-size: 12px;
+            color: #888;
+            text-decoration: none;
+        }
+        .section-more:hover { color: #03C75A; }
+
+        /* Result Box */
+        .result-box {
+            display: none;
+            margin-bottom: 36px;
+            background: #F9FCF9;
+            border: 1px solid #D5F0E2;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .result-box-inner {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+        .result-img-wrap img {
+            width: 256px;
+            height: 256px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            display: block;
+        }
+        .result-meta { flex: 1; }
+        .result-label {
+            font-size: 12px;
+            color: #03C75A;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .result-prompt {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        .result-actions { display: flex; gap: 8px; }
+        .btn-outline {
+            border: 1px solid #03C75A;
+            color: #03C75A;
+            background: #fff;
+            font-size: 13px;
+            padding: 7px 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+        .btn-outline:hover { background: #03C75A; color: #fff; }
+        .btn-solid {
+            border: 1px solid #03C75A;
+            background: #03C75A;
+            color: #fff;
+            font-size: 13px;
+            padding: 7px 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+        .btn-solid:hover { background: #02b350; }
+
+        /* Image Grid */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        .image-card {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: box-shadow 0.2s, transform 0.2s;
+            background: #F9F9F9;
+        }
+        .image-card:hover {
+            box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+            transform: translateY(-3px);
+        }
+        .image-card img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            display: block;
+        }
+        .image-card-body { padding: 10px 12px 12px; }
+        .image-card-prompt {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        .image-card-time { font-size: 11px; color: #bbb; }
+
+        /* Empty State */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 64px 24px;
+            color: #ccc;
+        }
+        .empty-icon { font-size: 52px; margin-bottom: 14px; }
+        .empty-text { font-size: 14px; color: #aaa; line-height: 1.8; }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-img {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+        }
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            font-size: 32px;
+            color: #fff;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        /* ===== Footer ===== */
+        footer {
+            background: #F6F6F6;
+            border-top: 1px solid #E8E8E8;
+            padding: 28px 24px;
+            text-align: center;
+        }
+        .footer-nav {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+            margin-bottom: 14px;
+        }
+        .footer-nav a {
+            font-size: 12px;
+            color: #666;
+            text-decoration: none;
+        }
+        .footer-nav a:hover { color: #03C75A; text-decoration: underline; }
+        .footer-copy { font-size: 12px; color: #aaa; }
+        .footer-copy strong { color: #03C75A; font-weight: 600; }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 960px) {
+            .image-grid { grid-template-columns: repeat(3, 1fr); }
+            .result-box-inner { flex-direction: column; align-items: center; }
+            .result-img-wrap img { width: 100%; max-width: 320px; height: auto; }
+        }
+        @media (max-width: 640px) {
+            .image-grid { grid-template-columns: repeat(2, 1fr); }
+            .hero { padding: 40px 16px 32px; }
+            .hero-title { font-size: 22px; }
+            .search-input { font-size: 14px; padding: 13px 14px; }
+            .search-btn { padding: 0 18px; font-size: 13px; }
+            .header-nav .nav-text { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-inner">
+            <a class="logo" href="/">
+                <span class="logo-ai">AI</span>
+                <span class="logo-image">Image</span>
+            </a>
+            <ul class="header-nav">
+                <li><a href="#" class="nav-text">이미지 생성</a></li>
+                <li><a href="#" class="nav-text">갤러리</a></li>
+                <li><a href="#" class="nav-text">도움말</a></li>
+                <li><a href="#" class="btn-login">로그인</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Loading progress bar -->
+    <div class="loading-bar" id="loadingBar"></div>
+
+    <!-- ===== HERO ===== -->
+    <section class="hero">
+        <div class="hero-badge">✨ AI 기반 이미지 생성 서비스</div>
+        <h1 class="hero-title">상상을 현실로,<br><em>AI가 이미지를 그려드립니다</em></h1>
+        <p class="hero-sub">원하는 장면을 텍스트로 설명하면 Comfy UI가 즉시 이미지를 만들어드립니다</p>
+
+        <form id="generateForm" autocomplete="off">
+            {% csrf_token %}
+            <div class="search-box">
+                <input class="search-input" type="text" id="promptInput"
+                       placeholder="예) 20대 한국여성이 카페 창가에 앉아 커피를 마시는 모습, 따뜻한 햇살">
+                <button class="search-btn" type="submit">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L2 22l10-4 10 4z"/></svg>
+                    이미지 생성
+                </button>
+            </div>
+        </form>
+
+        <div class="sample-tags">
+            <button class="sample-tag" onclick="fillPrompt('카페 창가의 한국 여성, 커피, 따뜻한 햇살')">☕ 카페 여성</button>
+            <button class="sample-tag" onclick="fillPrompt('해질녘 서울 도시 스카이라인, 황금빛 노을')">🌆 서울 야경</button>
+            <button class="sample-tag" onclick="fillPrompt('벚꽃 만개한 공원 산책로, 봄날 오후')">🌸 벚꽃 공원</button>
+            <button class="sample-tag" onclick="fillPrompt('흰 고양이와 어린이, 햇빛 가득한 마루')">🐱 고양이와 아이</button>
+            <button class="sample-tag" onclick="fillPrompt('눈 덮인 설산 등산로, 맑은 하늘, 웅장한 풍경')">🏔️ 설산 풍경</button>
+            <button class="sample-tag" onclick="fillPrompt('비 오는 날 우산 쓴 여성, 빈티지 골목길')">🌂 빗길 산책</button>
+        </div>
+    </section>
+
+    <!-- Loading Section -->
+    <div class="loading-section" id="loadingSection">
+        <div class="spinner"></div>
+        <p class="loading-text">AI가 이미지를 생성하고 있습니다... 잠시만 기다려주세요 ✨</p>
+    </div>
+
+    <!-- ===== TABS ===== -->
+    <div class="tabs-bar">
+        <div class="tabs-inner">
+            <button class="tab-btn active" data-tab="recent">최근 생성</button>
+            <button class="tab-btn" data-tab="all">전체 갤러리</button>
+        </div>
+    </div>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main">
+        <div class="content-wrap">
+
+            <!-- 생성 결과 -->
+            <div class="result-box" id="resultBox">
+                <div class="section-hd" style="margin-bottom:16px">
+                    <span class="section-title">생성 완료</span>
+                </div>
+                <div class="result-box-inner">
+                    <div class="result-img-wrap">
+                        <img id="resultImg" src="" alt="생성된 이미지" onclick="openModal(this.src)">
+                    </div>
+                    <div class="result-meta">
+                        <div class="result-label">✅ 이미지가 생성되었습니다</div>
+                        <div class="result-prompt" id="resultPromptText"></div>
+                        <div class="result-actions">
+                            <button class="btn-solid" id="downloadBtn" onclick="downloadImage()">다운로드</button>
+                            <button class="btn-outline" onclick="document.getElementById('promptInput').focus()">다시 생성</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 갤러리 -->
+            <div class="section-hd">
+                <span class="section-title">최근 생성 이미지</span>
+                <a href="#" class="section-more">전체보기 &rsaquo;</a>
+            </div>
+            <div class="image-grid" id="imageGrid">
+                <div class="empty-state">
+                    <div class="empty-icon">🎨</div>
+                    <p class="empty-text">아직 생성된 이미지가 없습니다.<br>위 입력창에 원하는 장면을 설명해 보세요!</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer>
+        <ul class="footer-nav">
+            <li><a href="#">이용약관</a></li>
+            <li><a href="#">개인정보처리방침</a></li>
+            <li><a href="#">고객센터</a></li>
+            <li><a href="#">공지사항</a></li>
+            <li><a href="#">API 안내</a></li>
+        </ul>
+        <p class="footer-copy">Powered by <strong>ComfyUI</strong> &amp; <strong>LangGraph</strong> &copy; 2026 AI Image. All rights reserved.</p>
+    </footer>
+
+    <!-- ===== IMAGE MODAL ===== -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <img class="modal-img" id="modalImg" src="" alt="">
+    </div>
+
+    <script>
+    (function () {
+        const form       = document.getElementById('generateForm');
+        const promptInput = document.getElementById('promptInput');
+        const loadingBar  = document.getElementById('loadingBar');
+        const loadingSection = document.getElementById('loadingSection');
+        const resultBox   = document.getElementById('resultBox');
+        const resultImg   = document.getElementById('resultImg');
+        const resultPromptText = document.getElementById('resultPromptText');
+        const imageGrid   = document.getElementById('imageGrid');
+
+        /* ---- 샘플 태그 클릭 ---- */
+        window.fillPrompt = function (text) {
+            promptInput.value = text;
+            promptInput.focus();
+        };
+
+        /* ---- 탭 전환 ---- */
+        const sectionTitle = document.querySelector('.section-hd .section-title');
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const tab = this.dataset.tab;
+                sectionTitle.textContent = tab === 'recent' ? '최근 생성 이미지' : '전체 갤러리';
+                loadGallery(tab);
+            });
+        });
+
+        /* ---- 이미지 생성 폼 제출 ---- */
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const prompt = promptInput.value.trim();
+            if (!prompt) {
+                promptInput.focus();
+                promptInput.style.borderColor = '#ff4d4f';
+                setTimeout(() => promptInput.style.borderColor = '', 1000);
+                return;
+            }
+
+            // 로딩 시작
+            loadingBar.style.display = 'block';
+            loadingSection.style.display = 'block';
+            resultBox.style.display = 'none';
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch('/api/generate/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ prompt }),
+            })
+            .then(r => {
+                if (!r.ok) throw new Error(r.statusText);
+                return r.json();
+            })
+            .then(data => {
+                loadingBar.style.display = 'none';
+                loadingSection.style.display = 'none';
+
+                if (data.image_url) {
+                    resultImg.src = data.image_url;
+                    resultPromptText.textContent = prompt;
+                    resultBox.style.display = 'block';
+                    resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // 최근생성 탭으로 전환 후 갤러리 갱신
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelector('[data-tab="recent"]').classList.add('active');
+                    sectionTitle.textContent = '최근 생성 이미지';
+                    loadGallery('recent');
+                } else {
+                    alert(data.error || '이미지 생성에 실패했습니다.');
+                }
+            })
+            .catch(err => {
+                loadingBar.style.display = 'none';
+                loadingSection.style.display = 'none';
+                alert('서버 연결 오류: ' + err.message);
+            });
+        });
+
+        /* ---- 갤러리 로드 ---- */
+        function loadGallery(tab = 'recent') {
+            fetch(`/api/images/?tab=${tab}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.images || data.images.length === 0) {
+                        imageGrid.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-icon">🎨</div>
+                                <p class="empty-text">아직 생성된 이미지가 없습니다.<br>위 입력창에 원하는 장면을 설명해 보세요!</p>
+                            </div>`;
+                        return;
+                    }
+                    imageGrid.innerHTML = data.images.map(img => `
+                        <div class="image-card" onclick="openModal('${img.url}')">
+                            <img src="${img.url}" alt="${escapeHtml(img.prompt)}" loading="lazy">
+                            <div class="image-card-body">
+                                <div class="image-card-prompt">${escapeHtml(img.prompt)}</div>
+                                <div class="image-card-time">${img.created_at || ''}</div>
+                            </div>
+                        </div>`).join('');
+                })
+                .catch(() => {});
+        }
+
+        /* ---- 다운로드 ---- */
+        window.downloadImage = function () {
+            const url = resultImg.src;
+            if (!url) return;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ai_image_' + Date.now() + '.png';
+            a.click();
+        };
+
+        /* ---- 모달 ---- */
+        window.openModal = function (src) {
+            document.getElementById('modalImg').src = src;
+            document.getElementById('modalOverlay').classList.add('open');
+        };
+        window.closeModal = function () {
+            document.getElementById('modalOverlay').classList.remove('open');
+        };
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+        /* ---- 유틸 ---- */
+        function escapeHtml(str) {
+            return (str || '').replace(/[&<>"']/g, m =>
+                ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+        }
+
+        // 초기 갤러리 로드
+        loadGallery('recent');
+    })();
+    </script>
+
+</body>
+</html>

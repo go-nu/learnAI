@@ -1,164 +1,133 @@
-import uuid
 import json
 import time
-import urllib.request
-import urllib.parse
+import uuid
 import os
-from datetime import datetime
+import requests
 
 COMFYUI_SERVER = "http://220.80.16.79:8188"
-MODEL_NAME = "z_image_turbo_bf16.safetensors"
-CLIP_NAME = "qwen_3_4b.safetensors"
-VAE_NAME = "ae.safetensors"
-IMAGE_SIZE = 512
-# 절대경로로 지정 - Django 등 다른 디렉토리에서 임포트해도 올바른 위치에 저장
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image_data")
+MODEL = "z_image_turbo_bf16.safetensors"
+CLIP_MODEL = "qwen_3_4b.safetensors"
+VAE_MODEL = "ae.safetensors"
+IMAGE_SIZE = 1024
+OUTPUT_DIR = "image_data"
 
 
-def _build_workflow(prompt_text: str, seed: int) -> dict:
+def _build_workflow(prompt: str, seed: int) -> dict:
     return {
         "1": {
-            "inputs": {"unet_name": MODEL_NAME, "weight_dtype": "default"},
             "class_type": "UNETLoader",
+            "inputs": {"unet_name": MODEL, "weight_dtype": "default"},
         },
         "2": {
-            "inputs": {"clip_name": CLIP_NAME, "type": "qwen_image"},
             "class_type": "CLIPLoader",
+            "inputs": {"clip_name": CLIP_MODEL, "type": "lumina2"},
         },
         "3": {
-            "inputs": {"vae_name": VAE_NAME},
             "class_type": "VAELoader",
+            "inputs": {"vae_name": VAE_MODEL},
         },
         "4": {
-            "inputs": {"text": prompt_text, "clip": ["2", 0]},
             "class_type": "CLIPTextEncode",
+            "inputs": {"text": prompt, "clip": ["2", 0]},
         },
         "5": {
-            "inputs": {"text": "", "clip": ["2", 0]},
             "class_type": "CLIPTextEncode",
+            "inputs": {"text": "", "clip": ["2", 0]},
         },
         "6": {
-            "inputs": {"width": IMAGE_SIZE, "height": IMAGE_SIZE, "batch_size": 1},
             "class_type": "EmptyLatentImage",
+            "inputs": {"width": IMAGE_SIZE, "height": IMAGE_SIZE, "batch_size": 1},
         },
         "7": {
+            "class_type": "KSampler",
             "inputs": {
+                "model": ["1", 0],
+                "positive": ["4", 0],
+                "negative": ["5", 0],
+                "latent_image": ["6", 0],
                 "seed": seed,
                 "steps": 4,
                 "cfg": 1.0,
                 "sampler_name": "euler",
                 "scheduler": "simple",
                 "denoise": 1.0,
-                "model": ["1", 0],
-                "positive": ["4", 0],
-                "negative": ["5", 0],
-                "latent_image": ["6", 0],
             },
-            "class_type": "KSampler",
         },
         "8": {
-            "inputs": {"samples": ["7", 0], "vae": ["3", 0]},
             "class_type": "VAEDecode",
+            "inputs": {"samples": ["7", 0], "vae": ["3", 0]},
         },
         "9": {
-            "inputs": {"filename_prefix": "langgraph", "images": ["8", 0]},
             "class_type": "SaveImage",
+            "inputs": {"images": ["8", 0], "filename_prefix": "comfyui"},
         },
     }
 
 
-def _get_available_nodes() -> set:
-    try:
-        with urllib.request.urlopen(f"{COMFYUI_SERVER}/object_info") as resp:
-            return set(json.loads(resp.read()).keys())
-    except Exception:
-        return set()
-
-
-def _queue_prompt(workflow: dict, client_id: str) -> str:
-    payload = json.dumps({"prompt": workflow, "client_id": client_id}).encode("utf-8")
-    req = urllib.request.Request(
-        f"{COMFYUI_SERVER}/prompt",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(req) as resp:
-            result = json.loads(resp.read())
-            if "error" in result:
-                raise RuntimeError(f"ComfyUI 워크플로우 오류: {json.dumps(result['error'], ensure_ascii=False)}")
-            return result["prompt_id"]
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"ComfyUI API {e.code} 오류:\n{error_body}") from e
-
-
-def _wait_for_completion(prompt_id: str, timeout: int = 300) -> dict:
-    start = time.time()
-    while time.time() - start < timeout:
-        with urllib.request.urlopen(f"{COMFYUI_SERVER}/history/{prompt_id}") as resp:
-            history = json.loads(resp.read())
-        if prompt_id in history:
-            return history[prompt_id]
-        time.sleep(2)
-    raise TimeoutError(f"ComfyUI 이미지 생성 타임아웃 ({timeout}초)")
-
-
-def _download_image(filename: str, subfolder: str, folder_type: str, save_path: str) -> str:
-    params = urllib.parse.urlencode({
-        "filename": filename,
-        "subfolder": subfolder,
-        "type": folder_type,
-    })
-    with urllib.request.urlopen(f"{COMFYUI_SERVER}/view?{params}") as resp:
-        image_bytes = resp.read()
-    with open(save_path, "wb") as f:
-        f.write(image_bytes)
-    return save_path
-
-
-def comfyui_node(state: dict) -> dict:
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-    prompt_text = state["messages"][-1]
+def generate_image(state: dict) -> dict:
+    prompt = state["messages"][-1]
+    seed = uuid.uuid4().int % (2**32)
     client_id = str(uuid.uuid4())
-    seed = int(time.time() * 1000) % (2 ** 32)
+    workflow = _build_workflow(prompt, seed)
 
-    print(f"[ComfyUI] 이미지 생성 시작: {prompt_text}")
+    print(f"[ComfyUI] 이미지 생성 요청: {prompt}")
 
-    # 서버에서 사용 가능한 노드 목록 확인
-    available_nodes = _get_available_nodes()
-    if available_nodes:
-        required_nodes = {"UNETLoader", "CLIPLoader", "VAELoader", "KSampler", "VAEDecode", "SaveImage"}
-        missing = required_nodes - available_nodes
-        if missing:
-            print(f"[ComfyUI] 경고: 서버에 없는 노드 {missing}")
-            print(f"[ComfyUI] 사용 가능한 노드 목록: {sorted(available_nodes)}")
-            return {"messages": [f"ComfyUI 노드 없음: {missing} — 서버 로그 확인 필요"]}
-
-    workflow = _build_workflow(prompt_text, seed)
-    prompt_id = _queue_prompt(workflow, client_id)
-    print(f"[ComfyUI] 프롬프트 큐 ID: {prompt_id}")
-
-    history = _wait_for_completion(prompt_id)
-
-    saved_paths = []
-    for node_output in history.get("outputs", {}).values():
-        for img_info in node_output.get("images", []):
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            save_path = os.path.join(OUTPUT_DIR, f"comfyui_{timestamp}_{img_info['filename']}")
-            _download_image(
-                img_info["filename"],
-                img_info.get("subfolder", ""),
-                img_info.get("type", "output"),
-                save_path,
-            )
-            saved_paths.append(save_path)
-            print(f"[ComfyUI] 이미지 저장 완료: {save_path}")
-
-    result = (
-        f"이미지 생성 완료: {', '.join(saved_paths)}"
-        if saved_paths
-        else "이미지 생성 실패 (출력 없음)"
+    resp = requests.post(
+        f"{COMFYUI_SERVER}/prompt",
+        json={"prompt": workflow, "client_id": client_id},
+        timeout=30,
     )
-    return {"messages": [result]}
+    if not resp.ok:
+        print(f"[ComfyUI] 오류 응답 ({resp.status_code}): {resp.text}")
+        resp.raise_for_status()
+    prompt_id = resp.json()["prompt_id"]
+    print(f"[ComfyUI] 큐 등록 완료 (prompt_id: {prompt_id})")
+
+    outputs = None
+    for i in range(120):
+        time.sleep(1)
+        history_resp = requests.get(f"{COMFYUI_SERVER}/history/{prompt_id}", timeout=10)
+        history = history_resp.json()
+        if prompt_id in history:
+            entry = history[prompt_id]
+            status = entry.get("status", {})
+            # completed: true 가 될 때까지 대기
+            if status.get("completed", False):
+                outputs = entry.get("outputs", {})
+                print(f"[ComfyUI] 생성 완료. 출력 노드: {list(outputs.keys())}")
+                break
+            # 서버 측 실행 오류 확인
+            if status.get("status_str") == "error":
+                err_msgs = status.get("messages", [])
+                raise RuntimeError(f"ComfyUI 실행 오류: {err_msgs}")
+        if i % 10 == 0:
+            print(f"[ComfyUI] 생성 대기 중... ({i}초)")
+
+    if outputs is None:
+        raise TimeoutError("ComfyUI 이미지 생성 타임아웃 (120초 초과)")
+
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    saved_paths = []
+
+    for node_id, node_output in outputs.items():
+        for img in node_output.get("images", []):
+            params = {
+                "filename": img["filename"],
+                "subfolder": img.get("subfolder", ""),
+                "type": img.get("type", "output"),
+            }
+            img_resp = requests.get(f"{COMFYUI_SERVER}/view", params=params, timeout=30)
+            img_resp.raise_for_status()
+
+            save_path = os.path.join(OUTPUT_DIR, img["filename"])
+            with open(save_path, "wb") as f:
+                f.write(img_resp.content)
+            saved_paths.append(save_path)
+            print(f"[ComfyUI] 이미지 저장: {save_path}")
+
+    if saved_paths:
+        result_msg = f"이미지 생성 완료: {', '.join(saved_paths)}"
+    else:
+        result_msg = "이미지 생성 완료되었으나 저장된 파일이 없습니다."
+
+    return {"messages": [result_msg]}

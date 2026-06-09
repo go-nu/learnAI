@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Node - 이미지 생성</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+      background: #f0f2f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,.4);
+    }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: .5px; }
+    header .badge {
+      background: #6c7086;
+      color: #cdd6f4;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+
+    /* ── 3-panel layout ── */
+    .workspace {
+      flex: 1;
+      display: flex;
+      gap: 14px;
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .panel {
+      flex: 1;
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e2e4ea;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    .panel-header {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .panel-header .icon { font-size: 16px; }
+    .panel-header .sub  { font-weight: 400; color: #888; font-size: 11px; margin-left: auto; }
+
+    .panel-body {
+      flex: 1;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Panel 1 : Reference Image ── */
+    .upload-zone {
+      flex: 1;
+      border: 2px dashed #d0d4de;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: #7c6fff;
+      background: #f5f3ff;
+    }
+    .upload-zone.has-image { border-style: solid; border-color: #c4c4f0; }
+    .upload-zone img#refPreview {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      position: absolute; inset: 0;
+    }
+    .upload-placeholder {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      color: #aaa; pointer-events: none;
+    }
+    .upload-placeholder .big-icon { font-size: 40px; }
+    .upload-placeholder p   { font-size: 13px; }
+    .upload-placeholder span { font-size: 11px; color: #bbb; }
+
+    .btn-remove-ref {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,.55); color: #fff;
+      border: none; border-radius: 6px;
+      padding: 4px 10px; font-size: 12px;
+      cursor: pointer; display: none; z-index: 10;
+    }
+    .btn-remove-ref:hover { background: rgba(200,0,0,.75); }
+
+    /* ── Panel 2 : Prompt ── */
+    .prompt-wrap {
+      flex: 1; display: flex; flex-direction: column; gap: 10px;
+    }
+
+    textarea#promptInput {
+      flex: 1;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      font-family: inherit;
+      color: #333;
+      transition: border-color .2s;
+    }
+    textarea#promptInput:focus {
+      outline: none;
+      border-color: #7c6fff;
+      box-shadow: 0 0 0 3px rgba(124,111,255,.12);
+    }
+    textarea#promptInput::placeholder { color: #bbb; }
+
+    .denoise-row {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: #666;
+    }
+    .denoise-row label { white-space: nowrap; }
+    .denoise-row input[type=range] { flex: 1; accent-color: #7c6fff; }
+    .denoise-row .val { min-width: 28px; text-align: right; font-weight: 600; color: #7c6fff; }
+
+    /* sample tags */
+    .sample-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      font-size: 11px; padding: 4px 10px;
+      border: 1px solid #ddd; border-radius: 99px;
+      cursor: pointer; color: #555; background: #fafafa;
+      transition: all .15s;
+    }
+    .tag:hover { background: #f0eeff; border-color: #7c6fff; color: #7c6fff; }
+
+    .btn-generate {
+      padding: 13px;
+      background: #7c6fff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: .3px;
+      transition: background .2s, transform .1s;
+    }
+    .btn-generate:hover  { background: #6657e8; }
+    .btn-generate:active { transform: scale(.98); }
+    .btn-generate:disabled { background: #b0aaee; cursor: not-allowed; }
+
+    /* ── Panel 3 : Result ── */
+    .result-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f9f9fb;
+      border: 1px solid #eee;
+    }
+    .result-placeholder {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      color: #bbb; text-align: center;
+    }
+    .result-placeholder .big-icon { font-size: 48px; }
+    .result-placeholder p { font-size: 13px; }
+
+    #resultImage {
+      max-width: 100%; max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      display: none;
+    }
+
+    /* loading overlay */
+    .loading-overlay {
+      display: none;
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,.9);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 20;
+      border-radius: 10px;
+    }
+    .loading-overlay.active { display: flex; }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid #e0deff;
+      border-top-color: #7c6fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .loading-overlay p { font-size: 13px; color: #7c6fff; font-weight: 500; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-actions {
+      position: absolute; bottom: 10px; right: 10px;
+      display: none; gap: 6px;
+    }
+    .result-actions.active { display: flex; }
+    .btn-action {
+      background: rgba(0,0,0,.5); color: #fff;
+      border: none; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-action:hover { background: rgba(0,0,0,.75); }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="icon" style="font-size:20px">🎨</span>
+    <h1>AI Node</h1>
+    <span class="badge">이미지 생성</span>
+  </header>
+
+  <div class="workspace">
+
+    <!-- ── Panel 1 : 원본 이미지 ── -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="icon">🖼️</span>
+        원본 이미지 (참조)
+        <span class="sub">없어도 생성 가능</span>
+      </div>
+      <div class="panel-body">
+        <div class="upload-zone" id="uploadZone"
+             onclick="document.getElementById('fileInput').click()"
+             ondragover="onDragOver(event)"
+             ondragleave="onDragLeave(event)"
+             ondrop="onDrop(event)">
+          <img id="refPreview" alt="참조 이미지" />
+          <div class="upload-placeholder" id="uploadPlaceholder">
+            <div class="big-icon">📁</div>
+            <p>클릭하거나 이미지를 끌어다 놓으세요</p>
+            <span>JPG, PNG, WEBP 지원</span>
+          </div>
+          <button class="btn-remove-ref" id="btnRemoveRef"
+                  onclick="removeRef(event)">✕ 제거</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 2 : 프롬프트 ── -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="icon">✏️</span>
+        프롬프트 입력
+      </div>
+      <div class="panel-body">
+        <div class="prompt-wrap">
+          <textarea id="promptInput"
+            placeholder="생성할 이미지를 설명하세요&#10;예) 아름다운 일몰 풍경, 황금빛 하늘, 산과 호수"></textarea>
+
+          <!-- 변형 강도 (참조 이미지 있을 때만 의미 있음) -->
+          <div class="denoise-row" id="denoiseRow" style="display:none">
+            <label for="denoiseRange">변형 강도</label>
+            <input type="range" id="denoiseRange" min="0.1" max="1.0" step="0.05" value="0.75"
+                   oninput="document.getElementById('denoiseVal').textContent=this.value" />
+            <span class="val" id="denoiseVal">0.75</span>
+          </div>
+
+          <!-- 샘플 태그 -->
+          <div class="sample-tags">
+            <span class="tag" onclick="fillPrompt(this)">아름다운 일몰 풍경, 황금빛 하늘</span>
+            <span class="tag" onclick="fillPrompt(this)">서울 야경, 사이버펑크 스타일</span>
+            <span class="tag" onclick="fillPrompt(this)">벚꽃 풍경, 수채화 스타일</span>
+            <span class="tag" onclick="fillPrompt(this)">cute cat, photorealistic, 8k</span>
+            <span class="tag" onclick="fillPrompt(this)">anime style illustration</span>
+            <span class="tag" onclick="fillPrompt(this)">oil painting, warm tones</span>
+          </div>
+
+          <button class="btn-generate" id="btnGenerate" onclick="generateImage()">
+            생성하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 3 : 생성된 이미지 ── -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="icon">✨</span>
+        생성된 이미지
+      </div>
+      <div class="panel-body">
+        <div class="result-wrap" id="resultWrap">
+          <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+            <p>이미지 생성 중...</p>
+          </div>
+
+          <div class="result-placeholder" id="resultPlaceholder">
+            <div class="big-icon">🖼️</div>
+            <p>생성된 이미지가 여기에 표시됩니다</p>
+          </div>
+
+          <img id="resultImage" alt="생성된 이미지" />
+
+          <div class="result-actions" id="resultActions">
+            <button class="btn-action" onclick="downloadResult()">⬇ 저장</button>
+            <button class="btn-action" onclick="useAsRef()">↩ 참조로 사용</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /workspace -->
+
+  <input type="file" id="fileInput" accept="image/*" style="display:none"
+         onchange="handleFileSelect(this)" />
+
+  {% csrf_token %}
+
+  <script>
+    let selectedFile = null;
+    let lastResultUrl = null;
+
+    /* ── Reference image handling ── */
+    function handleFileSelect(input) {
+      const file = input.files[0];
+      if (!file) return;
+      applyRefFile(file);
+    }
+
+    function applyRefFile(file) {
+      selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('refPreview').src = e.target.result;
+        document.getElementById('refPreview').style.display = 'block';
+        document.getElementById('uploadPlaceholder').style.display = 'none';
+        document.getElementById('btnRemoveRef').style.display = 'block';
+        document.getElementById('uploadZone').classList.add('has-image');
+        document.getElementById('denoiseRow').style.display = 'flex';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeRef(e) {
+      e.stopPropagation();
+      selectedFile = null;
+      document.getElementById('refPreview').src = '';
+      document.getElementById('refPreview').style.display = 'none';
+      document.getElementById('uploadPlaceholder').style.display = 'flex';
+      document.getElementById('btnRemoveRef').style.display = 'none';
+      document.getElementById('uploadZone').classList.remove('has-image');
+      document.getElementById('fileInput').value = '';
+      document.getElementById('denoiseRow').style.display = 'none';
+    }
+
+    function onDragOver(e) {
+      e.preventDefault();
+      document.getElementById('uploadZone').classList.add('drag-over');
+    }
+    function onDragLeave(e) {
+      document.getElementById('uploadZone').classList.remove('drag-over');
+    }
+    function onDrop(e) {
+      e.preventDefault();
+      document.getElementById('uploadZone').classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) applyRefFile(file);
+    }
+
+    /* ── Prompt helpers ── */
+    function fillPrompt(el) {
+      document.getElementById('promptInput').value = el.textContent.trim();
+    }
+
+    /* ── Generate ── */
+    async function generateImage() {
+      const prompt = document.getElementById('promptInput').value.trim();
+      if (!prompt) { alert('프롬프트를 입력해주세요.'); return; }
+
+      const btn = document.getElementById('btnGenerate');
+      btn.disabled = true;
+
+      document.getElementById('loadingOverlay').classList.add('active');
+      document.getElementById('resultPlaceholder').style.display = 'none';
+      document.getElementById('resultImage').style.display = 'none';
+      document.getElementById('resultActions').classList.remove('active');
+
+      const formData = new FormData();
+      formData.append('prompt', prompt);
+      if (selectedFile) {
+        formData.append('reference_image', selectedFile);
+        formData.append('denoise', document.getElementById('denoiseRange').value);
+      }
+
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+      try {
+        const res = await fetch('/ai_node/api/generate/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrfToken },
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          alert('오류: ' + data.error);
+          document.getElementById('resultPlaceholder').style.display = 'flex';
+          return;
+        }
+
+        lastResultUrl = data.image_url;
+        const img = document.getElementById('resultImage');
+        img.src = data.image_url + '?t=' + Date.now();
+        img.style.display = 'block';
+        document.getElementById('resultActions').classList.add('active');
+      } catch (err) {
+        alert('오류가 발생했습니다: ' + err.message);
+        document.getElementById('resultPlaceholder').style.display = 'flex';
+      } finally {
+        document.getElementById('loadingOverlay').classList.remove('active');
+        btn.disabled = false;
+      }
+    }
+
+    /* ── Result actions ── */
+    function downloadResult() {
+      if (!lastResultUrl) return;
+      const a = document.createElement('a');
+      a.href = lastResultUrl;
+      a.download = lastResultUrl.split('/').pop();
+      a.click();
+    }
+
+    function useAsRef() {
+      if (!lastResultUrl) return;
+      // 생성 이미지를 참조 이미지로 설정 (URL → fetch → Blob → File)
+      fetch(lastResultUrl)
+        .then(r => r.blob())
+        .then(blob => {
+          const filename = lastResultUrl.split('/').pop();
+          const file = new File([blob], filename, { type: blob.type });
+          applyRefFile(file);
+        });
+    }
+  </script>
+</body>
+</html>

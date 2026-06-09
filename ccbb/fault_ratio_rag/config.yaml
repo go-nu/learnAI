@@ -1,0 +1,9 @@
+chunk:
+  max_tokens: 800
+  overlap_tokens: 50
+metadata:
+  required_fields:
+    - case_id
+    - chunk_type
+    - chapter
+    - document_type
