@@ -1,7 +1,0 @@
-django>=4.2,<5.0
-djangorestframework>=3.14
-django-cors-headers>=4.3
-python-dotenv>=1.0
-langchain-google-genai>=2.0
-langgraph>=0.2
-langchain-core>=0.3

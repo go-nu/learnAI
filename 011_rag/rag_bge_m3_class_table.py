@@ -44,7 +44,7 @@ from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
-PDF_PATH = "./source/manual.pdf"
+PDF_PATH = "./source/fault_ratio_standards_2023.pdf"
 DB_PATH = "./chroma_db_bge_m3_table"
 COLLECTION_NAME = "pdf_table_rag"
 
