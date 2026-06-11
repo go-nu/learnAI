@@ -10,3 +10,10 @@ wheels/
 .venv
 
 source/**/*.pdf
+
+# 추출된 이미지 데이터
+data/
+
+# 환경변수 (API 키 등 민감 정보)
+.env
+.env.*
