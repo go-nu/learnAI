@@ -1,11 +1,11 @@
 """
-multimodal_rag_test.py
-
-기존 chroma_multimodal DB를 사용한 질의응답 전용 스크립트.
-DB 신규 빌드 없이 이미 생성된 ChromaDB + Gemini LLM으로 RAG 질의응답을 실행합니다.
+rag_runner_v1.py — Multimodal RAG CLI 실행 스크립트
+기존 chroma_multimodal DB를 로드해 질의응답을 실행합니다.
+DB가 없거나 구버전이면 자동으로 재빌드합니다.
 
 실행 예시
-    python multimodal_rag_test.py
+    python -m multimodal_rag.rag_runner_v1
+    python multimodal_rag/rag_runner_v1.py
 """
 
 import os
@@ -14,20 +14,18 @@ import sys
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 
-from multimodal_rag_bge_m3 import RagBgeM3
-
-DB_PATH = "./chroma_multimodal"
-COLLECTION_NAME = "pdf_table_rag"
+from . import RagBgeM3
+from .config_v1 import DB_PATH, COLLECTION_NAME
 
 
 def load_retriever(rag: RagBgeM3):
-    """기존 chroma_multimodal DB를 로드해 Retriever를 반환합니다. 재빌드하지 않습니다."""
+    """기존 DB를 로드해 Retriever를 반환합니다. 재빌드하지 않습니다."""
     if not os.path.exists(DB_PATH):
         print(f"[오류] '{DB_PATH}' DB가 존재하지 않습니다.")
-        print("      → multimodal_rag_bge_m3.py 를 먼저 실행해 DB를 생성하세요.")
+        print("      → rag_core_v1.py 를 먼저 실행해 DB를 생성하세요.")
         return None
 
-    embeddings = rag.get_embeddings()
+    embeddings  = rag.get_embeddings()
     vectorstore = Chroma(
         collection_name=COLLECTION_NAME,
         embedding_function=embeddings,
@@ -36,14 +34,14 @@ def load_retriever(rag: RagBgeM3):
 
     total = vectorstore._collection.count()
     if total == 0:
-        print(f"[오류] '{DB_PATH}' DB가 비어 있습니다. 재빌드가 필요합니다.")
-        print("      → multimodal_rag_bge_m3.py 를 실행해 DB를 다시 생성하세요.")
+        print(f"[오류] '{DB_PATH}' DB가 비어 있습니다.")
+        print("      → rag_core_v1.py 를 실행해 DB를 다시 생성하세요.")
         return None
 
     all_meta = vectorstore._collection.get(include=["metadatas"])["metadatas"] or []
-    n_table = sum(1 for m in all_meta if m.get("doc_type") == "table")
-    n_image = sum(1 for m in all_meta if m.get("doc_type") == "image")
-    n_text  = total - n_table - n_image
+    n_table  = sum(1 for m in all_meta if m.get("doc_type") == "table")
+    n_image  = sum(1 for m in all_meta if m.get("doc_type") == "image")
+    n_text   = total - n_table - n_image
     print(f"  텍스트 {n_text}개 + 표 {n_table}개 + 이미지 {n_image}개 = 총 {total}개 chunk")
 
     return vectorstore.as_retriever(
@@ -87,7 +85,7 @@ def main():
             break
 
         try:
-            answer = rag.runnable_lambda(retriever, llm, human_message)
+            answer = rag.basic_rag_chain(retriever, llm, human_message)
             print(f"\n[AI] {answer}")
         except Exception as e:
             print(f"[오류] {e}")

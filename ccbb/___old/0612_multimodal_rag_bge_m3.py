@@ -1,35 +1,23 @@
 """
-mutlimodal_rag_bge_m3.py
+0612_multimodal_rag_bge_m3.py  —  0611 버전 대비 변경 사항
 
-Multimodal RAG 클래스 파일 — 텍스트·표·이미지 Document 통합 처리
+[텍스트 청킹 방식 전환]
+- RecursiveCharacterTextSplitter(800자 기계 분할) → _split_by_case(사례 번호 기준 분할)
+- 정규식 CASE_PATTERN = r'(?m)^차\d+-\d+' 로 줄 시작 사례 번호만 인식
+  · ⊙ 차16-1 (해설), (차16-1) 등 본문 내 인용은 자동 제외
+- 각 사례(차N-N) 블록이 독립 Document로 분리, case_id 메타데이터 추가
+- 블록 2000자 초과 시 RecursiveCharacterTextSplitter로 추가 분할(case_id 유지)
 
-포함 기능
-- PyMuPDF(fitz)로 페이지별 텍스트 및 이미지 추출
-- Pillow로 이미지 리사이즈 (Claude API 입력 규격 준수)
-- Gemini 비전 모델(gemini-2.0-flash)로 이미지 → 텍스트 요약 변환
-- 표(Table) → Markdown 변환 후 독립 Document로 저장 (pdfplumber, 분할 없음)
-- BAAI/bge-m3 로컬 임베딩 생성
-- Chroma VectorStore 생성 및 검색
-- 기존 Chroma DB 기반 Retriever 생성
-- Gemini LLM 초기화
-- basic RAG chain 실행 (텍스트/표/이미지 출처 구분 표기)
-- LCEL RunnableLambda 방식 RAG 실행 (텍스트·표·이미지 컨텍스트 포함)
+[build_rag_components 개선]
+- case_id 메타데이터 없는 구버전 DB 자동 감지 → 재빌드
+- Windows 파일 락 해제 로직 추가: _client.close() + del + gc.collect()
 
-메타데이터 구조
-    doc_type : "text"  — 일반 텍스트 chunk
-    doc_type : "table" — 표 Document (page / table_index / row_count / col_count 포함)
-    doc_type : "image" — 이미지 요약 Document (page / images 포함)
-
-실행 예시
-    python mutlimodal_rag_bge_m3.py
-
-사용 예시
-    from mutlimodal_rag_bge_m3 import RagBgeM3, get_llm, build_rag_components, runnable_lambda
-
-    rag = RagBgeM3()
-    llm = rag.get_llm()
-    retriever = rag.build_rag_components()
-    answer = rag.runnable_lambda(retriever, llm, "경영책임자의 의무는?")
+[LLM 프롬프트 — 비례 조정 과실비율 공식 추가]
+- 수정요소 적용 후 A + B 합계 > 100 인 경우 비례 조정 공식 의무 적용
+  A 최종 = A 수정값 / (A 수정값 + B 수정값) × 100
+  B 최종 = B 수정값 / (A 수정값 + B 수정값) × 100
+- basic_rag_chain / runnable_lambda 두 체인 모두 반영
+  합계 초과 여부와 무관하게 항상 비례 조정 공식 적용, 소수점 첫째 자리 반올림
 """
 
 import os
@@ -57,6 +45,13 @@ VISION_MODEL     = "gemini-2.5-flash"           # Gemini 비전 모델 (GOOGLE_A
 MAX_IMG_PX       = 2240                        # 긴 변 최대 픽셀 (Claude API 입력 규격)
 MAX_IMG_RATIO    = 4.5                         # 가로:세로 최대 비율 (Claude API 입력 규격)
 MAX_IMG_BYTES    = 20 * 1024 * 1024            # 최대 파일 크기 20MB
+
+# 사례별 청킹 설정
+# (?m)      : 멀티라인 모드 — ^를 각 줄의 시작으로 인식
+# ^차\d+-\d+ : 줄 시작에 위치한 차N-N 형태만 매칭
+#              "⊙ 차16-1", "(차16-1)" 등 앞에 다른 문자가 있는 경우는 자동 제외
+CASE_PATTERN   = r'(?m)^차\d+-\d+'
+MAX_CASE_CHARS = 2000  # 사례 블록 최대 글자 수 (초과 시 추가 분할)
 
 
 class RagBgeM3:
@@ -170,6 +165,136 @@ class RagBgeM3:
               f"이미지 {len(all_image_infos)}장 저장")
         # image_infos: 전체 이미지의 (경로, bbox) 리스트 — load_docs에서 사용
         return documents, merged_text_path, all_image_infos
+
+    # ------------------------------------------------------------------ #
+    #  내부 헬퍼 — 사례 번호(차N-N) 기준 텍스트 청킹                       #
+    # ------------------------------------------------------------------ #
+    def _split_by_case(
+        self,
+        text_documents: List[Document],
+    ) -> List[Document]:
+        """
+        페이지별 텍스트 Document를 사례 번호(차N-N) 기준으로 분할합니다.
+
+        동작 흐름
+        ─────────
+        1. 전체 페이지 텍스트를 하나로 합산하고
+           문자 오프셋 → 페이지 번호 매핑 테이블을 생성합니다.
+        2. CASE_PATTERN 정규식으로 사례 번호가 표 제목으로 등장하는 위치만 찾습니다.
+           (해설/판례 내 '⊙ 차16-1' 형태는 제외됩니다.)
+        3. 각 사례 번호 등장 위치를 경계로 텍스트를 분할합니다.
+        4. 사례 번호 이전의 머리말 텍스트는 별도 청크로 처리합니다.
+        5. 사례 블록이 MAX_CASE_CHARS를 초과하면 RecursiveCharacterTextSplitter로
+           추가 분할하되 case_id 메타데이터는 유지합니다.
+
+        Parameters
+        ----------
+        text_documents : PyMuPDF로 추출한 페이지별 텍스트 Document 리스트
+
+        Returns
+        -------
+        사례별로 분할된 Document 리스트 (doc_type="text", case_id 메타데이터 포함)
+        """
+        import re
+
+        if not text_documents:
+            return []
+
+        # ── 1. 전체 텍스트 합산 + 문자 오프셋 → 페이지 번호 매핑 ──────────
+        full_text = ""
+        # (시작오프셋, 페이지번호) 리스트 — 오프셋 오름차순 정렬
+        char_to_page: List[Tuple[int, int]] = []
+
+        for doc in text_documents:
+            start = len(full_text)
+            full_text += doc.page_content + "\n\n"
+            char_to_page.append((start, doc.metadata.get("page", 0)))
+
+        def get_page(offset: int) -> int:
+            """문자 오프셋에 해당하는 페이지 번호를 반환합니다."""
+            page = char_to_page[0][1]
+            for start, p in char_to_page:
+                if start <= offset:
+                    page = p
+                else:
+                    break
+            return page
+
+        source = text_documents[0].metadata.get("source", "") if text_documents else ""
+
+        # ── 2. 사례 번호 표 제목 위치 탐색 ───────────────────────────────────
+        # CASE_PATTERN: 줄 시작에서 단독으로 등장하는 차N-N 형태만 매칭
+        # ⊙ 차16-1 (해설), ※舊 차16-1 (기준) 형태는 제외됨
+        pattern = re.compile(CASE_PATTERN)
+        matches = list(pattern.finditer(full_text))
+
+        if not matches:
+            # 사례 번호를 찾지 못한 경우 기존 방식으로 폴백
+            print("  [경고] 사례 번호 패턴을 찾지 못했습니다. RecursiveCharacterTextSplitter로 폴백합니다.")
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=800,
+                chunk_overlap=100,
+            )
+            return splitter.split_documents(text_documents)
+
+        chunks: List[Document] = []
+
+        # ── 3-A. 사례 번호 이전 텍스트 (머리말/목차 등) ─────────────────────
+        preamble = full_text[: matches[0].start()].strip()
+        if preamble:
+            chunks.append(Document(
+                page_content=preamble,
+                metadata={
+                    "source":   source,
+                    "page":     get_page(0),
+                    "doc_type": "text",
+                    "case_id":  "머리말",
+                },
+            ))
+
+        # ── 3-B. 사례별 블록 생성 ────────────────────────────────────────────
+        for i, match in enumerate(matches):
+            case_id     = match.group()                                         # 예: "차16-1"
+            block_start = match.start()
+            block_end   = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
+            block_text  = full_text[block_start:block_end].strip()
+            page        = get_page(block_start)
+
+            if not block_text:
+                continue
+
+            # ── 4. 블록이 너무 길면 RecursiveCharacterTextSplitter로 추가 분할 ──
+            if len(block_text) > MAX_CASE_CHARS:
+                splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=MAX_CASE_CHARS,
+                    chunk_overlap=100,
+                    separators=["\n\n", "\n", " "],
+                )
+                sub_texts = splitter.split_text(block_text)
+                for j, sub in enumerate(sub_texts):
+                    chunks.append(Document(
+                        page_content=sub,
+                        metadata={
+                            "source":    source,
+                            "page":      page,
+                            "doc_type":  "text",
+                            "case_id":   case_id,   # 사례 번호 유지
+                            "sub_index": j,          # 분할 순번
+                        },
+                    ))
+            else:
+                chunks.append(Document(
+                    page_content=block_text,
+                    metadata={
+                        "source":   source,
+                        "page":     page,
+                        "doc_type": "text",
+                        "case_id":  case_id,
+                    },
+                ))
+
+        print(f"  → 사례별 청킹: {len(matches)}개 사례 인식 → {len(chunks)}개 text chunk 생성")
+        return chunks
 
     # ------------------------------------------------------------------ #
     #  내부 헬퍼 — Pillow 이미지 리사이즈                                  #
@@ -514,15 +639,13 @@ class RagBgeM3:
         # ── 1. PyMuPDF 텍스트·이미지 추출 (경로 + bbox 포함) ──────────
         page_docs, _, all_image_infos = self._extract_text_and_images_from_pdf()
 
-        # ── 2. 텍스트 chunk 분할 ────────────────────────────────────────
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-        )
-        text_chunks = splitter.split_documents(page_docs)
+        # ── 2. 사례별(차N-N) 텍스트 청킹 ────────────────────────────────
+        # 800자 단위 기계적 분할 → 사례 번호 기준 의미 단위 분할로 전환
+        # 표(table)는 _extract_table_docs에서 이미 사례 단위로 분리됨
+        # 이미지는 bbox 매칭으로 해당 표와 1:1 연결되므로 수정 불필요
+        # 사례 번호를 찾지 못한 경우 내부에서 기존 방식으로 자동 폴백
+        text_chunks = self._split_by_case(page_docs)
         text_chunks = [d for d in text_chunks if d.page_content.strip()]
-        for chunk in text_chunks:
-            chunk.metadata["doc_type"] = "text"   # 텍스트 chunk 표시
 
         # ── 3. 표 추출 (pdfplumber 직접 호출) ──────────────────────────
         table_docs = self._extract_table_docs(self.pdf_path)
@@ -726,7 +849,29 @@ class RagBgeM3:
                 print(f"  기존 DB에 표 또는 이미지 Document가 없습니다. 재빌드합니다.")
                 needs_rebuild = True
 
+            # 사례별 청킹 이전 버전 DB 감지 — case_id 메타데이터가 없으면 재빌드
+            if not needs_rebuild:
+                has_case_id = any(
+                    m.get("case_id")
+                    for m in all_meta
+                    if m.get("doc_type") == "text"
+                )
+                if not has_case_id:
+                    print("  기존 DB가 사례별 청킹 이전 버전입니다. 재빌드합니다.")
+                    needs_rebuild = True
+
         if needs_rebuild:
+            # Windows에서 파일 락 해제: 기존 연결을 명시적으로 닫고 GC 실행 후 재빌드
+            try:
+                vectorstore._client.close()
+            except Exception:
+                pass
+            try:
+                del vectorstore
+            except NameError:
+                pass
+            import gc
+            gc.collect()
             vectorstore = self.create_vectorstore()
             if vectorstore is None:
                 raise RuntimeError("VectorStore 빌드에 실패했습니다.")
@@ -775,13 +920,19 @@ class RagBgeM3:
                     "[컨텍스트 유형별 활용 방법]\n"
                     "- [텍스트]: 사고 상황 설명, 법적 근거, 판례를 인용할 때 활용하세요.\n"
                     "- [표]: 기본 과실비율 수치와 수정요소(+/- 값)를 반드시 정확히 계산하여 적용하세요.\n"
-                    "  단, 과실비율의 합이 100%를 초과하는 경우 인과관계를 고려해 조정 가능함을 안내하세요.\n"
                     "- [이미지]: 교차로 구조, 차량 진입 방향, 충돌 위치 등 공간적 배치 정보를 설명할 때 활용하세요.\n"
                     "\n"
+                    "[과실비율 최종 계산 공식]\n"
+                    "수정요소 적용 후 반드시 아래 비례 조정 공식으로 최종 과실비율을 산출하세요.\n"
+                    "  A 최종(%) = A 수정값 / (A 수정값 + B 수정값) × 100\n"
+                    "  B 최종(%) = B 수정값 / (A 수정값 + B 수정값) × 100\n"
+                    "  소수점 첫째 자리에서 반올림하여 정수로 표기하세요.\n"
+                    "답변에 수정값과 최종값을 모두 명시하세요.\n"
+                    "\n"
                     "[답변 형식]\n"
-                    "1. 사고 유형 : 해당 차16-N 유형 명시\n"
+                    "1. 사고 유형 : 해당 차N-N 유형 명시\n"
                     "2. 기본 과실비율 : A N% : B N%\n"
-                    "3. 수정요소 적용 : 해당 항목과 수치 나열 후 최종 과실비율 계산\n"
+                    "3. 수정요소 적용 : 항목·수치 나열 → 비례 조정 공식 적용 → 최종 과실비율 산출\n"
                     "4. 근거 : 관련 법조문 또는 판례\n"
                     "5. 출처 : source / page\n"
                     "\n"
@@ -957,10 +1108,36 @@ class RagBgeM3:
             [
                 (
                     "system",
-                    "주어진 참고 문서만을 근거로 정확하게 답하세요.\n"
-                    "[표] 레이블이 붙은 내용은 문서의 표(Table)이므로 수치와 항목을 정확히 인용하세요.",
+                    "당신은 교통사고 과실비율 전문 AI 어시스턴트입니다.\n"
+                    "블랙박스 영상 분석 결과와 아래 참고 문서를 바탕으로 과실비율에 대한 의견을 제공합니다.\n"
+                    "\n"
+                    "[답변 규칙]\n"
+                    "1. 반드시 아래 컨텍스트 문서만을 근거로 답하세요.\n"
+                    "2. 컨텍스트에 근거가 없으면 '제공된 문서에서 해당 사고 유형을 찾을 수 없습니다'라고 답하세요.\n"
+                    "3. 답변 말미에 반드시 출처(source, page)를 표기하세요.\n"
+                    "\n"
+                    "[컨텍스트 유형별 활용 방법]\n"
+                    "- [텍스트]: 사고 상황 설명, 법적 근거, 판례를 인용할 때 활용하세요.\n"
+                    "- [표]: 기본 과실비율 수치와 수정요소(+/- 값)를 반드시 정확히 계산하여 적용하세요.\n"
+                    "- [이미지]: 교차로 구조, 차량 진입 방향, 충돌 위치 등 공간적 배치 정보를 설명할 때 활용하세요.\n"
+                    "\n"
+                    "[과실비율 최종 계산 공식]\n"
+                    "수정요소 적용 후 반드시 아래 비례 조정 공식으로 최종 과실비율을 산출하세요.\n"
+                    "  A 최종(%) = A 수정값 / (A 수정값 + B 수정값) × 100\n"
+                    "  B 최종(%) = B 수정값 / (A 수정값 + B 수정값) × 100\n"
+                    "  소수점 첫째 자리에서 반올림하여 정수로 표기하세요.\n"
+                    "답변에 수정값과 최종값을 모두 명시하세요.\n"
+                    "\n"
+                    "[답변 형식]\n"
+                    "1. 사고 유형 : 해당 차N-N 유형 명시\n"
+                    "2. 기본 과실비율 : A N% : B N%\n"
+                    "3. 수정요소 적용 : 항목·수치 나열 → 비례 조정 공식 적용 → 최종 과실비율 산출\n"
+                    "4. 근거 : 관련 법조문 또는 판례\n"
+                    "5. 출처 : source / page\n"
+                    "\n"
+                    "한국어로, 전문적이되 이해하기 쉽게 답변하세요.",
                 ),
-                ("human", "참고 문서:\n{context}\n\n질문: {question}"),
+                ("human", "### 컨텍스트\n{context}\n\n### 질문\n{question}"),
             ]
         )
 
