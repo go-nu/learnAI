@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="foot" th:with="uri=${currentUri}">
+    <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-base py-stack-sm bg-surface/80 dark:bg-surface/80 backdrop-blur-md rounded-t-xl shadow-lg border-t border-outline-variant/30">
+
+        <!-- 홈 -->
+        <a href="/"
+           th:class="${uri == '/'} ?
+               'flex flex-col items-center justify-center text-primary font-bold relative after:content-empty after:w-1 after:h-1 after:bg-primary after:rounded-full after:mt-1 active:scale-90 duration-200 transition-colors' :
+               'flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-low/50 transition-colors active:scale-90 duration-200'">
+            <span class="material-symbols-outlined"
+                  th:style="${uri == '/'} ? 'font-variation-settings: FILL 1, wght 400, GRAD 0, opsz 24' : ''">home</span>
+            <span class="font-label-sm text-label-sm">홈</span>
+        </a>
+
+        <!-- 일별웹툰 -->
+        <a href="/weekly"
+           th:class="${uri == '/weekly'} ?
+               'flex flex-col items-center justify-center text-primary font-bold relative after:content-empty after:w-1 after:h-1 after:bg-primary after:rounded-full after:mt-1 active:scale-90 duration-200 transition-colors' :
+               'flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-low/50 transition-colors active:scale-90 duration-200'">
+            <span class="material-symbols-outlined"
+                  th:style="${uri == '/weekly'} ? 'font-variation-settings: FILL 1, wght 400, GRAD 0, opsz 24' : ''">calendar_today</span>
+            <span class="font-label-sm text-label-sm">일별웹툰</span>
+        </a>
+
+        <!-- 검색 -->
+        <a href="/search"
+           th:class="${uri == '/search'} ?
+               'flex flex-col items-center justify-center text-primary font-bold relative after:content-empty after:w-1 after:h-1 after:bg-primary after:rounded-full after:mt-1 active:scale-90 duration-200 transition-colors' :
+               'flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-low/50 transition-colors active:scale-90 duration-200'">
+            <span class="material-symbols-outlined"
+                  th:style="${uri == '/search'} ? 'font-variation-settings: FILL 1, wght 400, GRAD 0, opsz 24' : ''">search</span>
+            <span class="font-label-sm text-label-sm">검색</span>
+        </a>
+
+        <!-- 북마크 -->
+        <a href="/storage"
+           th:class="${uri == '/storage'} ?
+               'flex flex-col items-center justify-center text-primary font-bold relative after:content-empty after:w-1 after:h-1 after:bg-primary after:rounded-full after:mt-1 active:scale-90 duration-200 transition-colors' :
+               'flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-low/50 transition-colors active:scale-90 duration-200'">
+            <span class="material-symbols-outlined"
+                  th:style="${uri == '/storage'} ? 'font-variation-settings: FILL 1, wght 400, GRAD 0, opsz 24' : ''">inventory_2</span>
+            <span class="font-label-sm text-label-sm">북마크</span>
+        </a>
+
+        <!-- 마이페이지 -->
+        <a href="/mypage"
+           th:class="${uri == '/mypage'} ?
+               'flex flex-col items-center justify-center text-primary font-bold relative after:content-empty after:w-1 after:h-1 after:bg-primary after:rounded-full after:mt-1 active:scale-90 duration-200 transition-colors' :
+               'flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-low/50 transition-colors active:scale-90 duration-200'">
+            <span class="material-symbols-outlined"
+                  th:style="${uri == '/mypage'} ? 'font-variation-settings: FILL 1, wght 400, GRAD 0, opsz 24' : ''">person</span>
+            <span class="font-label-sm text-label-sm">마이페이지</span>
+        </a>
+
+    </nav>
+    <button class="fixed right-6 bottom-24 bg-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-40 transition-transform active:scale-90 md:hidden">
+        <span class="material-symbols-outlined">arrow_upward</span>
+    </button>
+</div>
+</body>
+</html>

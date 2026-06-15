@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>리뷰 상세 · 리뷰 에이전트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<div class="stage">
+<div class="app">
+  <section class="screen active" data-screen-label="P6 리뷰상세">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="logo">리뷰 에이전트</div>
+        <nav>
+          <a class="snav" href="dashboard.html">대시보드</a>
+          <a class="snav on" href="reviews.html">리뷰 목록</a>
+          <a class="snav" href="insights.html">인사이트</a>
+        </nav>
+        <div class="foot"><a class="btn btn-sm btn-block btn-onslate" style="background:rgba(0,0,0,.18)" href="login.html">로그아웃</a></div>
+      </aside>
+      <div class="main">
+        <div class="crumb" style="margin-bottom:6px;"><a class="clk" href="reviews.html" style="text-decoration:none; color:inherit;">리뷰 목록</a> &gt; 리뷰 상세</div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+          <span class="h-page" style="font-size:23px;">리뷰 #127</span>
+          <span class="badge b-neg">부정</span>
+        </div>
+
+        <div class="card" style="margin-bottom:22px;">
+          <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap; font-size:14px;">
+            <span style="font-weight:800;">박**</span>
+            <span class="muted">무선 블루투스 이어폰</span>
+            <span class="stars">★★<span class="off">★★★</span></span>
+            <span class="badge b-neg">부정</span>
+            <span style="font-weight:800; color:var(--navy);">점수 -0.85</span>
+            <span style="margin-left:auto; font-size:12px; color:var(--ink2);">2026.06.10</span>
+          </div>
+          <hr class="divider" style="margin:16px 0;" />
+          <p style="font-size:15px; color:#555; line-height:1.8;">연결이 가끔 끊깁니다. 페어링이 불안정한 편이고, 통화 중에 소리가 끊기는 경우가 있어요. 음질 자체는 괜찮은데 안정성이 아쉽습니다.</p>
+        </div>
+
+        <div style="display:flex; gap:20px; align-items:stretch;">
+          <div class="card" style="flex:1; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+              <span class="h-sec">AI 생성 초안</span>
+              <span class="badge b-pos" id="regenBadge">재생성 1회</span>
+              <button class="btn btn-outline btn-sm" id="regenBtn" style="margin-left:auto;" onclick="regenDraft(this)">⟳ 재생성</button>
+            </div>
+            <div id="draftBox" style="background:#fff; border:1.5px solid var(--light); border-radius:10px; padding:16px; font-size:14px; color:#555; line-height:1.8; min-height:150px; flex:1;">불편을 드려 죄송합니다. 페어링 안정성 개선을 위해 펌웨어 업데이트를 안내드리며, 증상이 지속될 경우 고객센터를 통해 점검 도와드리겠습니다. 소중한 의견 감사합니다.</div>
+            <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="approveDraft()">이 초안 그대로 승인</button>
+          </div>
+          <div class="card" style="flex:1; display:flex; flex-direction:column;">
+            <div class="h-sec" style="margin-bottom:14px;">직접 수정하여 승인</div>
+            <textarea class="field" id="editDraft" style="min-height:150px; flex:1; font-size:14px;">불편을 드려 죄송합니다. 페어링 안정성 개선을 위해 펌웨어 업데이트를 안내드리며, 증상이 지속될 경우 고객센터를 통해 점검 도와드리겠습니다. 소중한 의견 감사합니다.</textarea>
+            <button class="btn btn-outline btn-block" style="margin-top:14px;" onclick="approveEdited()">수정본으로 승인</button>
+          </div>
+        </div>
+
+        <div style="margin-top:22px;">
+          <a class="btn btn-ghost" href="reviews.html">← 목록으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</div>
+<script src="ui-data.js"></script>
+<script src="ui-common.js"></script>
+<script>
+buildNav('review-detail.html');
+let regenCount=1;
+function regenDraft(btn){
+  if(btn.disabled) return;
+  const orig=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span> 재생성 중';
+  setTimeout(()=>{
+    regenCount++;
+    document.getElementById('regenBadge').textContent='재생성 '+regenCount+'회';
+    const txt=DRAFTS[(regenCount-1)%DRAFTS.length];
+    document.getElementById('draftBox').textContent=txt;
+    document.getElementById('editDraft').value=txt;
+    btn.disabled=false; btn.innerHTML=orig;
+  },1600);
+}
+</script>
+</body>
+</html>

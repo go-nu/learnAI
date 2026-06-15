@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<th:block th:fragment="head">
+
+<header class="bg-surface/80 dark:bg-surface/80 backdrop-blur-md sticky top-0 z-50 flex justify-between items-center w-full px-margin-mobile py-base shadow-sm">
+    <div class="flex items-center gap-stack-sm">
+        <button class="material-symbols-outlined text-primary scale-95 active:transition-transform duration-150 p-2 hover:bg-surface-variant/50 rounded-full">menu</button>
+        <h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">WEBTOON</h1>
+    </div>
+    <div class="flex items-center gap-stack-sm">
+        <button class="material-symbols-outlined text-primary scale-95 active:transition-transform duration-150 p-2 hover:bg-surface-variant/50 rounded-full">search</button>
+        <button class="material-symbols-outlined text-primary scale-95 active:transition-transform duration-150 p-2 hover:bg-surface-variant/50 rounded-full">notifications</button>
+
+        <!-- 로그인된 경우 -->
+        <div sec:authorize="isAuthenticated()" class="flex items-center gap-stack-sm">
+            <div class="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/30 bg-primary flex items-center justify-center flex-shrink-0"
+                 th:with="pic=${#authentication.principal.attributes['picture']}">
+                <img th:if="${pic != null}" th:src="${pic}"
+                     class="w-full h-full object-cover"
+                     onerror="this.parentElement.innerHTML='<span class=&quot;material-symbols-outlined text-white text-[18px]&quot;>person</span>'"
+                     alt="profile"/>
+                <span th:if="${pic == null}" class="material-symbols-outlined text-white text-[18px]">person</span>
+            </div>
+            <span class="font-label-sm text-label-sm text-on-surface max-w-[72px] truncate hidden sm:block"
+                  th:text="${#authentication.principal.attributes['name']}"></span>
+            <button type="button" onclick="openLogoutModal()"
+                    class="flex items-center gap-base text-on-surface-variant bg-surface-container px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors active:scale-95 duration-150 font-label-sm text-label-sm whitespace-nowrap">
+                <span class="material-symbols-outlined text-[16px]">logout</span>
+                로그아웃
+            </button>
+        </div>
+
+        <!-- 로그인 안된 경우 -->
+        <a sec:authorize="!isAuthenticated()" href="/login"
+           class="flex items-center gap-base text-primary px-3 py-2 rounded-lg hover:bg-surface-container transition-colors active:scale-95 duration-150 font-label-sm text-label-sm whitespace-nowrap">
+            <span class="material-symbols-outlined text-[18px]">person</span>
+            로그인
+        </a>
+    </div>
+</header>
+
+<!-- 로그아웃 확인 모달 -->
+<div id="logoutModal" style="display:none;"
+     class="fixed inset-0 z-[9999] items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-xl mx-4 w-full max-w-xs p-6 flex flex-col items-center gap-4">
+        <div class="w-12 h-12 rounded-full flex items-center justify-center"
+             style="background-color:#f2f4f6;">
+            <span class="material-symbols-outlined text-[28px]" style="color:#3c4a3c;">logout</span>
+        </div>
+        <div class="text-center">
+            <p style="font-size:18px; font-weight:600; line-height:24px; color:#191c1e;">로그아웃</p>
+            <p style="font-size:14px; line-height:20px; color:#3c4a3c; margin-top:4px;">로그아웃 하시겠습니까?</p>
+        </div>
+        <div class="flex gap-3 w-full">
+            <button onclick="closeLogoutModal()"
+                    class="flex-1 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+                    style="font-size:14px; font-weight:600; color:#3c4a3c;">
+                취소
+            </button>
+            <form action="/logout" method="post" class="flex-1">
+                <button type="submit"
+                        class="w-full py-2.5 rounded-xl text-white transition-colors hover:opacity-90"
+                        style="background-color:#006e2e; font-size:14px; font-weight:600;">
+                    로그아웃
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLogoutModal() {
+        var modal = document.getElementById('logoutModal');
+        modal.style.display = 'flex';
+    }
+    function closeLogoutModal() {
+        document.getElementById('logoutModal').style.display = 'none';
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        var modal = document.getElementById('logoutModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) closeLogoutModal();
+            });
+        }
+    });
+</script>
+
+</th:block>
+</body>
+</html>

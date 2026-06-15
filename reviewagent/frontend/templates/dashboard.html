@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>대시보드 · 리뷰 에이전트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<div class="stage">
+<div class="app">
+  <section class="screen active" data-screen-label="P4 대시보드">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="logo">리뷰 에이전트</div>
+        <nav>
+          <a class="snav on" href="dashboard.html">대시보드</a>
+          <a class="snav" href="reviews.html">리뷰 목록</a>
+          <a class="snav" href="insights.html">인사이트</a>
+        </nav>
+        <div class="foot"><a class="btn btn-sm btn-block btn-onslate" style="background:rgba(0,0,0,.18)" href="login.html">로그아웃</a></div>
+      </aside>
+      <div class="main">
+        <div class="h-page" style="margin-bottom:22px;">대시보드</div>
+
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+          <div class="card stat" style="display:flex; align-items:center; gap:14px;"><div class="ico">▤</div><div><div class="lbl">전체 리뷰</div><div class="val">1,284</div></div></div>
+          <div class="card stat" style="display:flex; align-items:center; gap:14px; border-color:var(--navy);"><div class="ico">⏳</div><div><div class="lbl">승인 대기</div><div class="val">37</div></div></div>
+          <div class="card stat" style="display:flex; align-items:center; gap:14px;"><div class="ico">＋</div><div><div class="lbl">오늘 신규</div><div class="val">52</div></div></div>
+          <div class="card stat" style="display:flex; align-items:center; gap:14px;"><div class="ico">☺</div><div><div class="lbl">평균 감성 점수</div><div class="val">+0.42</div></div></div>
+        </div>
+
+        <div style="display:flex; gap:20px; margin-bottom:24px; align-items:stretch;">
+          <div class="card" style="flex:0 0 56%;">
+            <div class="h-sec" style="margin-bottom:18px;">감성 분포</div>
+            <div style="display:flex; align-items:center; gap:36px;">
+              <div class="donut"><div class="ctr"><b>58%</b><span>긍정</span></div></div>
+              <div class="legend">
+                <div><i style="background:var(--light)"></i>긍정 &nbsp;58% <span class="muted">(745)</span></div>
+                <div><i style="background:var(--slate)"></i>중립 &nbsp;24% <span class="muted">(308)</span></div>
+                <div><i style="background:var(--neg)"></i>부정 &nbsp;18% <span class="muted">(231)</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="flex:1;">
+            <div class="h-sec" style="margin-bottom:10px;">최근 리뷰</div>
+            <div id="recentList"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="h-sec" style="margin-bottom:14px;">승인 대기 중인 답변</div>
+          <table class="tbl">
+            <thead><tr><th>리뷰 발췌</th><th>감성</th><th>AI 초안 미리보기</th><th>작성일</th><th style="text-align:center;">액션</th></tr></thead>
+            <tbody>
+              <tr><td class="ell">연결이 가끔 끊깁니다. 페어링이 불안정…</td><td><span class="badge b-neg">부정</span></td><td class="ell muted">불편을 드려 죄송합니다. 페어링 안정성…</td><td>06.10</td><td style="text-align:center;"><a class="btn btn-outline btn-sm" href="review-detail.html">검토하기</a></td></tr>
+              <tr><td class="ell">무난하게 쓸 만합니다. 특별하진 않아요…</td><td><span class="badge b-neu">중립</span></td><td class="ell muted">소중한 의견 감사합니다. 더 나은 경험을…</td><td>06.09</td><td style="text-align:center;"><a class="btn btn-outline btn-sm" href="review-detail.html">검토하기</a></td></tr>
+              <tr><td class="ell">생각보다 무겁네요. 휴대성이 아쉽…</td><td><span class="badge b-neg">부정</span></td><td class="ell muted">무게에 대한 의견 감사합니다. 차기 제품…</td><td>06.09</td><td style="text-align:center;"><a class="btn btn-outline btn-sm" href="review-detail.html">검토하기</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</div>
+<script src="ui-data.js"></script>
+<script src="ui-common.js"></script>
+<script>
+buildNav('dashboard.html');
+document.getElementById('recentList').innerHTML = RECENT.map(r=>`
+  <a style="display:flex; align-items:center; gap:10px; padding:10px 6px; border-radius:8px; text-decoration:none; color:inherit;" onmouseover="this.style.background='rgba(173,216,230,.20)'" onmouseout="this.style.background=''" href="review-detail.html">
+    <span style="font-weight:800; font-size:13px;">${r.author}</span>
+    <span style="font-size:13px; color:#666; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.text}</span>
+    ${badgeFor(r.sentiment)}
+    <span class="linklike" style="font-size:13px;">보기</span>
+  </a>`).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>인사이트 · 리뷰 에이전트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<div class="stage">
+<div class="app">
+  <section class="screen active" data-screen-label="P7 인사이트">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="logo">리뷰 에이전트</div>
+        <nav>
+          <a class="snav" href="dashboard.html">대시보드</a>
+          <a class="snav" href="reviews.html">리뷰 목록</a>
+          <a class="snav on" href="insights.html">인사이트</a>
+        </nav>
+        <div class="foot"><a class="btn btn-sm btn-block btn-onslate" style="background:rgba(0,0,0,.18)" href="login.html">로그아웃</a></div>
+      </aside>
+      <div class="main">
+        <div class="h-page" style="margin-bottom:20px;">인사이트</div>
+
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px;">
+          <div class="card stat"><div class="lbl">분석된 리뷰</div><div class="val">1,284</div></div>
+          <div class="card stat"><div class="lbl">추출 키워드</div><div class="val">312</div></div>
+          <div class="card stat"><div class="lbl">최다 언급 키워드</div><div class="val">#배송</div></div>
+        </div>
+
+        <div style="display:flex; gap:20px; margin-bottom:24px; align-items:stretch;">
+          <div class="card" style="flex:0 0 55%;">
+            <div class="h-sec" style="margin-bottom:18px;">자주 언급된 키워드 TOP 10</div>
+            <div id="barChart"></div>
+          </div>
+          <div class="card" style="flex:1;">
+            <div class="h-sec" style="margin-bottom:14px;">감성별 TOP 5 키워드</div>
+            <div style="font-size:13px; font-weight:800; color:var(--navy); margin-bottom:8px;">긍정</div>
+            <div class="tagwrap" style="margin-bottom:16px;"><span class="tag pos">음질</span><span class="tag pos">배송</span><span class="tag pos">디자인</span><span class="tag pos">가성비</span><span class="tag pos">착용감</span></div>
+            <div style="font-size:13px; font-weight:800; color:var(--navy); margin-bottom:8px;">중립</div>
+            <div class="tagwrap" style="margin-bottom:16px;"><span class="tag neu">크기</span><span class="tag neu">색상</span><span class="tag neu">무게</span><span class="tag neu">포장</span><span class="tag neu">설명서</span></div>
+            <div style="font-size:13px; font-weight:800; color:var(--navy); margin-bottom:8px;">부정</div>
+            <div class="tagwrap"><span class="tag neg">연결</span><span class="tag neg">내구성</span><span class="tag neg">향</span><span class="tag neg">소음</span><span class="tag neg">배터리</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="h-sec" style="margin-bottom:14px;">전체 키워드</div>
+          <table class="tbl">
+            <thead><tr><th style="width:80px;">순위</th><th>키워드</th><th>총 언급</th><th>긍정</th><th>중립</th><th>부정</th></tr></thead>
+            <tbody id="kwBody"></tbody>
+          </table>
+          <div class="pager" id="kwPager"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</div>
+<script src="ui-data.js"></script>
+<script src="ui-common.js"></script>
+<script>
+buildNav('insights.html');
+const max=KEYWORDS[0].total;
+document.getElementById('barChart').innerHTML=KEYWORDS.map((k,i)=>{
+  const op=(1-i*0.07).toFixed(2);
+  return `<div class="barrow"><span class="lbl">${k.kw}</span><span class="track"><span class="fill" style="width:${Math.round(k.total/max*100)}%; opacity:${op};"></span></span><span class="num">${k.total}</span></div>`;
+}).join('');
+const KW_PER=5; let kwPage=1;
+function renderKw(){
+  const total=Math.ceil(KEYWORDS.length/KW_PER);
+  const items=KEYWORDS.slice((kwPage-1)*KW_PER,(kwPage-1)*KW_PER+KW_PER);
+  document.getElementById('kwBody').innerHTML=items.map((k,idx)=>`
+    <tr>
+      <td style="font-weight:800; color:var(--navy);">${(kwPage-1)*KW_PER+idx+1}</td>
+      <td style="font-weight:700;">${k.kw}</td>
+      <td>${k.total}</td>
+      <td><span class="badge b-pos">${k.pos}</span></td>
+      <td><span class="badge b-neu">${k.neu}</span></td>
+      <td><span class="badge b-neg">${k.neg}</span></td>
+    </tr>`).join('');
+  document.getElementById('kwPager').innerHTML=pagerHtml(total,kwPage,'gotoKw');
+}
+function gotoKw(p){ kwPage=p; renderKw(); }
+renderKw();
+</script>
+</body>
+</html>

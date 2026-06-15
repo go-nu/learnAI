@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>리뷰 목록 · 리뷰 에이전트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<div class="stage">
+<div class="app">
+  <section class="screen active" data-screen-label="P5 리뷰목록">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="logo">리뷰 에이전트</div>
+        <nav>
+          <a class="snav" href="dashboard.html">대시보드</a>
+          <a class="snav on" href="reviews.html">리뷰 목록</a>
+          <a class="snav" href="insights.html">인사이트</a>
+        </nav>
+        <div class="foot"><a class="btn btn-sm btn-block btn-onslate" style="background:rgba(0,0,0,.18)" href="login.html">로그아웃</a></div>
+      </aside>
+      <div class="main">
+        <div class="h-page" style="margin-bottom:20px;">리뷰 목록</div>
+
+        <div class="card" style="padding:16px; margin-bottom:20px; display:flex; gap:12px; align-items:center;">
+          <select class="field" style="width:160px;"><option>감성 · 전체</option><option>긍정</option><option>중립</option><option>부정</option></select>
+          <select class="field" style="width:190px;"><option>상태 · 전체</option><option>승인대기 (draft)</option><option>승인완료 (approved)</option></select>
+          <input class="field" style="flex:1;" placeholder="리뷰 내용 검색..." />
+          <button class="btn btn-primary">검색</button>
+        </div>
+
+        <div style="border:1px solid var(--light); border-radius:12px; overflow:hidden;">
+          <table class="tbl">
+            <thead><tr><th>No</th><th>상품</th><th>리뷰</th><th>별점</th><th>감성</th><th>답변 상태</th><th>작성일</th></tr></thead>
+            <tbody id="rlBody"></tbody>
+          </table>
+        </div>
+        <div class="pager" id="rlPager"></div>
+        <div class="muted" style="text-align:center; font-size:12px; margin-top:10px;">행을 클릭하면 리뷰 상세로 이동합니다</div>
+      </div>
+    </div>
+  </section>
+</div>
+</div>
+<script src="ui-data.js"></script>
+<script src="ui-common.js"></script>
+<script>
+buildNav('reviews.html');
+const RL_PER=7; let rlPage=1;
+function renderRl(){
+  const total=Math.ceil(REVIEWLIST.length/RL_PER);
+  if(rlPage>total) rlPage=total;
+  const items=REVIEWLIST.slice((rlPage-1)*RL_PER,(rlPage-1)*RL_PER+RL_PER);
+  document.getElementById('rlBody').innerHTML=items.map(r=>`
+    <tr class="clickrow" onclick="location.href='review-detail.html'">
+      <td>${r.no}</td>
+      <td>${r.product}</td>
+      <td class="ell">${r.text}</td>
+      <td>${starHtml(r.rating)}</td>
+      <td>${badgeFor(r.sentiment)}</td>
+      <td>${r.approved?'<span class="badge b-ok">승인완료</span>':'<span class="badge b-draft">승인대기</span>'}</td>
+      <td>${r.date}</td>
+    </tr>`).join('');
+  document.getElementById('rlPager').innerHTML=pagerHtml(total,rlPage,'gotoRl');
+}
+function gotoRl(p){ rlPage=p; renderRl(); window.scrollTo(0,0); }
+renderRl();
+</script>
+</body>
+</html>

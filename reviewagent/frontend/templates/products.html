@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>상품 목록 · 리뷰 에이전트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<div class="stage">
+<div class="app">
+  <section class="screen active" data-screen-label="P2 상품목록">
+    <div class="appbar">
+      <span class="brand">리뷰 에이전트</span>
+      <span class="right"><span>김고객 님</span><a class="btn btn-sm btn-onslate" href="login.html">로그아웃</a></span>
+    </div>
+    <div class="wrap">
+      <div class="h-page" style="margin-bottom:22px;">상품 목록</div>
+      <div id="prodGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px;"></div>
+    </div>
+  </section>
+</div>
+</div>
+<script src="ui-data.js"></script>
+<script src="ui-common.js"></script>
+<script>
+buildNav('products.html');
+document.getElementById('prodGrid').innerHTML = PRODUCTS.map(p=>`
+  <a class="card prodcard" style="padding:0; display:block; text-decoration:none; color:inherit;" href="detail.html">
+    <div class="imgph" style="height:180px;">${p.img?`<span class="cam">상품 이미지</span>`:`<span class="init">${p.name.charAt(0)}</span>`}</div>
+    <div style="padding:16px;">
+      <div style="font-size:16px; font-weight:800; color:var(--navy);">${p.name}</div>
+      <div style="font-size:13px; color:var(--ink2); margin:4px 0 14px;">${p.cat}</div>
+      <span class="btn btn-primary btn-block">리뷰 작성하기</span>
+    </div>
+  </a>`).join('');
+</script>
+</body>
+</html>

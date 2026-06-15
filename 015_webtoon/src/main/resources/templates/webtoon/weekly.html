@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html class="light" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WEBTOON - 일별 웹툰</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                "colors": {
+                    "surface-container-high": "#e7e8eb",
+                    "on-secondary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#e1e2e5",
+                    "surface-container-highest": "#e1e2e5",
+                    "on-secondary-fixed-variant": "#004e5f",
+                    "on-secondary-container": "#005a6e",
+                    "on-surface": "#191c1e",
+                    "on-error-container": "#93000a",
+                    "surface-container-low": "#f2f4f6",
+                    "primary-fixed-dim": "#1ee46b",
+                    "secondary-fixed": "#b4ebff",
+                    "primary-container": "#00dc64",
+                    "surface": "#f8f9fc",
+                    "on-primary-fixed": "#002109",
+                    "outline-variant": "#bacbb8",
+                    "primary": "#006e2e",
+                    "secondary-container": "#40d7fe",
+                    "on-tertiary": "#ffffff",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed-variant": "#005321",
+                    "on-surface-variant": "#3c4a3c",
+                    "surface-bright": "#f8f9fc",
+                    "on-primary-container": "#005a25",
+                    "on-primary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#40d7fe",
+                    "on-background": "#191c1e",
+                    "secondary": "#00677d",
+                    "on-secondary-fixed": "#001f27",
+                    "outline": "#6c7b6b",
+                    "inverse-surface": "#2e3133",
+                    "on-tertiary-fixed-variant": "#8e1300",
+                    "background": "#f8f9fc",
+                    "on-tertiary-fixed": "#3e0400",
+                    "on-tertiary-container": "#9b1600",
+                    "surface-tint": "#006e2e",
+                    "surface-container": "#eceef0",
+                    "tertiary-fixed": "#ffdad3",
+                    "surface-dim": "#d8dadd",
+                    "primary-fixed": "#67ff8d",
+                    "inverse-primary": "#1ee46b",
+                    "tertiary": "#ba1c00",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#ffaa99",
+                    "tertiary-fixed-dim": "#ffb4a5"
+                },
+                "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+                },
+                "spacing": {
+                    "margin-desktop": "24px",
+                    "base": "4px",
+                    "gutter": "12px",
+                    "margin-mobile": "16px",
+                    "stack-lg": "24px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px"
+                },
+                "fontFamily": {
+                    "headline-lg": ["Be Vietnam Pro"],
+                    "body-md": ["Be Vietnam Pro"],
+                    "display-lg": ["Be Vietnam Pro"],
+                    "headline-lg-mobile": ["Be Vietnam Pro"],
+                    "body-lg": ["Be Vietnam Pro"],
+                    "title-md": ["Be Vietnam Pro"],
+                    "label-sm": ["Be Vietnam Pro"]
+                },
+                "fontSize": {
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}]
+                }
+            },
+        }
+    }
+</script>
+<style>
+    body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #f8f9fc; min-height: max(884px, 100dvh); }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .webtoon-card-border { border: 1px solid rgba(0,0,0,0.05); }
+</style>
+</head>
+<body class="text-on-surface pb-32">
+<header th:replace="~{webtoon/inc_head :: head}"></header>
+<main class="max-w-[1200px] mx-auto">
+
+    <!-- 페이지 제목 -->
+    <div class="px-margin-mobile pt-stack-lg pb-stack-sm">
+        <h2 class="font-headline-lg-mobile text-headline-lg-mobile">일별 웹툰</h2>
+        <p class="text-on-surface-variant font-body-md text-body-md mt-base">요일별로 저장된 웹툰을 확인하세요</p>
+    </div>
+
+    <!-- 요일 탭 -->
+    <div class="sticky top-[56px] bg-surface z-40 px-margin-mobile border-b border-outline-variant/30">
+        <div class="flex overflow-x-auto hide-scrollbar gap-gutter py-stack-sm">
+            <button th:each="entry : ${weeklyWebtoons}"
+                    th:id="'tab-' + ${entry.key}"
+                    th:data-day="${entry.key}"
+                    th:data-count="${#lists.size(entry.value)}"
+                    onclick="selectDay(this.dataset.day)"
+                    th:class="${entry.key == today} ?
+                        'day-tab relative flex flex-col items-center px-4 py-2 rounded-full bg-primary text-on-primary font-label-sm text-label-sm whitespace-nowrap transition-all active:scale-95 shadow-sm' :
+                        'day-tab relative flex flex-col items-center px-4 py-2 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap hover:bg-surface-container-high transition-colors'">
+                <span th:text="${dayLabels[entry.key]}" class="text-[16px] font-bold leading-tight"></span>
+                <span th:text="${#lists.size(entry.value) + '편'}"
+                      th:class="${entry.key == today} ? 'text-[10px] text-on-primary/80' : 'text-[10px] text-on-surface-variant/70'"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 요일별 콘텐츠 -->
+    <div class="px-margin-mobile mt-stack-md">
+        <div th:each="entry : ${weeklyWebtoons}"
+             th:id="'section-' + ${entry.key}"
+             th:style="${entry.key == today} ? 'display:block' : 'display:none'">
+
+            <!-- 헤더 -->
+            <div class="flex items-center justify-between mb-stack-md">
+                <div class="flex items-center gap-stack-sm">
+                    <span th:text="${dayLabels[entry.key]}"
+                          class="text-[28px] font-bold text-primary leading-none"></span>
+                    <span class="font-body-md text-body-md text-on-surface-variant">요일 웹툰</span>
+                </div>
+                <span th:text="${#lists.size(entry.value) + '편'}"
+                      class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-3 py-1 rounded-full"></span>
+            </div>
+
+            <!-- 빈 상태 -->
+            <div th:if="${#lists.isEmpty(entry.value)}"
+                 class="flex flex-col items-center justify-center py-16 gap-stack-md text-center">
+                <div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center">
+                    <span class="material-symbols-outlined text-on-surface-variant text-[32px]">calendar_today</span>
+                </div>
+                <div>
+                    <p class="font-title-md text-title-md text-on-surface-variant">저장된 웹툰이 없습니다</p>
+                    <p class="font-body-md text-body-md text-on-surface-variant/70 mt-base">
+                        해당 요일에 홈 페이지를 방문하면<br/>자동으로 저장됩니다
+                    </p>
+                </div>
+                <a href="/" class="flex items-center gap-base text-primary font-label-sm text-label-sm bg-primary-container/30 px-4 py-2 rounded-full hover:bg-primary-container/50 transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">home</span>
+                    홈으로 이동
+                </a>
+            </div>
+
+            <!-- 웹툰 그리드 -->
+            <div th:if="${!#lists.isEmpty(entry.value)}"
+                 class="grid grid-cols-3 md:grid-cols-6 gap-gutter mb-stack-lg">
+                <div th:each="w : ${entry.value}"
+                     th:data-id="${w.id}"
+                     th:data-title="${w.title}"
+                     onclick="openWebtoon(this.dataset.id)"
+                     class="flex flex-col gap-base group cursor-pointer">
+                    <div class="relative aspect-[3/4] rounded-lg overflow-hidden webtoon-card-border">
+                        <img th:src="${w.thumb}" th:alt="${w.title}"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                             loading="lazy"/>
+                        <div class="absolute top-2 right-2 bg-primary text-white px-1.5 py-0.5 rounded text-[10px] font-bold italic">UP</div>
+                    </div>
+                    <p th:text="${w.title}" class="font-label-sm text-label-sm truncate font-bold"></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</main>
+<div th:replace="~{webtoon/inc_foot :: foot}"></div>
+<script>
+    function selectDay(dayKey) {
+        // 모든 섹션 숨기기
+        document.querySelectorAll('[id^="section-"]').forEach(function(s) {
+            s.style.display = 'none';
+        });
+        // 선택된 섹션 보이기
+        var section = document.getElementById('section-' + dayKey);
+        if (section) section.style.display = 'block';
+
+        // 탭 스타일 초기화
+        document.querySelectorAll('.day-tab').forEach(function(t) {
+            t.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
+            t.classList.add('bg-surface-container', 'text-on-surface-variant');
+            var countSpan = t.querySelector('span:last-child');
+            if (countSpan) {
+                countSpan.className = 'text-[10px] text-on-surface-variant/70';
+            }
+        });
+
+        // 선택된 탭 활성화
+        var activeTab = document.getElementById('tab-' + dayKey);
+        if (activeTab) {
+            activeTab.classList.remove('bg-surface-container', 'text-on-surface-variant');
+            activeTab.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
+            var countSpan = activeTab.querySelector('span:last-child');
+            if (countSpan) {
+                countSpan.className = 'text-[10px] text-on-primary/80';
+            }
+        }
+    }
+
+    function openWebtoon(id) {
+        window.location.href = '/webtoon/' + id;
+    }
+</script>
+</body>
+</html>

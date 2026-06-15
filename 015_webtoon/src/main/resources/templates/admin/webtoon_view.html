@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title th:text="${webtoon.title} + ' - WEBTOON Admin'">웹툰 상세 - WEBTOON Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>body { font-family: 'Be Vietnam Pro', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+<div class="flex h-screen overflow-hidden">
+
+    <aside th:replace="~{admin/inc_left :: left}"></aside>
+
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <header th:replace="~{admin/inc_top :: top}" th:with="pageTitle='웹툰 상세'"></header>
+
+        <main class="flex-1 overflow-y-auto p-6">
+
+            <!-- 브레드크럼 + 제목 -->
+            <div class="flex items-center gap-2 mb-5">
+                <a href="/admin/webtoon_list"
+                   class="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    웹툰 목록
+                </a>
+                <span class="text-slate-300 text-sm">/</span>
+                <h2 class="text-base font-bold text-slate-800 truncate max-w-xs" th:text="${webtoon.title}"></h2>
+            </div>
+
+            <!-- 웹툰 정보 카드 -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 mb-5">
+                <div class="flex gap-5">
+                    <!-- 썸네일 -->
+                    <div class="w-28 h-36 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 flex items-center justify-center">
+                        <img th:if="${webtoon.thumbUrl != null}" th:src="${webtoon.thumbUrl}"
+                             class="w-full h-full object-cover" alt=""/>
+                        <svg th:if="${webtoon.thumbUrl == null}" class="w-8 h-8 text-slate-300"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <!-- 상세 정보 -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between gap-3 flex-wrap">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-800" th:text="${webtoon.title}"></h3>
+                                <p class="text-xs text-slate-400 mt-0.5 font-mono"
+                                   th:text="'Naver ID: ' + ${webtoon.sourceId}"></p>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <span th:if="${webtoon.today}"
+                                      class="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">오늘의웹툰</span>
+                                <span th:if="${!webtoon.today}"
+                                      class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-400">일반</span>
+                                <span th:if="${webtoon.ageRating != null}"
+                                      class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600"
+                                      th:text="${webtoon.ageRating}"></span>
+                            </div>
+                        </div>
+                        <p th:if="${webtoon.about != null and !#strings.isEmpty(webtoon.about)}"
+                           class="mt-3 text-sm text-slate-600 leading-relaxed line-clamp-3"
+                           th:text="${webtoon.about}"></p>
+                        <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-400">
+                            <span th:text="'등록일: ' + (${webtoon.createdAt != null} ? ${#temporals.format(webtoon.createdAt, 'yyyy.MM.dd')} : '-')"></span>
+                            <span th:text="'수정일: ' + (${webtoon.updatedAt != null} ? ${#temporals.format(webtoon.updatedAt, 'yyyy.MM.dd')} : '-')"></span>
+                        </div>
+                        <div class="mt-3">
+                            <a th:href="'https://m.comic.naver.com/webtoon/list?titleId=' + ${webtoon.sourceId}"
+                               target="_blank"
+                               class="inline-flex items-center gap-1.5 text-xs text-green-700 hover:underline font-semibold">
+                                네이버 웹툰 바로가기
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 통계 카드 4개 -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+                <!-- 에피소드 수 -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">에피소드</p>
+                        <p class="text-2xl font-bold text-slate-800" th:text="${#lists.size(episodes)}">0</p>
+                    </div>
+                </div>
+                <!-- 즐겨찾기(추천) -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">즐겨찾기</p>
+                        <p class="text-2xl font-bold text-slate-800" th:text="${favoriteCount}">0</p>
+                    </div>
+                </div>
+                <!-- 총 조회수 -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">총 조회수</p>
+                        <p class="text-2xl font-bold text-slate-800" th:text="${totalReads}">0</p>
+                    </div>
+                </div>
+                <!-- 댓글 수 -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">댓글</p>
+                        <p class="text-2xl font-bold text-slate-800" th:text="${totalComments}">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 차트 2개 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+                <!-- 별점 추이 (Line) -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-700">에피소드별 별점 추이</h3>
+                        <span class="text-xs text-slate-400"
+                              th:text="'최근 ' + ${#lists.size(chartLabels)} + '화 기준'"></span>
+                    </div>
+                    <div class="relative" style="height:220px;">
+                        <canvas id="ratingChart"></canvas>
+                    </div>
+                </div>
+                <!-- 조회수 (Bar) -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-700">에피소드별 조회수</h3>
+                        <span class="text-xs text-slate-400"
+                              th:text="'최근 ' + ${#lists.size(chartLabels)} + '화 기준'"></span>
+                    </div>
+                    <div class="relative" style="height:220px;">
+                        <canvas id="readChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 화별 목록 테이블 -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                    <h3 class="font-bold text-slate-700 text-sm">화별 목록</h3>
+                    <span class="text-xs text-slate-400"
+                          th:text="${#lists.size(episodes)} + '개 에피소드'"></span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100">
+                                <th class="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide w-12">No</th>
+                                <th class="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">에피소드 제목</th>
+                                <th class="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">별점</th>
+                                <th class="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">게재일</th>
+                                <th class="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">조회수</th>
+                                <th class="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">댓글</th>
+                                <th class="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">바로가기</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(episodes)}">
+                                <td colspan="7" class="text-center py-12 text-slate-400">에피소드가 없습니다.</td>
+                            </tr>
+                            <tr th:each="ep, stat : ${episodes}"
+                                th:class="${stat.odd} ? 'border-b border-slate-50' : 'border-b border-slate-50 bg-slate-50/50'"
+                                class="hover:bg-green-50/30 transition-colors">
+                                <td class="px-4 py-3 text-slate-400 text-xs" th:text="${stat.count}"></td>
+                                <td class="px-4 py-3">
+                                    <p class="font-medium text-slate-700 truncate max-w-xs" th:text="${ep.title}"></p>
+                                    <p class="text-xs text-slate-400 font-mono mt-0.5"
+                                       th:text="'ep.' + ${ep.sourceId}"></p>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span th:if="${ep.rating != null}"
+                                          class="inline-flex items-center gap-1 text-xs font-semibold text-amber-600">
+                                        <svg class="w-3 h-3" viewBox="0 0 20 20" fill="#fbbf24">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                        <span th:text="${ep.rating}"></span>
+                                    </span>
+                                    <span th:if="${ep.rating == null}" class="text-xs text-slate-300">-</span>
+                                </td>
+                                <td class="px-4 py-3 text-slate-500 text-xs"
+                                    th:text="${ep.publishedDate != null ? ep.publishedDate : '-'}"></td>
+                                <td class="px-4 py-3 text-slate-600 text-xs font-semibold"
+                                    th:text="${readCountMap[ep.id] != null ? readCountMap[ep.id] : 0}"></td>
+                                <td class="px-4 py-3 text-slate-600 text-xs font-semibold"
+                                    th:text="${commentCountMap[ep.id] != null ? commentCountMap[ep.id] : 0}"></td>
+                                <td class="px-4 py-3">
+                                    <a th:href="'https://m.comic.naver.com/webtoon/detail?titleId=' + ${webtoon.sourceId} + '&no=' + ${ep.sourceId}"
+                                       target="_blank"
+                                       class="inline-flex items-center gap-1 text-xs text-green-700 hover:underline font-semibold">
+                                        보기
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- Chart.js 초기화 -->
+<script th:inline="javascript">
+    const chartLabels  = /*[[${chartLabels}]]*/ [];
+    const ratingData   = /*[[${chartRatings}]]*/ [];
+    const readData     = /*[[${chartReads}]]*/ [];
+
+    const commonScaleX = {
+        ticks: {
+            font: { size: 10 },
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 10
+        },
+        grid: { color: 'rgba(148,163,184,0.1)' }
+    };
+
+    // 별점 추이 — Line Chart
+    new Chart(document.getElementById('ratingChart'), {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: '별점',
+                data: ratingData,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245,158,11,0.08)',
+                tension: 0.35,
+                pointRadius: chartLabels.length > 20 ? 1 : 3,
+                pointHoverRadius: 5,
+                borderWidth: 2,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ' 별점: ' + ctx.parsed.y } }
+            },
+            scales: {
+                x: commonScaleX,
+                y: {
+                    min: 0, max: 10,
+                    ticks: { font: { size: 10 }, stepSize: 2 },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                }
+            }
+        }
+    });
+
+    // 조회수 — Bar Chart
+    new Chart(document.getElementById('readChart'), {
+        type: 'bar',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: '조회수',
+                data: readData,
+                backgroundColor: 'rgba(34,197,94,0.65)',
+                borderColor: 'rgba(34,197,94,0.9)',
+                borderWidth: 1,
+                borderRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ' 조회수: ' + ctx.parsed.y } }
+            },
+            scales: {
+                x: commonScaleX,
+                y: {
+                    beginAtZero: true,
+                    ticks: { font: { size: 10 } },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>

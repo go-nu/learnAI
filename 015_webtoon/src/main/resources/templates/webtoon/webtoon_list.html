@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title th:text="'WEBTOON - ' + ${webtoon != null ? webtoon.title : 'Detail'}">WEBTOON - Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                "colors": {
+                    "surface-container-high": "#e7e8eb",
+                    "on-secondary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#e1e2e5",
+                    "surface-container-highest": "#e1e2e5",
+                    "on-secondary-fixed-variant": "#004e5f",
+                    "on-secondary-container": "#005a6e",
+                    "on-surface": "#191c1e",
+                    "on-error-container": "#93000a",
+                    "surface-container-low": "#f2f4f6",
+                    "primary-fixed-dim": "#1ee46b",
+                    "secondary-fixed": "#b4ebff",
+                    "primary-container": "#00dc64",
+                    "surface": "#f8f9fc",
+                    "on-primary-fixed": "#002109",
+                    "outline-variant": "#bacbb8",
+                    "primary": "#006e2e",
+                    "secondary-container": "#40d7fe",
+                    "on-tertiary": "#ffffff",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed-variant": "#005321",
+                    "on-surface-variant": "#3c4a3c",
+                    "surface-bright": "#f8f9fc",
+                    "on-primary-container": "#005a25",
+                    "on-primary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#40d7fe",
+                    "on-background": "#191c1e",
+                    "secondary": "#00677d",
+                    "on-secondary-fixed": "#001f27",
+                    "outline": "#6c7b6b",
+                    "inverse-surface": "#2e3133",
+                    "on-tertiary-fixed-variant": "#8e1300",
+                    "background": "#f8f9fc",
+                    "on-tertiary-fixed": "#3e0400",
+                    "on-tertiary-container": "#9b1600",
+                    "surface-tint": "#006e2e",
+                    "surface-container": "#eceef0",
+                    "tertiary-fixed": "#ffdad3",
+                    "surface-dim": "#d8dadd",
+                    "primary-fixed": "#67ff8d",
+                    "inverse-primary": "#1ee46b",
+                    "tertiary": "#ba1c00",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#ffaa99",
+                    "tertiary-fixed-dim": "#ffb4a5"
+                },
+                "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+                },
+                "spacing": {
+                    "margin-desktop": "24px",
+                    "base": "4px",
+                    "gutter": "12px",
+                    "margin-mobile": "16px",
+                    "stack-lg": "24px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px"
+                },
+                "fontFamily": {
+                    "headline-lg": ["Be Vietnam Pro"],
+                    "body-md": ["Be Vietnam Pro"],
+                    "display-lg": ["Be Vietnam Pro"],
+                    "headline-lg-mobile": ["Be Vietnam Pro"],
+                    "body-lg": ["Be Vietnam Pro"],
+                    "title-md": ["Be Vietnam Pro"],
+                    "label-sm": ["Be Vietnam Pro"]
+                },
+                "fontSize": {
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}]
+                }
+            },
+        }
+    }
+</script>
+<style>
+    body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #f8f9fc; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .webtoon-card-border { border: 1px solid rgba(0,0,0,0.05); }
+</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+</style>
+</head>
+<body class="text-on-surface pb-32">
+<header th:replace="~{webtoon/inc_head :: head}"></header>
+<main class="max-w-[1200px] mx-auto">
+
+<!-- Back Button -->
+<div class="px-margin-mobile pt-stack-sm">
+    <button onclick="history.back()"
+            class="flex items-center gap-1 text-primary font-label-sm text-label-sm hover:bg-surface-container rounded-full px-3 py-1.5 transition-colors active:scale-95">
+        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        뒤로가기
+    </button>
+</div>
+
+<!-- Hero Section -->
+<section class="relative w-full aspect-[4/5] md:aspect-[21/9] overflow-hidden mt-stack-sm">
+    <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent z-10"></div>
+    <img th:src="${not #lists.isEmpty(episodes) ? episodes[0].thumb : (webtoon != null ? webtoon.thumb : '')}"
+         th:alt="${webtoon != null ? webtoon.title : ''}"
+         class="w-full h-full object-cover"/>
+    <div class="absolute bottom-0 left-0 w-full p-margin-mobile z-20 flex flex-col gap-base">
+        <span class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full font-label-sm text-label-sm w-fit"
+              th:text="${#lists.size(episodes)} + ' Episodes'">Episodes</span>
+        <h2 th:text="${webtoon != null ? webtoon.title : ''}"
+            class="text-white font-display-lg text-display-lg leading-tight"></h2>
+        <p class="text-white/70 font-body-md text-body-md"
+           th:text="'ID: ' + ${webtoonId}"></p>
+        <div class="flex gap-gutter mt-stack-sm">
+            <a th:href="'https://comic.naver.com/webtoon/list?titleId=' + ${webtoonId}"
+               target="_blank"
+               class="bg-primary text-white px-6 py-3 rounded-xl font-title-md text-title-md flex items-center gap-2 transition-transform active:scale-95">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                첫화 보기
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Episode List Section -->
+<section class="mt-stack-lg px-margin-mobile mb-stack-lg">
+    <div class="flex justify-between items-center mb-stack-md">
+        <h3 class="font-headline-lg-mobile text-headline-lg-mobile">화별 리스트</h3>
+        <span class="bg-surface-container text-on-surface-variant px-3 py-1 rounded-full font-label-sm text-label-sm"
+              th:text="${#lists.size(episodes)} + '화'">0화</span>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${#lists.isEmpty(episodes)}"
+         class="flex flex-col items-center justify-center py-16 text-on-surface-variant">
+        <span class="material-symbols-outlined text-[48px] mb-stack-md">menu_book</span>
+        <p class="font-body-lg text-body-lg">에피소드 정보를 불러올 수 없습니다.</p>
+    </div>
+
+    <!-- Episode List -->
+    <div class="flex flex-col divide-y divide-outline-variant/30" th:if="${not #lists.isEmpty(episodes)}">
+        <a th:each="ep, stat : ${episodes}"
+           th:href="'https://m.comic.naver.com/webtoon/detail?titleId=' + ${webtoonId} + '&amp;no=' + ${ep.id}"
+           target="_blank"
+           class="flex items-center gap-stack-md py-3 hover:bg-surface-container-low rounded-xl px-2 transition-colors cursor-pointer group">
+            <!-- Episode Number -->
+            <span th:text="${stat.index + 1}"
+                  class="font-display-lg text-display-lg text-on-surface-variant/40 italic w-8 text-center flex-shrink-0 text-[16px]"></span>
+            <!-- Thumbnail -->
+            <div class="relative flex-shrink-0">
+                <img th:src="${ep.thumb}" th:alt="${ep.title}"
+                     class="w-24 h-16 rounded-lg object-cover webtoon-card-border"
+                     loading="lazy"/>
+            </div>
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+                <h5 th:text="${ep.title}"
+                    class="font-title-md text-title-md truncate group-hover:text-primary transition-colors"></h5>
+                <p th:text="${ep.date}"
+                   class="text-on-surface-variant font-body-md text-body-md mt-1"></p>
+            </div>
+            <!-- Chevron -->
+            <span class="material-symbols-outlined text-on-surface-variant/50 group-hover:text-primary transition-colors flex-shrink-0">
+                chevron_right
+            </span>
+        </a>
+    </div>
+</section>
+
+</main>
+<div th:replace="~{webtoon/inc_foot :: foot}"></div>
+</body></html>
