@@ -9,7 +9,7 @@ COLLECTION_NAME  = "pdf_table_rag"
 
 IMAGE_OUTPUT_DIR = "./data/extracted_images"   # PDF에서 추출한 원본 이미지 저장 경로
 FILTERED_IMG_DIR = "./data/filtered_images"    # 리사이즈 완료 이미지 저장 경로
-VISION_MODEL     = "gemini-2.5-flash"          # Gemini 비전 모델 (GOOGLE_API_KEY_VISION 사용)
+VISION_MODEL     = "gemini-3.1-flash-lite"          # Gemini 비전 모델 (GOOGLE_API_KEY_VISION 사용)
 MAX_IMG_PX       = 2240                        # 긴 변 최대 픽셀
 MAX_IMG_RATIO    = 4.5                         # 가로:세로 최대 비율
 MAX_IMG_BYTES    = 20 * 1024 * 1024            # 최대 파일 크기 20MB

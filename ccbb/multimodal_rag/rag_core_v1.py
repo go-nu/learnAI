@@ -37,7 +37,7 @@ class RagBgeM3(PdfLoaderMixin, VectorstoreMixin, RagChainMixin):
         chunk_overlap: int = 100,
         search_k: int = 3,
         embedding_device: str = "cuda",
-        llm_model: str = "gemini-2.5-flash",
+        llm_model: str = "gemini-3.1-flash-lite",
         temperature: float = 0,
         image_output_dir: str = IMAGE_OUTPUT_DIR,
         filtered_img_dir: str = FILTERED_IMG_DIR,

@@ -6,7 +6,7 @@ Multimodal RAG 클래스 파일 — 텍스트·표·이미지 Document 통합 �
 포함 기능
 - PyMuPDF(fitz)로 페이지별 텍스트 및 이미지 추출
 - Pillow로 이미지 리사이즈 (Claude API 입력 규격 준수)
-- Gemini 비전 모델(gemini-2.0-flash)로 이미지 → 텍스트 요약 변환
+- Gemini 비전 모델(gemini-3.1-flash-lite)로 이미지 → 텍스트 요약 변환
 - 표(Table) → Markdown 변환 후 독립 Document로 저장 (pdfplumber, 분할 없음)
 - BAAI/bge-m3 로컬 임베딩 생성
 - Chroma VectorStore 생성 및 검색

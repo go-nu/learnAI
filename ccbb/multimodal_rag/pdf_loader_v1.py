@@ -290,7 +290,14 @@ class PdfLoaderMixin:
                      "image_url": {"url": f"data:{media_type};base64,{image_data}"}},
                     {"type": "text", "text": system_text},
                 ])
-                summary = vision_llm.invoke([message]).content
+                raw = vision_llm.invoke([message]).content
+                if isinstance(raw, list):
+                    summary = "".join(
+                        p.get("text", "") if isinstance(p, dict) else str(p)
+                        for p in raw
+                    )
+                else:
+                    summary = raw
 
                 match = re.search(r"page_(\d+)_img_\d+", filename)
                 page_number = int(match.group(1)) if match else None
