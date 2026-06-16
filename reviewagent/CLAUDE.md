@@ -83,12 +83,12 @@ LangGraph StateGraph 기반 AI 파이프라인을 실제 서비스 형태(프론
 
 id=1  시험 상품  (모든 시딩 리뷰가 이 상품에 연결됨)
 
-실제 서비스 시연용 상품은 관리자가 직접 등록:
-  - 무선 블루투스 이어폰
-  - 프리미엄 운동화
-  - 유기농 그래놀라 세트
-  - 스마트 체중계
-  - 보온 텀블러
+실제 서비스 시연용 상품은 관리자가 직접 등록 (카테고리: 주방·생활용품):
+  - 스테인리스 보온 텀블러
+  - 실리콘 식품 보관 용기 세트
+  - 천연 대나무 도마
+  - 다기능 스테인리스 주방 가위
+  - 세라믹 머그컵 세트
 ```
 
 ---
@@ -189,7 +189,7 @@ products
 | text | TEXT | 고객이 작성한 리뷰 원문. LangGraph 입력값 |
 | rating | SMALLINT | 별점 1~5 |
 | sentiment_score | FLOAT | LLM이 분석한 감성 강도. -1.0(매우부정) ~ 1.0(매우긍정). 분석 전 NULL |
-| sentiment_label | VARCHAR(10) | 점수를 라벨로 변환. `positive` / `neutral` / `negative`. 분석 전 NULL |
+| sentiment_label | VARCHAR(10) | 점수를 라벨로 변환. `good` / `normal` / `bad`. 분석 전 NULL |
 | category | VARCHAR(100) | LLM이 분류한 유형. 예) "배송불만", "품질우수", "재구매의향". 분석 전 NULL |
 | status | VARCHAR(20) | 처리 단계. `pending` → `processing` → `done` |
 | created_at | DATETIME | 리뷰 작성 일시 |
@@ -276,7 +276,6 @@ class ReviewState(TypedDict):
     draft_text      : str           # AI 답변 초안
     revision_count  : int           # 재생성 횟수 (최대 2)
     tags            : list[str]     # 추출된 키워드 리스트
-    is_approved     : bool          # 품질검토 통과 여부
 ```
 
 ### 노드 구성 (Depth 5)
@@ -304,12 +303,18 @@ __start__
     ├─── neutral  ────▶ ④-B gen_reply (중립형)   감사 인사 + 개선 약속 구조 초안 생성
     │                         │
     │                         ▼
-    │                    (⑤로 합류)  ← 품질검토 루프 없음
+    │                    review_draft              품질 검토. 미달이면 gen_reply로 루프
+    │                         │ 통과
+    │                         ▼
+    │                    (⑤로 합류)
     │
     └─── positive ────▶ ④-C gen_reply (긍정형)   감사 인사 + 재구매 유도 구조 초안 생성
                               │
                               ▼
-                         (⑤로 합류)  ← 품질검토 루프 없음
+                         review_draft              품질 검토. 미달이면 gen_reply로 루프
+                              │ 통과
+                              ▼
+                         (⑤로 합류)
     │
     ▼
 ⑤ save_result           처리 결과를 DB에 저장
@@ -321,10 +326,10 @@ __start__
 __end__
 ```
 
-**품질검토 루프는 부정 리뷰에만 적용**
+**품질검토 루프는 모든 리뷰에 적용**
 ```
-부정 리뷰는 고객 불만 대응이라 초안 품질이 중요 → 루프 적용
-긍정·중립은 감사 인사 수준이라 첫 초안으로 충분 → 루프 생략
+모든 감성(긍정·중립·부정)에 대해 동일한 품질 기준을 적용
+최대 2회 재생성 후 강제 통과 (무한루프 방지)
 ```
 
 ### 분기 기준 (decide_route)
@@ -346,17 +351,17 @@ def decide_route(state: ReviewState) -> str:
 | -0.3 ~ 0.3 | neutral | 감사 인사 + 개선 약속 |
 | 0.3 ~ 1.0 | positive | 감사 인사 + 재구매 유도 |
 
-### review_draft 품질검토 루프 (부정 리뷰 전용)
+### review_draft 품질검토 루프 (모든 리뷰 적용)
 
 ```python
 def review_draft(state: ReviewState) -> str:
     # 최대 2회까지만 재생성 (무한루프 방지)
     if state["revision_count"] >= 2:
-        return "approved"
-    # 품질 기준: 100자 이상, 공감 표현 포함 여부
-    if len(state["draft_text"]) >= 100 and "죄송" in state["draft_text"]:
-        return "approved"
-    return "regenerate"   # → gen_reply로 돌아감
+        return "save_result"
+    # 품질 기준: 100자 이상
+    if len(state["draft_text"]) >= 100:
+        return "save_result"
+    return state["route"]   # → 해당 감성의 gen_reply로 돌아감
 ```
 
 ---
@@ -378,7 +383,7 @@ def review_draft(state: ReviewState) -> str:
   1. Review 객체 생성 (status="pending")
   2. LangGraph 파이프라인 즉시 실행 (10~30초 소요)
      fetch_review → analyze_sentiment → decide_route
-       → gen_reply (감성별 톤 다름) → review_draft 루프 (부정만)
+       → gen_reply (감성별 톤 다름) → review_draft 루프 (모든 감성)
        → save_result
   3. 처리 완료 후 201 응답 반환
 
@@ -398,119 +403,14 @@ def review_draft(state: ReviewState) -> str:
   → 수정하거나 그대로 "승인" 클릭
   → review_replies.status = "approved", approved_at 기록
 ```
-
 ---
 
-## 9. 프로젝트 폴더 구조
-
-```
-review-agent/
-│
-├── backend/                        Django 프로젝트
-│   ├── config/
-│   │   ├── settings.py
-│   │   └── urls.py
-│   ├── apps/
-│   │   ├── users/
-│   │   │   ├── models.py           User (구글 소셜 로그인)
-│   │   │   ├── serializers.py
-│   │   │   └── views.py            구글 OAuth 콜백, JWT 발급
-│   │   ├── products/
-│   │   │   ├── models.py
-│   │   │   ├── serializers.py
-│   │   │   └── views.py
-│   │   └── reviews/
-│   │       ├── models.py           Review, ReviewReply, ReviewTag
-│   │       ├── serializers.py
-│   │       └── views.py            리뷰 저장 + LangGraph 동기 호출
-│   ├── langgraph_pipeline/
-│   │   ├── graph.py                StateGraph 정의
-│   │   ├── state.py                ReviewState TypedDict
-│   │   └── nodes/
-│   │       ├── fetch_review.py
-│   │       ├── analyze_sentiment.py
-│   │       ├── decide_route.py
-│   │       ├── gen_reply.py        감성별 프롬프트 분기 포함
-│   │       ├── review_draft.py     부정 리뷰 품질검토 루프
-│   │       └── save_result.py
-│   ├── scripts/
-│   │   └── seed_data.py            더미 데이터 시딩 스크립트
-│   └── requirements.txt
-│
-├── frontend/                       React + TypeScript
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Login.tsx           구글 소셜 로그인 버튼
-│   │   │   ├── ProductList.tsx
-│   │   │   ├── ProductDetail.tsx   리뷰 작성 + 로딩 스피너
-│   │   │   └── admin/
-│   │   │       ├── Dashboard.tsx
-│   │   │       ├── ReviewList.tsx
-│   │   │       ├── ReviewDetail.tsx
-│   │   │       └── Insights.tsx
-│   │   ├── components/
-│   │   ├── api/                    axios 호출 모듈
-│   │   └── types/                  TypeScript 타입 정의
-│   └── package.json
-│
-└── CLAUDE.md                       ← 이 파일
-```
-
----
-
-## 10. API 엔드포인트 (예정)
-
-### 인증
-| Method | URL | 설명 |
-|---|---|---|
-| GET | `/api/auth/google/` | 구글 OAuth 로그인 시작 |
-| GET | `/api/auth/google/callback/` | 구글 OAuth 콜백 → JWT 발급 |
-| POST | `/api/auth/logout/` | 로그아웃 |
-
-### 상품
-| Method | URL | 설명 |
-|---|---|---|
-| GET | `/api/products/` | 상품 목록 |
-| GET | `/api/products/:id/` | 상품 상세 + 리뷰 목록 |
-
-### 리뷰
-| Method | URL | 설명 |
-|---|---|---|
-| GET | `/api/reviews/` | 리뷰 목록 (관리자용, 감성·상태 필터) |
-| POST | `/api/reviews/` | 리뷰 작성 → LangGraph 동기 실행 → 완료 후 응답 |
-| GET | `/api/reviews/:id/` | 리뷰 상세 + 답변 초안 |
-| PATCH | `/api/reviews/:id/reply/` | 답변 수정 + 승인 (관리자) |
-
-### 통계
-| Method | URL | 설명 |
-|---|---|---|
-| GET | `/api/stats/dashboard/` | 감성 비율, 미처리 건수 집계 |
-| GET | `/api/stats/tags/` | 키워드 TOP N 집계 |
-
----
-
-## 11. 개발 순서 (권장)
-
-```
-1. Django 프로젝트 초기 설정 (settings.py, DB 연결 확인)
-2. models.py 작성 + 마이그레이션
-3. 구글 소셜 로그인 + JWT 연동
-4. seed_data.py 작성 + 더미 데이터 시딩 (500건)
-5. LangGraph 파이프라인 구현 (노드별 단위 테스트)
-6. DRF 시리얼라이저 + API 뷰 구현 (리뷰 POST에서 LangGraph 동기 호출)
-7. React 프론트엔드 — 핵심 3개 화면 먼저 (로그인, 상품 상세, 리뷰 상세·승인)
-8. 관리자 화면 (바이브 코딩 활용)
-9. 전체 E2E 흐름 테스트
-```
-
----
-
-## 12. 주요 주의사항
+## 주요 주의사항
 
 - **LangGraph 동기 실행** — 리뷰 POST API가 처리 완료까지 10~30초 블로킹. 프론트 로딩 스피너 필수
 - **MySQL에서 ENUM 대신 VARCHAR** + Django choices 사용
 - **sentiment_score, sentiment_label, category, analyzed_at** — LangGraph 실행 전 NULL. 프론트 NULL 처리 필수
-- **revision_count 최대 2** — 무한 루프 방지 하드코딩. 부정 리뷰에만 적용
+- **revision_count 최대 2** — 무한 루프 방지 하드코딩. 모든 리뷰에 적용
 - **JWT 토큰 payload에 role 포함** — 프론트에서 role로 관리자/고객 화면 분기
 - **구글 로그인 최초 시** — users 테이블에 자동 INSERT. role은 customer로 고정. 관리자 지정은 DB 직접 수정
 - **시딩 후 LangGraph 수동 트리거 필요** — seed_data.py는 리뷰를 pending 상태로만 적재. 별도 스크립트로 LangGraph 실행
