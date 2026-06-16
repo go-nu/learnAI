@@ -54,7 +54,11 @@ def bad_reply(state: ReplyState) -> dict:
 def review_reply(state: ReplyState) -> dict:
     pass
 
-# 5. 결과 저장
+# 5. 관리자 검토
+def admin_check(state: ReplyState) -> dict:
+    pass
+
+# 6. 결과 저장
 def save_result(state: ReplyState) -> dict:
     pass
 
@@ -65,11 +69,7 @@ def route_by_analysis(state: ReplyState) -> dict:
 
 # 부정 답변 품질 검토 라우터
 def check_bad_reply(state: ReplyState) -> str:
-    if state["revision_count"] >= 2:
-        return "save_result"
-    if len(state.get("draft_text", "")) >= 100 and "죄송" in state.get("draft_text", ""):
-        return "save_result"
-    return "bad_reply"
+    pass
 
 # LangGraph 구현
 def build_graph():
@@ -82,6 +82,7 @@ def build_graph():
     graph.add_node('normal_reply', normal_reply)
     graph.add_node('bad_reply', bad_reply)
     graph.add_node('review_reply', review_reply)
+    graph.add_node('admin_check', admin_check)
     graph.add_node('save_result', save_result)
 
     # edge 연결
@@ -104,9 +105,10 @@ def build_graph():
         check_bad_reply,
         {
             'bad_reply':   'bad_reply',
-            'save_result': 'save_result',
         },
     )
+    graph.add_edge('review_reply', 'admin_check')
+    graph.add_edge('admin_check', 'save_result')
     graph.add_edge('save_result', END)
 
     reply_graph = graph.compile()

@@ -3,11 +3,12 @@ pdf_loader_v3.py — PDF 로딩·청킹 Mixin (VL 모델 없음)
 
 v2와의 차이
 -----------
-- CASE_PATTERN: 회전N-N 패턴 추가
+- CASE_PATTERN: 회전-N 형식(2025 회전교차로 문서) 지원, 줄 단독 패턴으로 정밀화
+- _extract_case_title_from_block() 신규: block에서 사례명 추출
+- _split_by_case() 변경: case_title 추출 후 헤더 및 구분 metadata 추가
+- load_docs() 변경: CASE_PATTERN 감지 범위를 full_text로 확장
 - _split_by_article() 신규: 법률 조항(제N조...) 단위 청킹
 - _split_addendum()   신규: 부칙 선언문 단위 청킹
-- load_docs()         변경: 문서 유형 자동 감지 후 청킹 전략 분기
-  (법률 문서 → 조항별, 과실비율 문서 → 사례별, 기타 → 800자 폴백)
 """
 
 import os
@@ -85,21 +86,49 @@ class PdfLoaderMixin:
               f"이미지 {total_images}장 저장 (VL 해석 없음, 출처 매핑용)")
         return documents, page_to_images
 
+    def _extract_case_title_from_block(self, block_text: str, case_id: str) -> str:
+        """block_text에서 사례명("사고"가 포함된 제목 줄)을 추출합니다."""
+        lines = [line.strip() for line in block_text.splitlines() if line.strip()]
+
+        # case_id 바로 다음 줄이 사례명인 경우
+        for i, line in enumerate(lines):
+            if line == case_id and i + 1 < len(lines):
+                candidate = lines[i + 1].strip()
+                if candidate and "사고" in candidate:
+                    return candidate
+
+        # PDF 추출 과정에서 case_id와 제목이 같은 줄에 붙는 경우 대비
+        for line in lines[:8]:
+            if case_id in line and "사고" in line:
+                candidate = line.replace(case_id, "").strip()
+                if candidate:
+                    return candidate
+
+        # 앞쪽 몇 줄 중 "사고"가 포함된 줄을 사례명 후보로 사용
+        for line in lines[:8]:
+            if "사고" in line and line != case_id:
+                return line
+
+        return ""
+
     def _split_by_case(
         self,
         text_documents: List[Document],
         page_to_images: Dict[int, List[str]] = None,
     ) -> List[Document]:
         """
-        페이지별 텍스트 Document를 사례 번호(차N-N / 회전N-N) 기준으로 분할합니다.
+        페이지별 텍스트 Document를 사례 번호(차N-N / 회전-N) 기준으로 분할합니다.
 
-        - CASE_PATTERN으로 줄 시작 사례 번호만 경계로 인식
+        - CASE_PATTERN으로 줄 단독 사례 번호만 경계로 인식
         - 각 청크의 page 번호로 page_to_images를 조회해 image_refs 메타데이터에 추가
         - 사례 번호 이전 머리말은 case_id="머리말" 로 별도 처리
         - MAX_CASE_CHARS 초과 블록은 RecursiveCharacterTextSplitter로 추가 분할
         - 패턴 미발견 시 RecursiveCharacterTextSplitter(800자) 로 자동 폴백
+        - case_title 추출 후 page_content 헤더 및 구분 metadata 필드 추가
         """
         import re
+
+        _DEBUG_CASES = {"회전-10", "회전-11", "회전-15"}
 
         if not text_documents:
             return []
@@ -124,6 +153,28 @@ class PdfLoaderMixin:
 
         def get_image_refs(page: int) -> str:
             return ", ".join(page_to_images.get(page, []))
+
+        def build_extra_meta(case_title: str) -> dict:
+            has_exit        = "진출" in case_title
+            has_lane_change = "차로변경" in case_title
+            if "후진입 직후 차로변경" in case_title:
+                lane_change_actor = "후진입 차량"
+                collision_stage   = "후진입 직후"
+            elif "차로변경하여 진출" in case_title:
+                lane_change_actor = "선진입 차량"
+                collision_stage   = "진출 과정"
+            elif "회전 중 차로변경" in case_title:
+                lane_change_actor = "회전 중 차량"
+                collision_stage   = "회전 중"
+            else:
+                lane_change_actor = ""
+                collision_stage   = ""
+            return {
+                "has_exit":          has_exit,
+                "has_lane_change":   has_lane_change,
+                "lane_change_actor": lane_change_actor,
+                "collision_stage":   collision_stage,
+            }
 
         source = text_documents[0].metadata.get("source", "") if text_documents else ""
         pattern = re.compile(CASE_PATTERN)
@@ -151,7 +202,7 @@ class PdfLoaderMixin:
             ))
 
         for i, match in enumerate(matches):
-            case_id     = match.group()
+            case_id     = match.group().strip()
             block_start = match.start()
             block_end   = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
             block_text  = full_text[block_start:block_end].strip()
@@ -161,32 +212,49 @@ class PdfLoaderMixin:
             if not block_text:
                 continue
 
+            case_title  = self._extract_case_title_from_block(block_text, case_id)
+            extra_meta  = build_extra_meta(case_title)
+
+            if case_id in _DEBUG_CASES:
+                print(f"  [청킹 확인] case_id={case_id} / case_title={case_title}")
+
+            # 구조화 헤더 구성
+            header = f"[사례번호] {case_id}\n"
+            if case_title:
+                header += f"[사례명] {case_title}\n"
+            header += "\n"
+
             if len(block_text) > MAX_CASE_CHARS:
                 splitter = RecursiveCharacterTextSplitter(
                     chunk_size=MAX_CASE_CHARS, chunk_overlap=100,
                     separators=["\n\n", "\n", " "],
                 )
                 for j, sub in enumerate(splitter.split_text(block_text)):
+                    sub_header = header + f"[분할번호] {j}\n\n"
                     chunks.append(Document(
-                        page_content=sub,
+                        page_content=sub_header + sub,
                         metadata={
                             "source":     source,
                             "page":       page,
                             "doc_type":   "text",
                             "case_id":    case_id,
+                            "case_title": case_title,
                             "sub_index":  j,
                             "image_refs": image_refs,
+                            **extra_meta,
                         },
                     ))
             else:
                 chunks.append(Document(
-                    page_content=block_text,
+                    page_content=header + block_text,
                     metadata={
                         "source":     source,
                         "page":       page,
                         "doc_type":   "text",
                         "case_id":    case_id,
+                        "case_title": case_title,
                         "image_refs": image_refs,
+                        **extra_meta,
                     },
                 ))
 
@@ -491,8 +559,8 @@ class PdfLoaderMixin:
                         char_to_page=char_to_page, text_offset=0,
                     )
 
-            elif re.search(CASE_PATTERN, sample_text):
-                # 과실비율 문서 감지 → 사례별 청킹
+            elif re.search(CASE_PATTERN, full_text):
+                # 과실비율 문서 감지 → 사례별 청킹 (전체 텍스트 기준으로 감지: 앞 페이지가 표지/목차인 경우 대비)
                 print(f"  [{fname}] 과실비율 문서 감지 → 사례별 청킹")
                 text_chunks = self._split_by_case(page_docs, page_to_images)
 
