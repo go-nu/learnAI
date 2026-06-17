@@ -12,7 +12,7 @@ def decide_emotion(state: ReplyState, llm) -> dict:
 
     response = llm.invoke(prompt)
 
-    label = response.content.strip.lower()
+    label = response.content.strip().lower()
 
     if label not in ("good", "normal", "bad"):
         label = "normal"

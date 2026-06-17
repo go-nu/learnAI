@@ -45,7 +45,7 @@ class RagBgeM3v4(PdfLoaderMixin, VectorstoreMixin, RagChainMixin):
         image_output_dir: str   = IMAGE_OUTPUT_DIR,
         llm_model:        str   = "gemini-3.1-flash-lite",
         temperature:      float = 0.0,
-        embedding_device: str   = "cpu",
+        embedding_device: str   = "auto",
         search_k:         int   = 3,
     ):
         load_dotenv()
@@ -56,5 +56,17 @@ class RagBgeM3v4(PdfLoaderMixin, VectorstoreMixin, RagChainMixin):
         self.image_output_dir = image_output_dir
         self.llm_model        = llm_model
         self.temperature      = temperature
-        self.embedding_device = embedding_device
+        self.embedding_device = self._resolve_device(embedding_device)
         self.search_k         = search_k
+
+    @staticmethod
+    def _resolve_device(device: str) -> str:
+        if device != "auto":
+            return device
+        try:
+            import torch
+            resolved = "cuda" if torch.cuda.is_available() else "cpu"
+        except ImportError:
+            resolved = "cpu"
+        print(f"  임베딩 디바이스 자동 감지: {resolved.upper()}")
+        return resolved

@@ -23,13 +23,16 @@ class VectorstoreMixin:
         """BAAI/bge-m3 로컬 임베딩을 반환합니다. API 키 불필요."""
         from langchain_huggingface import HuggingFaceEmbeddings
 
-        print("  임베딩: BAAI/bge-m3 (로컬)")
+        is_cuda    = self.embedding_device == "cuda"
+        batch_size = 32 if is_cuda else 8   # CPU: OOM 방지, CUDA: 기본값 활용
+
+        print(f"  임베딩: BAAI/bge-m3 (로컬, device={self.embedding_device}, batch_size={batch_size})")
         embeddings = HuggingFaceEmbeddings(
             model_name="BAAI/bge-m3",
             model_kwargs={"device": self.embedding_device},
             encode_kwargs={
                 "normalize_embeddings": True,
-                "batch_size": 8,          # 기본값 32 → CPU OOM 방지
+                "batch_size": batch_size,
             },
         )
         # BGE-M3 기본 max_seq_length=8192 → CPU에서 32×8192×1024×4B=1GB 할당 시도로 OOM
