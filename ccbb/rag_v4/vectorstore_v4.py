@@ -1,11 +1,11 @@
 """
-vectorstore_v3.py — 임베딩·Chroma VectorStore·검색 Mixin
+vectorstore_v4.py — 임베딩·Chroma VectorStore·검색 Mixin
 BGE-M3 임베딩 생성, Chroma DB 빌드/로드, 유사도 검색 메서드 모음입니다.
-텍스트·표만 임베딩 대상이며, 이미지 Document는 생성하지 않습니다.
 
-v2와의 차이
+v4 개선사항
 -----------
-- build_rag_components(): 재빌드 조건에 article_id(법률 조항) 체크 추가
+- build_rag_components(): title-summary chunk 존재 여부 재빌드 조건 추가
+- 통계 출력에 summary chunk 수 포함
 """
 
 import gc
@@ -24,11 +24,18 @@ class VectorstoreMixin:
         from langchain_huggingface import HuggingFaceEmbeddings
 
         print("  임베딩: BAAI/bge-m3 (로컬)")
-        return HuggingFaceEmbeddings(
+        embeddings = HuggingFaceEmbeddings(
             model_name="BAAI/bge-m3",
             model_kwargs={"device": self.embedding_device},
-            encode_kwargs={"normalize_embeddings": True},
+            encode_kwargs={
+                "normalize_embeddings": True,
+                "batch_size": 8,          # 기본값 32 → CPU OOM 방지
+            },
         )
+        # BGE-M3 기본 max_seq_length=8192 → CPU에서 32×8192×1024×4B=1GB 할당 시도로 OOM
+        # 청크 최대 길이(MAX_CASE_CHARS=2000자 ≈ 500~700토큰) 대비 충분한 1024로 제한
+        embeddings._client.max_seq_length = 1024
+        return embeddings
 
     def create_vectorstore(self):
         """PDF에서 텍스트·표 Document를 로드하고 Chroma VectorStore를 생성합니다."""
@@ -158,6 +165,14 @@ class VectorstoreMixin:
                     print("  기존 DB가 청킹 이전 버전입니다. 재빌드합니다.")
                     needs_rebuild = True
 
+            if not needs_rebuild:
+                # v4: title-summary chunk 존재 여부 확인 (없으면 v3 이하 DB)
+                has_case_docs = any(m.get("case_id") for m in all_meta)
+                has_summary   = any(m.get("doc_type") == "summary" for m in all_meta)
+                if has_case_docs and not has_summary:
+                    print("  기존 DB에 title-summary chunk가 없습니다. 재빌드합니다.")
+                    needs_rebuild = True
+
         if needs_rebuild:
             if vectorstore is not None:
                 try:
@@ -172,9 +187,10 @@ class VectorstoreMixin:
 
         total    = vectorstore._collection.count()
         all_meta = vectorstore._collection.get(include=["metadatas"])["metadatas"] or []
-        n_table  = sum(1 for m in all_meta if m.get("doc_type") == "table")
-        n_text   = total - n_table
-        print(f"  VectorStore 로드 완료: 텍스트 {n_text}개 + 표 {n_table}개 = 총 {total}개 chunk")
+        n_text    = sum(1 for m in all_meta if m.get("doc_type") == "text")
+        n_table   = sum(1 for m in all_meta if m.get("doc_type") == "table")
+        n_summary = sum(1 for m in all_meta if m.get("doc_type") == "summary")
+        print(f"  VectorStore 로드 완료: 텍스트 {n_text}개 + 표 {n_table}개 + 요약 {n_summary}개 = 총 {total}개 chunk")
 
         return vectorstore.as_retriever(
             search_type="similarity",

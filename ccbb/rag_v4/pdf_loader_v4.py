@@ -1,14 +1,12 @@
 """
-pdf_loader_v3.py — PDF 로딩·청킹 Mixin (VL 모델 없음)
+pdf_loader_v4.py — PDF 로딩·청킹 Mixin (VL 모델 없음)
 
-v2와의 차이
+v4 개선사항
 -----------
-- CASE_PATTERN: 회전-N 형식(2025 회전교차로 문서) 지원, 줄 단독 패턴으로 정밀화
-- _extract_case_title_from_block() 신규: block에서 사례명 추출
-- _split_by_case() 변경: case_title 추출 후 헤더 및 구분 metadata 추가
-- load_docs() 변경: CASE_PATTERN 감지 범위를 full_text로 확장
-- _split_by_article() 신규: 법률 조항(제N조...) 단위 청킹
-- _split_addendum()   신규: 부칙 선언문 단위 청킹
+- _build_case_title_map_from_tables(): table 셀 기반 case_id → case_title 매핑 (1순위)
+- _extract_case_title_from_block(): line 기반 사례명 추출 (fallback)
+- _split_by_case(): case_title_map 인자 추가, title-summary chunk 추가 생성
+- load_docs(): CASE_PATTERN 문서에 case_title_map 전달
 """
 
 import os
@@ -18,7 +16,7 @@ import pdfplumber
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from .config_v3 import (
+from .config_v4 import (
     CASE_PATTERN,
     LEGAL_ADDENDUM_PATTERN,
     LEGAL_ARTICLE_PATTERN,
@@ -262,7 +260,24 @@ class PdfLoaderMixin:
                     },
                 ))
 
-        print(f"  → 사례별 청킹: {len(matches)}개 사례 인식 → {len(chunks)}개 text chunk 생성")
+            # title-summary chunk: 사례명 검색 정확도 강화 (본문 chunk의 대체가 아닌 추가)
+            if case_title:
+                chunks.append(Document(
+                    page_content=f"[사례번호] {case_id}\n[사례명] {case_title}",
+                    metadata={
+                        "source":     source,
+                        "page":       page,
+                        "doc_type":   "summary",
+                        "case_id":    case_id,
+                        "case_title": case_title,
+                        "image_refs": image_refs,
+                        **extra_meta,
+                    },
+                ))
+
+        n_summary = sum(1 for c in chunks if c.metadata.get("doc_type") == "summary")
+        n_text    = len(chunks) - n_summary
+        print(f"  → 사례별 청킹: {len(matches)}개 사례 인식 → 본문 {n_text}개 + 요약 {n_summary}개 chunk 생성")
         return chunks
 
     def _split_by_article(
@@ -586,7 +601,13 @@ class PdfLoaderMixin:
             source      = page_docs[0].metadata.get("source", fname)
 
             # 문서 유형 감지 및 청킹 전략 분기
-            if re.search(LEGAL_ARTICLE_PATTERN, sample_text):
+            if re.search(CASE_PATTERN, full_text):
+                # 과실비율 문서 감지 → 사례별 청킹 (전체 텍스트 기준으로 감지: 앞 페이지가 표지/목차인 경우 대비)
+                print(f"  [{fname}] 과실비율 문서 감지 → 사례별 청킹")
+                case_title_map = self._build_case_title_map_from_tables(pdf_path)
+                text_chunks = self._split_by_case(page_docs, page_to_images, case_title_map=case_title_map)
+
+            elif re.search(LEGAL_ARTICLE_PATTERN, sample_text):
                 # 법률 문서 감지 → 조항별 청킹
                 print(f"  [{fname}] 법률 문서 감지 → 조항별 청킹")
 
@@ -611,11 +632,6 @@ class PdfLoaderMixin:
                         full_text, source, section="본문",
                         char_to_page=char_to_page, text_offset=0,
                     )
-
-            elif re.search(CASE_PATTERN, full_text):
-                # 과실비율 문서 감지 → 사례별 청킹 (전체 텍스트 기준으로 감지: 앞 페이지가 표지/목차인 경우 대비)
-                print(f"  [{fname}] 과실비율 문서 감지 → 사례별 청킹")
-                text_chunks = self._split_by_case(page_docs, page_to_images)
 
             else:
                 # 패턴 미감지 → 일반 폴백 청킹

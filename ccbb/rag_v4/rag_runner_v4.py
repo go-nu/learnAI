@@ -1,18 +1,17 @@
 """
-rag_runner_v3.py — 텍스트·표 RAG CLI 실행 스크립트
-chroma_bge_m3_v3 DB를 로드 또는 자동 빌드해 질의응답을 실행합니다.
-source_dir 내의 모든 PDF를 자동으로 로드하며, 문서 유형을 자동 감지해 청킹합니다.
+rag_runner_v4.py — 텍스트·표 RAG CLI 실행 스크립트
+chroma_bge_m3_v4 DB를 로드 또는 자동 빌드해 질의응답을 실행합니다.
 
 실행 예시
-    python -m rag_v3.rag_runner_v3
-    python -m rag_v3.rag_runner_v3 --source ./my_docs
+    uv run python -m rag_v4.rag_runner_v4
+    uv run python -m rag_v4.rag_runner_v4 --source ./my_docs
 """
 
 import sys
 
 from dotenv import load_dotenv
 
-from .rag_core_v3 import RagBgeM3v3
+from .rag_core_v4 import RagBgeM3v4
 
 
 def main():
@@ -25,7 +24,7 @@ def main():
         if idx + 1 < len(sys.argv):
             source_dir = sys.argv[idx + 1]
 
-    rag = RagBgeM3v3(source_dir=source_dir) if source_dir else RagBgeM3v3()
+    rag = RagBgeM3v4(source_dir=source_dir) if source_dir else RagBgeM3v4()
 
     print("=" * 55)
     print("  RAG 컴포넌트 초기화 중 (DB 없으면 자동 빌드)...")

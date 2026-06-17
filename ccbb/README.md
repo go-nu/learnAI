@@ -31,10 +31,10 @@ GPU(CUDA)가 있으면 BGE-M3 임베딩이 자동으로 CUDA로 동작합니다.
 
 ```bash
 # DB 빌드 + CLI 질의응답
-python -m rag_v3.rag_runner_v3
+uv run python -m rag_v3.rag_runner_v3
 
 # 소스 디렉토리 직접 지정
-python -m rag_v3.rag_runner_v3 --source ./my_docs
+uv run python -m rag_v3.rag_runner_v3 --source ./my_docs
 ```
 
 ---
