@@ -45,7 +45,7 @@ def review_reply(state: ReplyState) -> dict:
 
 
 # 5. 결과 검토
-def check_result(state: ReplyState) -> dict:
+def check_result(state: ReplyState, llm) -> dict:
     pass
 
 
@@ -130,7 +130,7 @@ def build_graph():
     reply_graph = graph.compile()
 
     try:
-        with open("reply_graph.png", "wb") as f:
+        with open("reply_workflow.png", "wb") as f:
             f.write(reply_graph.get_graph().draw_mermaid_png())
     except Exception:
         pass

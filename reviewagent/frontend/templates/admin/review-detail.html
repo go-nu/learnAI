@@ -44,21 +44,12 @@
           <p style="font-size:15px; color:#555; line-height:1.8;">연결이 가끔 끊깁니다. 페어링이 불안정한 편이고, 통화 중에 소리가 끊기는 경우가 있어요. 음질 자체는 괜찮은데 안정성이 아쉽습니다.</p>
         </div>
 
-        <div style="display:flex; gap:20px; align-items:stretch;">
-          <div class="card" style="flex:1; display:flex; flex-direction:column;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
-              <span class="h-sec">AI 생성 초안</span>
-              <span class="badge b-pos" id="regenBadge">재생성 1회</span>
-              <button class="btn btn-outline btn-sm" id="regenBtn" style="margin-left:auto;" onclick="regenDraft(this)">⟳ 재생성</button>
-            </div>
-            <div id="draftBox" style="background:#fff; border:1.5px solid var(--light); border-radius:10px; padding:16px; font-size:14px; color:#555; line-height:1.8; min-height:150px; flex:1;">불편을 드려 죄송합니다. 페어링 안정성 개선을 위해 펌웨어 업데이트를 안내드리며, 증상이 지속될 경우 고객센터를 통해 점검 도와드리겠습니다. 소중한 의견 감사합니다.</div>
-            <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="approveDraft()">이 초안 그대로 승인</button>
+        <div class="card">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+            <span class="h-sec">AI 자동 생성 답변</span>
+            <span class="badge b-pos">자동 발행 완료</span>
           </div>
-          <div class="card" style="flex:1; display:flex; flex-direction:column;">
-            <div class="h-sec" style="margin-bottom:14px;">직접 수정하여 승인</div>
-            <textarea class="field" id="editDraft" style="min-height:150px; flex:1; font-size:14px;">불편을 드려 죄송합니다. 페어링 안정성 개선을 위해 펌웨어 업데이트를 안내드리며, 증상이 지속될 경우 고객센터를 통해 점검 도와드리겠습니다. 소중한 의견 감사합니다.</textarea>
-            <button class="btn btn-outline btn-block" style="margin-top:14px;" onclick="approveEdited()">수정본으로 승인</button>
-          </div>
+          <div style="background:#fff; border:1.5px solid var(--light); border-radius:10px; padding:16px; font-size:14px; color:#555; line-height:1.8; min-height:150px;">불편을 드려 죄송합니다. 페어링 안정성 개선을 위해 펌웨어 업데이트를 안내드리며, 증상이 지속될 경우 고객센터를 통해 점검 도와드리겠습니다. 소중한 의견 감사합니다.</div>
         </div>
 
         <div style="margin-top:22px;">
@@ -73,21 +64,6 @@
 <script src="ui-common.js"></script>
 <script>
 buildNav('review-detail.html');
-let regenCount=1;
-function regenDraft(btn){
-  if(btn.disabled) return;
-  const orig=btn.innerHTML;
-  btn.disabled=true;
-  btn.innerHTML='<span class="spin"></span> 재생성 중';
-  setTimeout(()=>{
-    regenCount++;
-    document.getElementById('regenBadge').textContent='재생성 '+regenCount+'회';
-    const txt=DRAFTS[(regenCount-1)%DRAFTS.length];
-    document.getElementById('draftBox').textContent=txt;
-    document.getElementById('editDraft').value=txt;
-    btn.disabled=false; btn.innerHTML=orig;
-  },1600);
-}
 </script>
 </body>
 </html>

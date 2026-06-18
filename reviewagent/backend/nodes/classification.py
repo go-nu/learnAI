@@ -1,4 +1,5 @@
 from pipeline.state import ReplyState
+from nodes.utils import get_text
 
 
 def decide_emotion(state: ReplyState, llm) -> dict:
@@ -12,7 +13,8 @@ def decide_emotion(state: ReplyState, llm) -> dict:
 
     response = llm.invoke(prompt)
 
-    label = response.content.strip().lower()
+    label = get_text(response).strip().lower()
+    print(f"[decide_emotion] LLM 원문: {get_text(response)!r} → label: {label!r}")
 
     if label not in ("good", "normal", "bad"):
         label = "normal"

@@ -1,6 +1,7 @@
 import os
 from typing import List, Tuple
 
+from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
@@ -14,6 +15,56 @@ _SYSTEM_PROMPT = (
     "2. 컨텍스트에 근거가 없으면 '제공된 문서에서 해당 사고 유형을 찾을 수 없습니다'라고 답하세요.\n"
     "3. 답변 말미에 반드시 출처(source, page)를 표기하세요.\n"
     "4. 컨텍스트에 [참조 이미지]가 있는 경우 파일명을 답변 말미에 나열하세요.\n"
+    "\n"
+    "[검색 문서와 질문의 동치 판단 기준]\n"
+    "검색된 문서(사고유형 항목)가 질문에 답할 수 있는지 판단할 때,\n"
+    "단어가 정확히 일치하는지가 아니라 다음 핵심 요소들이 의미적으로 일치하는지를 기준으로 판단하라.\n"
+    "\n"
+    "비교해야 할 핵심 요소:\n"
+    "  (a) 각 차량의 출발 위치 관계 (동일 도로/교차 도로, 좌측/우측)\n"
+    "  (b) 각 차량의 진행 동작 (직진/좌회전/우회전/차로변경 등)\n"
+    "  (c) 교차로의 신호 유무 및 도로폭 동일 여부\n"
+    "  (d) 사고가 발생하는 구조적 원인 (예: 회전반경 차이, 진입 순서, 우선권 등)\n"
+    "\n"
+    "질문에 사용된 표현이 문서의 표현과 다르더라도, 위 핵심 요소 (a)~(d)가 모두 부합하면\n"
+    "동일한 사고유형으로 간주하고 해당 항목을 근거로 답변하라.\n"
+    "예) 질문의 '동일방향으로 진행하다 회전반경 차이로 충돌'과\n"
+    "    문서의 '크게 또는 작게 좌회전하다 충돌'은 같은 사고 구조를 가리키는 의미적 동의 표현이다.\n"
+    "표현의 차이(어순, 동의어, 풀어쓴 문장 등)를 근거 부족의 이유로 삼지 말라.\n"
+    "\n"
+    "'찾을 수 없다'고 답하기 전에 반드시 다음을 자문하라:\n"
+    "  → 검색된 문서 중 핵심 요소 (a)~(d)가 질문과 모두 일치하는 항목이 있는가?\n"
+    "  → 있다면 그 항목 번호를 명시하고 답변하라.\n"
+    "  → 일치하지 않는 요소가 있다면, 어떤 요소가 다른지 구체적으로 지적한 뒤 '찾을 수 없다'고 답하라.\n"
+    "  → 단순히 '표현이 다르다'는 이유만으로 일치하지 않는다고 판단해서는 안 된다.\n"
+    "\n"
+    "판단이 애매한 경우, 답변을 회피하는 대신 다음 형식으로 조건부 답변하라:\n"
+    "  '질문의 표현은 문서의 [항목번호] 표현과 다르지만, [핵심요소]가 동일하여\n"
+    "   같은 사고유형으로 판단됩니다. 다만 표현 차이가 있으니 원문을 확인해 주세요.'\n"
+    "\n"
+    "※ 중요: 컨텍스트에 여러 문서가 있을 경우, 첫 번째 문서가 일치하지 않더라도\n"
+    "   반드시 나머지 문서 전체를 검토한 뒤 판단하라.\n"
+    "   '찾을 수 없다'는 결론은 모든 문서를 검토한 이후에만 내려야 한다.\n"
+    "\n"
+    "[동치 판단 예시 — few-shot]\n"
+    "예시 1)\n"
+    "  질문: '교차로에서 동일 방향으로 진행 중, A(왼쪽)와 B(오른쪽)가 각각 좌회전하다 충돌 —\n"
+    "         A는 크게, B는 작게 좌회전하여 회전반경 차이로 사고 발생'\n"
+    "  핵심요소 대조:\n"
+    "    (a) 동일 도로, A는 왼쪽 차로 / B는 오른쪽 차로 → 문서 '오른쪽 도로 좌회전 대 왼쪽 도로 좌회전'과 일치\n"
+    "    (b) A·B 모두 좌회전 → 일치\n"
+    "    (c) 무신호 교차로, 동일폭 도로 → 일치\n"
+    "    (d) 회전반경 차이(대회전/소회전) → 문서의 '크게 또는 작게 좌회전' 구조와 동일\n"
+    "  판정: 차17-1 '오른쪽 도로 좌회전 대 왼쪽 도로 좌회전 사고'와 동일 유형 → 차17-1 기준으로 답변\n"
+    "\n"
+    "예시 2)\n"
+    "  질문: '같은 방향 두 차량이 교차로 좌회전 중 안쪽 차량과 바깥쪽 차량이 부딪힌 사고'\n"
+    "  핵심요소 대조:\n"
+    "    (a) 동일 도로 진행, 좌우 차로 관계 → 일치\n"
+    "    (b) 둘 다 좌회전 중 → 일치\n"
+    "    (c) 조건 명시 없음이나 구조상 무신호 동일폭과 부합\n"
+    "    (d) 안쪽/바깥쪽 = 소회전/대회전 구조 → 일치\n"
+    "  판정: 차17-1과 동일 유형 → 차17-1 기준으로 답변\n"
     "\n"
     "[컨텍스트 유형별 활용 방법]\n"
     "- [텍스트]: 사고 상황 설명, 법적 근거, 판례를 인용할 때 활용하세요.\n"
@@ -105,6 +156,56 @@ def _build_meta_lines(docs_with_scores: list) -> str:
     return lines
 
 
+# rerank된 final에 누락된 TABLE을 case_id 보유 문서의 인접 페이지(±1)에서 사후 fetch
+def _fetch_missing_tables(vectorstore, final: list) -> list:
+    existing_keys = {
+        (d.metadata.get("source"), d.metadata.get("page"), d.metadata.get("doc_type"))
+        for d, _ in final
+    }
+    table_case_ids = {
+        d.metadata.get("case_id", "")
+        for d, _ in final
+        if d.metadata.get("doc_type") == "table" and d.metadata.get("case_id")
+    }
+
+    extra        = []
+    checked      = set()
+
+    for doc, _ in final:
+        cid   = doc.metadata.get("case_id", "")
+        dtype = doc.metadata.get("doc_type", "")
+        page  = doc.metadata.get("page")
+        src   = doc.metadata.get("source", "")
+
+        if dtype == "table" or not cid or cid in table_case_ids:
+            continue
+
+        for p in [page - 1, page, page + 1]:
+            if (src, p) in checked:
+                continue
+            checked.add((src, p))
+            try:
+                result = vectorstore._collection.get(
+                    where={"$and": [
+                        {"source":   {"$eq": src}},
+                        {"page":     {"$eq": p}},
+                        {"doc_type": {"$eq": "table"}},
+                    ]},
+                    include=["documents", "metadatas"],
+                )
+                for text, meta in zip(
+                    result.get("documents", []), result.get("metadatas", [])
+                ):
+                    key = (meta.get("source"), meta.get("page"), "table")
+                    if key not in existing_keys:
+                        existing_keys.add(key)
+                        extra.append((Document(page_content=text, metadata=meta), None))
+            except Exception:
+                pass
+
+    return extra
+
+
 # case_title 기반 Jaccard 유사도 재순위화 (Chroma L2 점수 낮을수록 유사 → boost 차감)
 def _rerank_by_case_title(
     results: List[Tuple],
@@ -194,6 +295,13 @@ class RagChainMixin:
             #     ctitle  = doc.metadata.get("case_title", "-")
             #     score_s = f"{score:.4f}" if score is not None else "N/A"
             #     print(f"  {rank}. {cid} │ {ctitle} │ adj_score={score_s}")
+
+            # 사후 fetch: final에 case_id는 있으나 TABLE이 없는 사례의 표를 인접 페이지에서 추가
+            try:
+                extra_tables = _fetch_missing_tables(retriever.vectorstore, final)
+                final = final + extra_tables
+            except Exception:
+                pass
 
             _retrieved_with_scores.clear()
             _retrieved_with_scores.extend(final)

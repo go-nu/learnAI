@@ -9,5 +9,7 @@ class ReplyState(TypedDict):
     reply_text: str  # 리뷰 답변
     tags: list[str]  # 키워드 리스트
 
-    retry_count: int  # review_reply 노드에서 재생성 횟수
-    regenerate_count: int  # regenerate_reply 노드에서 재생성 횟수
+    retry_count: int  # bad_reply 재생성 횟수
+    regenerate_count: int  # 최종 답변 재생성 횟수
+    bad_reply_quality_pass: bool  # bad_reply 검토
+    final_quality_pass: bool      # 최종 답변 검토

@@ -1,14 +1,3 @@
-"""
-pdf_loader_v4.py — PDF 로딩·청킹 Mixin (VL 모델 없음)
-
-v4 개선사항
------------
-- _build_case_title_map_from_tables(): table 셀 기반 case_id → case_title 매핑 (1순위)
-- _extract_case_title_from_block(): line 기반 사례명 추출 (fallback)
-- _split_by_case(): case_title_map 인자 추가, title-summary chunk 추가 생성
-- load_docs(): CASE_PATTERN 문서에 case_title_map 전달
-"""
-
 import os
 from typing import Dict, List, Optional, Tuple
 
@@ -25,22 +14,11 @@ from .config_v4 import (
 
 
 class PdfLoaderMixin:
-    """PDF 로딩·청킹 관련 메서드 Mixin"""
 
+    # PyMuPDF로 페이지별 텍스트 추출 및 이미지 파일 저장
     def _extract_text_and_images_from_pdf(
         self,
     ) -> Tuple[List[Document], Dict[int, List[str]]]:
-        """
-        PyMuPDF(fitz)로 PDF에서 페이지별 텍스트를 추출하고 이미지 파일을 저장합니다.
-
-        이미지는 VL 해석 없이 파일로만 저장하며, 페이지 번호 기반 매핑 딕셔너리로 반환합니다.
-
-        반환값
-        ------
-        (page_documents, page_to_images)
-        - page_documents : 페이지별 텍스트 Document 리스트 (doc_type="text")
-        - page_to_images : {page_number(1-based): [이미지파일명, ...]} 딕셔너리
-        """
         import fitz
 
         os.makedirs(self.image_output_dir, exist_ok=True)
@@ -84,8 +62,8 @@ class PdfLoaderMixin:
               f"이미지 {total_images}장 저장 (VL 해석 없음, 출처 매핑용)")
         return documents, page_to_images
 
+    # 블록 텍스트 줄 기반 사례명 추출 (table 매핑 실패 시 fallback)
     def _extract_case_title_from_block(self, block_text: str, case_id: str) -> str:
-        """block_text에서 사례명("사고"가 포함된 제목 줄)을 추출합니다."""
         lines = [line.strip() for line in block_text.splitlines() if line.strip()]
 
         # case_id 바로 다음 줄이 사례명인 경우
@@ -109,22 +87,13 @@ class PdfLoaderMixin:
 
         return ""
 
+    # CASE_PATTERN 기준 사례 번호 단위 청킹 + title-summary chunk 추가 생성
     def _split_by_case(
         self,
         text_documents: List[Document],
         page_to_images: Dict[int, List[str]] = None,
         case_title_map: Dict[str, str] = None,
     ) -> List[Document]:
-        """
-        페이지별 텍스트 Document를 사례 번호(차N-N / 회전-N) 기준으로 분할합니다.
-
-        - CASE_PATTERN으로 줄 단독 사례 번호만 경계로 인식
-        - 각 청크의 page 번호로 page_to_images를 조회해 image_refs 메타데이터에 추가
-        - 사례 번호 이전 머리말은 case_id="머리말" 로 별도 처리
-        - MAX_CASE_CHARS 초과 블록은 RecursiveCharacterTextSplitter로 추가 분할
-        - 패턴 미발견 시 RecursiveCharacterTextSplitter(800자) 로 자동 폴백
-        - case_title 추출 후 page_content 헤더 및 구분 metadata 필드 추가
-        """
         import re
 
         _DEBUG_CASES = {"회전-10", "회전-11", "회전-15"}
@@ -280,6 +249,7 @@ class PdfLoaderMixin:
         print(f"  → 사례별 청킹: {len(matches)}개 사례 인식 → 본문 {n_text}개 + 요약 {n_summary}개 chunk 생성")
         return chunks
 
+    # LEGAL_ARTICLE_PATTERN 기준 조항 단위 청킹
     def _split_by_article(
         self,
         text: str,
@@ -288,22 +258,12 @@ class PdfLoaderMixin:
         char_to_page: List[Tuple[int, int]] = None,
         text_offset: int = 0,
     ) -> List[Document]:
-        """
-        법률 조항 패턴(LEGAL_ARTICLE_PATTERN)으로 텍스트를 조항별로 분할합니다.
-
-        - 조항 이전 머리말은 article_id="머리말"로 별도 청크
-        - 패턴 미발견 시 전체를 article_id="전문" 단일 청크로 반환
-        - 메타데이터: section, article_id, page, doc_type="text"
-        - char_to_page: (full_text 내 시작 오프셋, 페이지 번호) 리스트 (페이지 복원용)
-        - text_offset: full_text 내에서 text가 시작되는 절대 위치
-        """
         import re
 
-        # char_to_page 기반 페이지 번호 조회 헬퍼
         def get_page(offset_in_text: int) -> int:
             if not char_to_page:
                 return 0
-            abs_pos = offset_in_text + text_offset   # full_text 기준 절대 위치
+            abs_pos = offset_in_text + text_offset
             page = char_to_page[0][1]
             for start, p in char_to_page:
                 if start <= abs_pos:
@@ -315,7 +275,6 @@ class PdfLoaderMixin:
         pattern = re.compile(LEGAL_ARTICLE_PATTERN)
         matches = list(pattern.finditer(text))
 
-        # 조항 패턴 미발견 시 전체를 단일 청크로 반환
         if not matches:
             print(f"  [법률 조항] 패턴 미발견 → 전문(全文) 단일 chunk 생성 (section={section})")
             return [Document(
@@ -345,9 +304,8 @@ class PdfLoaderMixin:
                 },
             ))
 
-        # 조항별 블록을 Document로 생성
         for i, match in enumerate(matches):
-            article_id  = match.group()                                          # 조항 제목(예: 제1조(목적))
+            article_id  = match.group()
             block_start = match.start()
             block_end   = matches[i + 1].start() if i + 1 < len(matches) else len(text)
             block_text  = text[block_start:block_end].strip()
@@ -361,7 +319,7 @@ class PdfLoaderMixin:
                     "source":     source,
                     "section":    section,
                     "article_id": article_id,
-                    "page":       get_page(block_start),   # 조항 시작 위치 기준 페이지
+                    "page":       get_page(block_start),
                     "doc_type":   "text",
                 },
             ))
@@ -369,6 +327,7 @@ class PdfLoaderMixin:
         print(f"  → 조항별 청킹: {len(matches)}개 조항 인식 → {len(chunks)}개 chunk 생성 (section={section})")
         return chunks
 
+    # LEGAL_ADDENDUM_PATTERN 기준 부칙 단위 청킹
     def _split_addendum(
         self,
         text: str,
@@ -376,18 +335,8 @@ class PdfLoaderMixin:
         char_to_page: List[Tuple[int, int]] = None,
         text_offset: int = 0,
     ) -> List[Document]:
-        """
-        부칙 선언문 패턴(LEGAL_ADDENDUM_PATTERN)으로 텍스트를 부칙별로 분할합니다.
-
-        - 부칙 내부 제1조·제2조는 분리하지 않고 부칙 단위 전체를 하나의 청크로 유지
-        - 패턴 미발견 시 전체를 단일 청크로 반환
-        - 메타데이터: section="부칙", article_id(부칙 선언문), page, doc_type="text"
-        - char_to_page: (full_text 내 시작 오프셋, 페이지 번호) 리스트 (페이지 복원용)
-        - text_offset: full_text 내에서 text가 시작되는 절대 위치
-        """
         import re
 
-        # char_to_page 기반 페이지 번호 조회 헬퍼
         def get_page(offset_in_text: int) -> int:
             if not char_to_page:
                 return 0
@@ -403,7 +352,6 @@ class PdfLoaderMixin:
         pattern = re.compile(LEGAL_ADDENDUM_PATTERN)
         matches = list(pattern.finditer(text))
 
-        # 부칙 패턴 미발견 시 전체를 단일 청크로 반환
         if not matches:
             print("  [부칙] 패턴 미발견 → 부칙 단일 chunk 생성")
             return [Document(
@@ -421,7 +369,7 @@ class PdfLoaderMixin:
 
         # 부칙 번호별 블록을 하나의 청크로 생성 (내부 조항 미분리)
         for i, match in enumerate(matches):
-            article_id  = match.group()                                          # 부칙 선언문(예: 부칙 <2024.1.1>)
+            article_id  = match.group()
             block_start = match.start()
             block_end   = matches[i + 1].start() if i + 1 < len(matches) else len(text)
             block_text  = text[block_start:block_end].strip()
@@ -435,7 +383,7 @@ class PdfLoaderMixin:
                     "source":     source,
                     "section":    "부칙",
                     "article_id": article_id,
-                    "page":       get_page(block_start),   # 부칙 시작 위치 기준 페이지
+                    "page":       get_page(block_start),
                     "doc_type":   "text",
                 },
             ))
@@ -443,15 +391,8 @@ class PdfLoaderMixin:
         print(f"  → 부칙 청킹: {len(matches)}개 부칙 선언문 → {len(chunks)}개 chunk 생성")
         return chunks
 
+    # pdfplumber 표 셀 기반 case_id → case_title 매핑 생성 (1순위)
     def _build_case_title_map_from_tables(self, pdf_path: str) -> Dict[str, str]:
-        """
-        pdfplumber로 PDF 표를 순회해 case_id → case_title 매핑을 생성합니다.
-
-        - 각 행에서 CASE_PATTERN과 일치하는 셀을 case_id로 인식
-        - 같은 행의 case_id 이후 첫 번째 유효 셀을 case_title로 사용
-        - 이미 매핑이 존재하는 case_id는 덮어쓰지 않음 (첫 등장 우선)
-        - re.fullmatch() 실패 시 re.search()로 보조 매칭
-        """
         import re
 
         _CELL_CASE_RE  = re.compile(r'차\d+-\d+|회전-\d+')
@@ -492,9 +433,9 @@ class PdfLoaderMixin:
 
         return title_map
 
+    # pdfplumber 2D 리스트를 Markdown 표 문자열로 변환
     @staticmethod
     def _table_to_markdown(table: List[List], page_num: int, table_idx: int) -> str:
-        """pdfplumber 2D 리스트 → Markdown 표 문자열로 변환합니다."""
         if not table or not table[0]:
             return ""
         header = f"[TABLE {table_idx} - Page {page_num}]\n"
@@ -506,15 +447,12 @@ class PdfLoaderMixin:
                 rows.append("| " + " | ".join(["---"] * len(clean)) + " |")
         return header + "\n".join(rows)
 
+    # pdfplumber로 표 Document 목록 추출 (image_refs 메타데이터 포함)
     def _extract_table_docs(
         self,
         pdf_path: str,
         page_to_images: Dict[int, List[str]] = None,
     ) -> List[Document]:
-        """
-        pdfplumber로 각 페이지의 표를 추출해 독립 Document 목록을 반환합니다.
-        page_to_images를 참조해 각 표 Document에 image_refs 메타데이터를 추가합니다.
-        """
         page_to_images = page_to_images or {}
         table_docs: List[Document] = []
 
@@ -544,28 +482,11 @@ class PdfLoaderMixin:
                     ))
         return table_docs
 
+    # source_dir 내 전체 PDF 순회 — 유형 감지 → 청킹 → Document 반환
     def load_docs(self) -> Optional[List[Document]]:
-        """
-        source_dir 내의 모든 PDF를 순회하며 텍스트·표 Document를 추출해 반환합니다.
-        각 PDF마다 문서 유형을 자동 감지해 청킹 전략을 독립적으로 선택합니다.
-
-        처리 흐름 (PDF 1개당)
-        ---------------------
-        1. source_dir 에서 .pdf 파일 목록 수집
-        2. PyMuPDF로 페이지별 텍스트 + 이미지 저장 → page_to_images 생성
-        3. 앞 3페이지(sample_text) 및 전체(full_text) 합산
-        4. 문서 유형 감지 후 청킹 분기:
-           - LEGAL_ARTICLE_PATTERN 감지 → 조항별 청킹
-             - LEGAL_ADDENDUM_PATTERN도 감지 → 본문/부칙 분리 후 각각 청킹
-           - CASE_PATTERN 감지           → 사례별 청킹 (_split_by_case)
-           - 미감지                       → RecursiveCharacterTextSplitter(800자) 폴백
-        5. pdfplumber로 표 Document 추출 (image_refs 메타데이터 포함)
-        6. 전체 PDF 결과 합산 후 반환
-        """
         import glob
         import re
 
-        # source_dir 내 모든 PDF 수집
         pdf_files = sorted(glob.glob(os.path.join(self.source_dir, "*.pdf")))
         if not pdf_files:
             print(f"[오류] '{self.source_dir}' 디렉토리에 PDF 파일이 없습니다.")
@@ -616,7 +537,6 @@ class PdfLoaderMixin:
                     addendum_match  = re.search(LEGAL_ADDENDUM_PATTERN, full_text)
                     body_text       = full_text[: addendum_match.start()]
                     addendum_text   = full_text[addendum_match.start():]
-                    # text_offset: 부칙 텍스트는 full_text 내 addendum_match.start() 위치에서 시작
                     body_chunks     = self._split_by_article(
                         body_text, source, section="본문",
                         char_to_page=char_to_page, text_offset=0,
@@ -647,7 +567,6 @@ class PdfLoaderMixin:
             all_text_chunks.extend(text_chunks)
             all_table_docs.extend(table_docs)
 
-        # 전체 합산 결과 출력
         combined_docs = all_text_chunks + all_table_docs
         print(f"\n{'─' * 45}")
         print(f"  → 전체 {len(pdf_files)}개 PDF: "

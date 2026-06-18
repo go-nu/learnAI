@@ -1,13 +1,3 @@
-"""
-vectorstore_v4.py — 임베딩·Chroma VectorStore·검색 Mixin
-BGE-M3 임베딩 생성, Chroma DB 빌드/로드, 유사도 검색 메서드 모음입니다.
-
-v4 개선사항
------------
-- build_rag_components(): title-summary chunk 존재 여부 재빌드 조건 추가
-- 통계 출력에 summary chunk 수 포함
-"""
-
 import gc
 import os
 import shutil
@@ -17,10 +7,9 @@ from langchain_chroma import Chroma
 
 
 class VectorstoreMixin:
-    """임베딩·VectorStore·검색 관련 메서드 Mixin"""
 
+    # BAAI/bge-m3 로컬 임베딩 반환 (CUDA 자동 감지, batch_size 동적 조정)
     def get_embeddings(self):
-        """BAAI/bge-m3 로컬 임베딩을 반환합니다. API 키 불필요."""
         from langchain_huggingface import HuggingFaceEmbeddings
 
         is_cuda    = self.embedding_device == "cuda"
@@ -40,8 +29,8 @@ class VectorstoreMixin:
         embeddings._client.max_seq_length = 1024
         return embeddings
 
+    # load_docs() 호출 후 Chroma VectorStore 생성 및 저장
     def create_vectorstore(self):
-        """PDF에서 텍스트·표 Document를 로드하고 Chroma VectorStore를 생성합니다."""
         print("=" * 50)
         print("[VectorStore 생성]")
 
@@ -65,8 +54,8 @@ class VectorstoreMixin:
               f"chunk를 '{self.db_path}'에 저장했습니다.")
         return vectorstore
 
+    # 기본 유사도 검색
     def similarity_search(self, vectorstore, query: Optional[str] = None, k: int = 3):
-        """VectorStore에서 유사도 검색을 실행합니다."""
         query = query or "교차로에서 신호위반 사고의 과실비율은?"
         results = vectorstore.similarity_search(query, k=k)
         print(f"  질문: '{query}' → {len(results)}개 결과\n")
@@ -79,8 +68,8 @@ class VectorstoreMixin:
                 print(f"    [참조 이미지] {refs}")
         return results
 
+    # 유사도 점수 포함 검색 (점수 낮을수록 유사)
     def search_with_score(self, vectorstore, query: Optional[str] = None, k: int = 3):
-        """유사도 점수와 함께 검색합니다. (점수 낮을수록 유사)"""
         query = query or "중대재해 발생 시 처벌 수위는?"
         results = vectorstore.similarity_search_with_score(query, k=k)
         print(f"  질문: '{query}'\n")
@@ -93,10 +82,10 @@ class VectorstoreMixin:
             print()
         return results
 
+    # metadata 필터(page)로 검색 범위를 좁혀 검색
     def search_with_filter(
         self, vectorstore, query: Optional[str] = None, page: int = 0, k: int = 3,
     ):
-        """metadata 필터(page)로 검색 범위를 좁혀 검색합니다."""
         query = query or "재해 발생 요건"
         results = vectorstore.similarity_search(query, k=k, filter={"page": page})
         print(f"  질문: '{query}'  (page={page}) → {len(results)}개 결과\n")
@@ -110,8 +99,8 @@ class VectorstoreMixin:
             print()
         return results
 
+    # doc_type='table' Document만 대상으로 유사도 검색
     def search_tables_only(self, vectorstore, query: Optional[str] = None, k: int = 3):
-        """표(doc_type='table') Document만 대상으로 유사도 검색합니다."""
         query = query or "처벌 기준 및 처벌 수위"
         results = vectorstore.similarity_search(
             query, k=k, filter={"doc_type": "table"}
@@ -128,17 +117,8 @@ class VectorstoreMixin:
                 print(f"  [참조 이미지] {refs}\n")
         return results
 
+    # DB 유효성 확인 및 자동 재빌드 후 retriever 반환
     def build_rag_components(self):
-        """
-        Chroma DB에서 Retriever를 준비합니다.
-
-        아래 조건 중 하나라도 해당하면 자동으로 재빌드합니다.
-        - DB 디렉터리가 없는 경우
-        - 표(doc_type='table') Document가 0개인 경우
-        - case_id / article_id 메타데이터가 없는 구버전 DB인 경우
-
-        Windows 파일 락 해제: _client.close() → del → gc.collect() 후 재빌드
-        """
         needs_rebuild = False
         vectorstore = None
 

@@ -209,6 +209,8 @@ decide_emotion     LLM 호출 → emotion_label 분류 (good / normal / bad)
 | `tags` | list[str] | 추출 키워드 리스트 |
 | `retry_count` | int | `review_reply` ↔ `bad_reply` 루프 재시도 횟수 (최대 1회) |
 | `regenerate_count` | int | `check_result` ↔ `regenerate_reply` 루프 재시도 횟수 (최대 2회) |
+| `bad_reply_quality_pass` | bool | 부정 답변 품질 검사 결과 (`review_reply` 노드에서 LLM 평가) |
+| `final_quality_pass` | bool | 최종 답변 품질 검사 결과 (`check_result` 노드에서 LLM 평가) |
 
 ### 노드별 역할
 | 노드 | 역할 |
@@ -218,8 +220,8 @@ decide_emotion     LLM 호출 → emotion_label 분류 (good / normal / bad)
 | `good_reply` | 감사 인사 + 재구매 유도 구조 답변 생성 |
 | `normal_reply` | 감사 인사 + 개선 약속 구조 답변 생성 |
 | `bad_reply` | 공감·사과·해결책 구조 답변 생성 |
-| `review_reply` | 부정 답변 품질 검사. 미달 시 `bad_reply`로 재생성 (최대 1회), 통과 시 `check_result`로 전달 |
-| `check_result` | 최종 답변 품질 검사. 통과 시 `save_result`, 미달 시 `regenerate_reply`로 전달 |
+| `review_reply` | 부정 답변 품질 검사 (LLM 평가: 공감·사과·해결책). 미달 시 `bad_reply`로 재생성 (최대 1회), 통과 시 `check_result`로 전달 |
+| `check_result` | 최종 답변 품질 검사 (LLM 평가: 자연스러움·연관성·도움). 통과 시 `save_result`, 미달 시 `regenerate_reply`로 전달 |
 | `regenerate_reply` | 답변 재생성 후 `check_result`로 재전달 (최대 2회) |
 | `save_result` | 답변·태그 DB 저장 및 발행 처리 |
 
@@ -238,7 +240,7 @@ decide_emotion     LLM 호출 → emotion_label 분류 (good / normal / bad)
 고객: 리뷰 작성 + 제출
   │
   ▼
-React: POST /api/reviews/ { product_id, text, rating }
+React: POST /api/reviews/create/ { product_id, text, rating }
   │
   ▼
 Django: Review 생성(status=pending) → 즉시 완료 응답

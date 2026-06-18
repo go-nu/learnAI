@@ -1,6 +1,7 @@
 import json
 
 from pipeline.state import ReplyState
+from nodes.utils import get_text
 
 
 # 마크다운 제거 로직
@@ -37,7 +38,9 @@ tags는 리뷰 본문에서 언급된 핵심 키워드 2~5개를 추출하세요
 """
 
     response = llm.invoke(prompt)
-    result = json.loads(delete_markdown(response.content))
+    raw = get_text(response)
+    print(f"[good_reply] LLM 원문:\n{raw}\n")
+    result = json.loads(delete_markdown(raw))
 
     return {
         "reply_text": result["reply_text"],
@@ -68,7 +71,9 @@ tags는 리뷰 본문에서 언급된 핵심 키워드 2~5개를 추출하세요
 """
 
     response = llm.invoke(prompt)
-    result = json.loads(delete_markdown(response.content))
+    raw = get_text(response)
+    print(f"[normal_reply] LLM 원문:\n{raw}\n")
+    result = json.loads(delete_markdown(raw))
 
     return {
         "reply_text": result["reply_text"],
@@ -102,7 +107,9 @@ tags는 리뷰 본문에서 언급된 핵심 키워드 2~5개를 추출하세요
 """
 
     response = llm.invoke(prompt)
-    result = json.loads(delete_markdown(response.content))
+    raw = get_text(response)
+    print(f"[bad_reply] LLM 원문:\n{raw}\n")
+    result = json.loads(delete_markdown(raw))
 
     return {
         "reply_text": result["reply_text"],
@@ -130,7 +137,9 @@ reply_text 값만 아래 JSON 형식으로 출력하세요. 다른 텍스트는 
 """
 
     response = llm.invoke(prompt)
-    result = json.loads(delete_markdown(response.content))
+    raw = get_text(response)
+    print(f"[regenerate_reply] LLM 원문:\n{raw}\n")
+    result = json.loads(delete_markdown(raw))
 
     return {
         "reply_text": result["reply_text"],

@@ -1,30 +1,22 @@
-"""
-rag_runner_v4.py — 텍스트·표 RAG CLI 실행 스크립트
-chroma_bge_m3_v4 DB를 로드 또는 자동 빌드해 질의응답을 실행합니다.
-
-실행 예시
-    uv run python -m rag_v4.rag_runner_v4
-    uv run python -m rag_v4.rag_runner_v4 --source ./my_docs
-"""
-
 import sys
 
 from dotenv import load_dotenv
 
-from .rag_core_v4 import RagBgeM3v4
+from .rag_core_v4 import RagBgeM3
 
 
+# CLI 진입점 — DB 로드 또는 자동 빌드 후 질의응답 루프 실행
 def main():
     load_dotenv()
 
-    # CLI 인수로 소스 디렉토리 지정 가능 (--source <dir>)
+    # --source 옵션으로 소스 디렉토리 오버라이드
     source_dir = None
     if "--source" in sys.argv:
         idx = sys.argv.index("--source")
         if idx + 1 < len(sys.argv):
             source_dir = sys.argv[idx + 1]
 
-    rag = RagBgeM3v4(source_dir=source_dir) if source_dir else RagBgeM3v4()
+    rag = RagBgeM3(source_dir=source_dir) if source_dir else RagBgeM3()
 
     print("=" * 55)
     print("  RAG 컴포넌트 초기화 중 (DB 없으면 자동 빌드)...")
