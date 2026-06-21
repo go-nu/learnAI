@@ -1,5 +1,52 @@
-@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --page-bg:      #F0F0F5;
+  --surface:      #FFFFFF;
+  --primary:      #1E7A5E;
+  --primary-dark: #1A6B52;
+  --primary-glow: rgba(30,122,94,0.12);
+  --ink:          #1A1A2E;
+  --ink2:         #8A8A9A;
+  --danger:       #E53935;
+  --success:      #2E7D32;
+  --hover-bg:     #F8F8FC;
+  --divider:      #EAEAEF;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--page-bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Donut chart (Dashboard) ── */
+.donut {
+  width: 168px; height: 168px;
+  border-radius: 50%; position: relative; flex: none;
+}
+.donut::after {
+  content: ''; position: absolute; inset: 28%;
+  background: var(--surface); border-radius: 50%;
+}
+.donut .ctr {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.donut .ctr b    { font-size: 1.375rem; font-weight: 700; color: var(--primary); }
+.donut .ctr span { font-size: 0.75rem;  color: var(--ink2); }
+
+/* ── Spin animation ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: spin .7s linear infinite;
+  flex: none; display: inline-block;
+}

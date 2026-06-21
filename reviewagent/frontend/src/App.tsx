@@ -8,7 +8,6 @@ import ProductDetail from './pages/ProductDetail';
 import Dashboard from './pages/admin/Dashboard';
 import ReviewList from './pages/admin/ReviewList';
 import ReviewDetail from './pages/admin/ReviewDetail';
-import Insights from './pages/admin/Insights';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -38,10 +37,10 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/products" element={<RequireAuth><Products /></RequireAuth>} />
           <Route path="/products/:id" element={<RequireAuth><ProductDetail /></RequireAuth>} />
+          <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
           <Route path="/admin/dashboard" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
           <Route path="/admin/reviews" element={<RequireAdmin><ReviewList /></RequireAdmin>} />
           <Route path="/admin/reviews/:id" element={<RequireAdmin><ReviewDetail /></RequireAdmin>} />
-          <Route path="/admin/insights" element={<RequireAdmin><Insights /></RequireAdmin>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

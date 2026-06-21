@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import AdminLayout from '../components/AdminLayout';
 import CustomerLayout from '../components/CustomerLayout';
+import EmotionBadge from '../components/EmotionBadge';
 import Pagination from '../components/Pagination';
 import Stars from '../components/Stars';
-import EmotionBadge from '../components/EmotionBadge';
-import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 
-interface Reply { reply_text: string; }
+interface ReviewReply { reply_text: string; created_at: string; }
 interface Review {
   id: number;
   user_name: string;
@@ -18,7 +16,7 @@ interface Review {
   emotion_label: string | null;
   status: string;
   created_at: string;
-  reply: Reply | null;
+  reply: ReviewReply | null;
 }
 interface Product {
   id: number;
@@ -33,13 +31,10 @@ const PER = 5;
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
-  const [rating, setRating] = useState(3);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [text, setText] = useState('');
-  const [page, setPage] = useState(1);
+  const [rating, setRating]   = useState(3);
+  const [text, setText]       = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const { user } = useAuth();
-  const Layout = user?.role === 'admin' ? AdminLayout : CustomerLayout;
+  const [page, setPage] = useState(1);
 
   const fetchProduct = () => {
     client.get(`/products/${id}/`).then((res) => setProduct(res.data));
@@ -47,25 +42,21 @@ export default function ProductDetail() {
 
   useEffect(() => { fetchProduct(); }, [id]);
 
-  const reviews = product?.reviews ?? [];
-  const totalPages = Math.ceil(reviews.length / PER);
-  const paged = reviews.slice((page - 1) * PER, page * PER);
-
   const handleSubmit = async () => {
-    if (!text.trim()) {
-      Swal.fire({ icon: 'warning', title: '리뷰 내용을 입력해 주세요.', confirmButtonColor: '#000080' });
-      return;
-    }
+    if (!text.trim()) return;
     setSubmitting(true);
     try {
-      await client.post('/reviews/create/', { product: Number(id), text, rating });
-      Swal.fire({ icon: 'success', title: '리뷰가 등록되었습니다.', text: 'AI 답변은 잠시 후 생성됩니다.', confirmButtonColor: '#000080' });
+      await client.post('/reviews/create/', { product: id, text, rating });
+      await Swal.fire({
+        icon: 'success',
+        title: '리뷰가 등록되었습니다.',
+        text: 'AI 답변은 약 10분 후 생성됩니다.',
+        confirmButtonColor: '#1E7A5E',
+      });
       setText('');
       setRating(3);
       setPage(1);
       fetchProduct();
-    } catch {
-      Swal.fire({ icon: 'error', title: '등록에 실패했습니다.', confirmButtonColor: '#000080' });
     } finally {
       setSubmitting(false);
     }
@@ -73,81 +64,85 @@ export default function ProductDetail() {
 
   if (!product) return null;
 
+  const totalPages = Math.ceil(product.reviews.length / PER);
+  const paged = product.reviews.slice((page - 1) * PER, page * PER);
+
   return (
-    <Layout>
-      <div className="crumb" style={{ marginBottom: 16 }}>
-        <Link className="clk linklike" to="/products" style={{ textDecoration: 'none' }}>← 상품 목록</Link>
+    <CustomerLayout>
+      <div className="text-xs text-ink2 mb-4">
+        <Link to="/products" className="hover:text-primary hover:underline">← 상품 목록</Link>
       </div>
-      <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
-        {/* 상품 정보 */}
-        <div style={{ flex: '0 0 40%' }}>
-          <div className="imgph" style={{ height: 260, borderRadius: 12, marginBottom: 16 }}>
-            <span className="cam">상품 이미지</span>
+
+      <div className="grid gap-8 items-start" style={{ gridTemplateColumns: '40fr 60fr' }}>
+        {/* 좌측: 상품 정보 */}
+        <div>
+          <div className="h-[260px] rounded-xl bg-[var(--primary-glow)] flex items-center justify-center mb-4">
+            <span className="text-6xl font-bold text-primary opacity-80">{product.name.charAt(0)}</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy)' }}>{product.name}</div>
-          <div style={{ fontSize: 13, color: 'var(--ink2)', margin: '6px 0 14px' }}>{product.category}</div>
-          <p style={{ fontSize: 14, color: '#555', lineHeight: 1.8 }}>{product.description}</p>
+          <div className="text-2xl font-bold text-ink">{product.name}</div>
+          <div className="text-xs text-ink2 mt-1.5 mb-3">{product.category}</div>
+          <p className="text-sm text-ink2 leading-relaxed">{product.description}</p>
         </div>
 
-        {/* 리뷰 작성 + 목록 */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="h-sec" style={{ marginBottom: 14 }}>리뷰 작성</div>
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
-              <span style={{ fontSize: 14, color: 'var(--ink2)' }}>별점</span>
-              <span className="stars" style={{ fontSize: 28, cursor: 'pointer' }}>
+        {/* 우측: 리뷰 작성 + 리뷰 목록 */}
+        <div>
+          <h2 className="text-lg font-semibold text-ink mb-3">리뷰 작성</h2>
+          <div className="bg-white rounded-2xl shadow-card p-5 flex flex-col mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-sm text-ink2">별점</span>
+              <span className="text-3xl cursor-pointer leading-none select-none">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <span
                     key={n}
-                    className={(hoverRating || rating) >= n ? '' : 'off'}
                     onClick={() => setRating(n)}
-                    onMouseEnter={() => setHoverRating(n)}
-                    onMouseLeave={() => setHoverRating(0)}
+                    className={n <= rating ? 'text-yellow-400' : 'text-divider'}
                   >★</span>
                 ))}
               </span>
             </div>
             <textarea
-              className="field"
+              className="border border-divider rounded-lg px-3.5 py-2.5 text-sm text-ink resize-vertical leading-relaxed focus:outline-none focus:border-primary focus:ring-2 focus:ring-[var(--primary-glow)] min-h-[100px]"
               rows={5}
               placeholder="리뷰를 작성해 주세요..."
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            <button className="btn btn-primary btn-block btn-lg" style={{ marginTop: 14 }} onClick={handleSubmit} disabled={submitting}>
-              {submitting ? <><span className="spin" />등록 중...</> : '리뷰 등록'}
+            <button
+              className="mt-3 w-full py-3 bg-primary text-white font-semibold text-base rounded-lg hover:bg-primary-dark transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleSubmit}
+              disabled={submitting || !text.trim()}
+            >
+              {submitting ? '등록 중...' : '리뷰 등록'}
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '28px 0 10px' }}>
-            <div className="h-sec">리뷰 목록</div>
-            <div className="muted" style={{ fontSize: 13 }}>총 {reviews.length}개</div>
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-lg font-semibold text-ink">리뷰 목록</h2>
+            <span className="text-sm text-ink2">총 {product.reviews.length}개</span>
           </div>
-          <hr className="divider" />
+          <hr className="border-0 border-t border-divider mb-1" />
 
           {paged.map((r) => (
-            <div className="rv" key={r.id}>
-              <div className="top">
-                <span style={{ fontWeight: 800 }}>{r.user_name}</span>
+            <div key={r.id} className="py-4 border-b border-divider last:border-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="font-bold text-sm text-ink">{r.user_name}</span>
                 <Stars rating={r.rating} />
                 <EmotionBadge emotion={r.emotion_label} />
-                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink2)' }}>
-                  {new Date(r.created_at).toLocaleDateString('ko-KR')}
-                </span>
+                <span className="ml-auto text-xs text-ink2">{new Date(r.created_at).toLocaleDateString('ko-KR')}</span>
               </div>
-              <p style={{ fontSize: 14, color: '#555', marginTop: 8, lineHeight: 1.7 }}>{r.text}</p>
+              <p className="text-sm text-ink2 mt-2 leading-relaxed">{r.text}</p>
               {r.reply && (
-                <div className="reply">
-                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--navy)', marginBottom: 3 }}>관리자 답변</div>
-                  <div style={{ fontSize: 13, color: '#666', lineHeight: 1.7 }}>{r.reply.reply_text}</div>
+                <div className="mt-3 ml-3.5 pl-3.5 border-l-[3px] border-l-green-100">
+                  <div className="text-xs font-bold text-primary mb-0.5">관리자 답변</div>
+                  <div className="text-sm text-ink2 leading-relaxed">{r.reply.reply_text}</div>
                 </div>
               )}
             </div>
           ))}
 
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          <Pagination page={page} totalPages={totalPages} onChange={(p) => setPage(p)} />
         </div>
       </div>
-    </Layout>
+    </CustomerLayout>
   );
 }

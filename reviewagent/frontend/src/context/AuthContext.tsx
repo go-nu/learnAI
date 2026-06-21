@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 
 interface JwtPayload {
@@ -21,24 +21,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
+function loadUserFromStorage(): User | null {
+  try {
     const token = localStorage.getItem('access_token');
-    if (!token) return;
-    try {
-      const decoded = jwtDecode<JwtPayload>(token);
-      if (decoded.exp * 1000 > Date.now()) {
-        setUser({ role: decoded.role, name: decoded.name });
-      } else {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-      }
-    } catch {
-      // 유효하지 않은 토큰 무시
+    if (!token) return null;
+    const decoded = jwtDecode<JwtPayload>(token);
+    if (decoded.exp * 1000 > Date.now()) {
+      return { role: decoded.role, name: decoded.name };
     }
-  }, []);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  } catch {}
+  return null;
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(loadUserFromStorage);
 
   const login = (accessToken: string, refreshToken: string) => {
     localStorage.setItem('access_token', accessToken);

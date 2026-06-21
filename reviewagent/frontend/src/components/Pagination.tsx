@@ -8,6 +8,10 @@ interface Props {
 
 const GROUP = 5;
 
+const baseBtn = 'w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed';
+const inactiveBtn = `${baseBtn} text-ink2 hover:bg-hover-bg`;
+const activeBtn   = `${baseBtn} bg-primary text-white font-semibold`;
+
 export default function Pagination({ page, totalPages, onChange }: Props) {
   if (totalPages <= 1) return null;
 
@@ -20,14 +24,16 @@ export default function Pagination({ page, totalPages, onChange }: Props) {
   const nextGroup = Math.min(totalPages, end + 1);
 
   return (
-    <div className="pager">
-      <button className="pg" disabled={page === 1} onClick={() => onChange(1)}>«</button>
-      <button className="pg" disabled={start === 1} onClick={() => onChange(prevGroup)}>‹</button>
+    <div className="flex justify-center gap-1.5 mt-6">
+      <button className={inactiveBtn} disabled={page === 1} onClick={() => onChange(1)}>«</button>
+      <button className={inactiveBtn} disabled={start === 1} onClick={() => onChange(prevGroup)}>‹</button>
       {pages.map((p) => (
-        <button key={p} className={`pg${page === p ? ' on' : ''}`} onClick={() => onChange(p)}>{p}</button>
+        <button key={p} className={page === p ? activeBtn : inactiveBtn} onClick={() => onChange(p)}>
+          {p}
+        </button>
       ))}
-      <button className="pg" disabled={end === totalPages} onClick={() => onChange(nextGroup)}>›</button>
-      <button className="pg" disabled={page === totalPages} onClick={() => onChange(totalPages)}>»</button>
+      <button className={inactiveBtn} disabled={end === totalPages} onClick={() => onChange(nextGroup)}>›</button>
+      <button className={inactiveBtn} disabled={page === totalPages} onClick={() => onChange(totalPages)}>»</button>
     </div>
   );
 }

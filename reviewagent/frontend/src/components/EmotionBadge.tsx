@@ -1,13 +1,25 @@
 import React from 'react';
 
-const MAP: Record<string, { cls: string; label: string }> = {
-  good:   { cls: 'b-pos', label: '긍정' },
-  normal: { cls: 'b-neu', label: '중립' },
-  bad:    { cls: 'b-neg', label: '부정' },
+const MAP: Record<string, { dot: string; label: string }> = {
+  good:   { dot: 'bg-success', label: '긍정' },
+  normal: { dot: 'bg-ink2',    label: '중립' },
+  bad:    { dot: 'bg-danger',  label: '부정' },
 };
 
 export default function EmotionBadge({ emotion }: { emotion: string | null }) {
-  if (!emotion) return <span className="badge b-neu">미분류</span>;
-  const { cls, label } = MAP[emotion] ?? { cls: 'b-neu', label: emotion };
-  return <span className={`badge ${cls}`}>{label}</span>;
+  if (!emotion) {
+    return (
+      <span className="flex items-center gap-1.5 text-xs font-semibold">
+        <span className="w-2 h-2 rounded-full inline-block bg-ink2" />
+        미분류
+      </span>
+    );
+  }
+  const { dot, label } = MAP[emotion] ?? { dot: 'bg-ink2', label: emotion };
+  return (
+    <span className="flex items-center gap-1.5 text-xs font-semibold">
+      <span className={`w-2 h-2 rounded-full inline-block ${dot}`} />
+      {label}
+    </span>
+  );
 }

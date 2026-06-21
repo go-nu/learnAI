@@ -11,30 +11,35 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-<div class="stage">
-<div class="app">
-  <section class="screen active" data-screen-label="P2 상품목록">
-    <div class="appbar">
-      <span class="brand">리뷰 에이전트</span>
-      <span class="right"><span>김고객 님</span><a class="btn btn-sm btn-onslate" href="login.html">로그아웃</a></span>
+<header class="topbar">
+  <div class="wrapper topbar-inner">
+    <a class="brand" href="products.html">
+      <span class="brand-mark">리</span>
+      <span class="brand-name">리뷰 에이전트</span>
+    </a>
+    <div class="topbar-right">
+      <span class="user">김고객 님</span>
+      <span class="divider-v"></span>
+      <a class="btn btn-secondary btn-sm" href="login.html">로그아웃</a>
     </div>
-    <div class="wrap">
-      <div class="h-page" style="margin-bottom:22px;">상품 목록</div>
-      <div id="prodGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px;"></div>
-    </div>
-  </section>
-</div>
-</div>
+  </div>
+</header>
+<main data-screen-label="P2 상품목록">
+  <div class="wrapper">
+    <div class="page-head"><h1 class="page-title">상품 목록</h1></div>
+    <div id="prodGrid" class="prod-grid"></div>
+  </div>
+</main>
 <script src="ui-data.js"></script>
 <script src="ui-common.js"></script>
 <script>
 buildNav('products.html');
 document.getElementById('prodGrid').innerHTML = PRODUCTS.map(p=>`
-  <a class="card prodcard" style="padding:0; display:block; text-decoration:none; color:inherit;" href="detail.html">
-    <div class="imgph" style="height:180px;">${p.img?`<span class="cam">상품 이미지</span>`:`<span class="init">${p.name.charAt(0)}</span>`}</div>
-    <div style="padding:16px;">
-      <div style="font-size:16px; font-weight:800; color:var(--navy);">${p.name}</div>
-      <div style="font-size:13px; color:var(--ink2); margin:4px 0 14px;">${p.cat}</div>
+  <a class="card prodcard" href="detail.html">
+    <div class="imgph prod-media">${p.img?`<span class="cam">상품 이미지</span>`:`<span class="init">${p.name.charAt(0)}</span>`}</div>
+    <div class="prod-body">
+      <div class="prod-name">${p.name}</div>
+      <div class="prod-cat">${p.cat}</div>
       <span class="btn btn-primary btn-block">리뷰 작성하기</span>
     </div>
   </a>`).join('');
