@@ -1,10 +1,17 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+const adminNavItems = [
+  { to: '/products',        label: '상품 목록' },
+  { to: '/admin/reviews',   label: '리뷰 목록' },
+  { to: '/admin/dashboard', label: '대시보드' },
+];
 
 export default function CustomerLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = user?.role === 'admin';
 
   const handleLogout = () => {
     logout();
@@ -15,11 +22,30 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     <div className="min-h-screen bg-page-bg">
       {/* Topbar */}
       <header className="sticky top-0 z-50 bg-surface shadow-nav h-16 flex items-center px-8">
-        <div className="flex items-center gap-2.5 flex-1">
-          <span className="w-7 h-7 rounded-md bg-primary block shrink-0" />
-          <Link to="/products" className="font-bold text-ink text-[15px] tracking-tight no-underline">
-            리뷰 에이전트
-          </Link>
+        <div className="flex items-center gap-8 flex-1">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <span className="w-7 h-7 rounded-md bg-primary block" />
+            <Link to="/products" className="font-bold text-ink text-[15px] tracking-tight no-underline">
+              리뷰 에이전트
+            </Link>
+          </div>
+          {isAdmin && (
+            <nav className="flex items-center gap-6">
+              {adminNavItems.map(({ to, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    isActive
+                      ? 'text-primary font-semibold text-sm'
+                      : 'text-ink2 font-medium text-sm hover:text-ink transition-colors'
+                  }
+                >
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
         </div>
         <div className="flex items-center gap-4">
           {user && (

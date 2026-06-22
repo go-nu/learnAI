@@ -6,8 +6,8 @@ interface AdminLayoutProps { children: React.ReactNode }
 
 const navItems = [
   { to: '/products',        label: '상품 목록' },
-  { to: '/admin/dashboard', label: '대시보드' },
   { to: '/admin/reviews',   label: '리뷰 목록' },
+  { to: '/admin/dashboard', label: '대시보드' },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
