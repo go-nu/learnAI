@@ -43,6 +43,12 @@ rag_db/
 **/chroma_db*/
 **/rag_db/
 
+# ChromaDB 예외 (ccbb_rag_test)
+!ccbb_rag_test/chroma_bge_m3_v4/
+!ccbb_rag_test/chroma_bge_m3_v4/**
+!ccbb_rag_test/chroma_bge_m3_v4/**/*.bin
+!ccbb_rag_test/chroma_bge_m3_v4/chroma.sqlite3
+
 # YOLO training runs
 runs/
 
