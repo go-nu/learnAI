@@ -34,6 +34,168 @@
 
 ![LangGraph Pipeline](assets/pipeline.png)
 
+### State
+
+노드 사이에서 공유되는 단일 상태 객체 `ReplyState`로 전체 파이프라인이 동작합니다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `review_id` | `int` | 처리할 리뷰 PK |
+| `text` | `str` | 리뷰 원문 |
+| `rating` | `int` | 별점 1~5 |
+| `emotion_label` | `str` | `good` / `normal` / `bad` — 분류 전 미설정 |
+| `reply_text` | `str` | LLM이 생성한 답변 |
+| `tags` | `list[str]` | 리뷰에서 추출한 키워드 리스트 |
+| `retry_count` | `int` | 부정 답변 재생성 횟수 (최대 1회) |
+| `regenerate_count` | `int` | 최종 답변 재생성 횟수 (최대 2회) |
+| `bad_reply_quality_pass` | `bool` | 부정 답변 1차 품질 검사 결과 |
+| `final_quality_pass` | `bool` | 최종 답변 품질 검사 결과 |
+
+### 노드 상세
+
+#### `read_review` — 리뷰 로드
+
+DB에서 `review_id`로 리뷰를 조회하고, `status`를 `pending → processing`으로 변경하며 State를 초기화합니다.
+
+---
+
+#### `decide_emotion` — 감성 분류
+
+별점과 리뷰 원문을 Gemini에 전달하고, `good / normal / bad` 중 하나를 반환받습니다.  
+LLM이 세 값 외의 텍스트를 반환할 경우 `normal`로 안전하게 폴백합니다.
+
+```
+입력: 별점, 리뷰 원문
+출력: emotion_label (good / normal / bad)
+```
+
+라우터 `route_by_analysis`가 `emotion_label` 값에 따라 다음 노드를 분기합니다.
+
+---
+
+#### `good_reply` / `normal_reply` — 긍정·중립 답변 생성
+
+| 감성 | 답변 구조 | 분량 |
+|---|---|---|
+| 긍정 (good) | 감사 인사 + 재구매 유도 | 2~3문장 |
+| 중립 (normal) | 감사 인사 + 개선 약속 | 2~3문장 |
+
+LLM에게 `{ reply_text, tags }` JSON 형식으로만 응답하도록 지시하고, 마크다운 코드 블록이 포함된 경우 자동으로 제거합니다.  
+두 노드 모두 생성 즉시 `check_result`로 진행합니다.
+
+---
+
+#### `bad_reply` — 부정 답변 생성
+
+부정 리뷰는 공감·사과·해결책의 3단 구조를 필수로 요구합니다.  
+재생성 요청(`retry_count > 0`)인 경우 프롬프트에 "공감, 사과, 해결책을 더 구체적으로 작성하라"는 가이드를 추가합니다.
+
+```
+입력: 별점, 리뷰 원문, retry_count
+출력: reply_text, tags
+→ review_reply(품질 검사)로 전달
+```
+
+---
+
+#### `review_reply` — 부정 답변 1차 품질 검사
+
+부정 리뷰에만 적용되는 전용 품질 게이트입니다.  
+LLM이 아래 3가지 기준으로 `pass / fail`을 판정합니다.
+
+1. **공감** — 고객의 불만을 이해하고 있는가
+2. **사과** — 진심 어린 사과가 담겨 있는가
+3. **해결책** — 구체적인 해결 의지나 방안이 있는가
+
+라우터 `check_bad_reply`가 결과를 처리합니다.
+
+```
+fail + retry_count < 2  →  bad_reply (재생성)
+pass 또는 retry_count ≥ 2  →  check_result
+```
+
+> 재시도 상한(`retry_count ≥ 2`)을 두어 무한 루프를 방지합니다.
+
+---
+
+#### `check_result` — 최종 품질 검사
+
+모든 감성 경로(good / normal / bad)의 답변이 공통으로 거치는 최종 게이트입니다.  
+LLM이 아래 3가지 기준으로 `pass / fail`을 판정합니다.
+
+1. **자연스러운 문장**인가
+2. **리뷰 내용과 연관**된 답변인가
+3. **고객에게 도움**이 되는가
+
+라우터 `last_check`가 결과를 처리합니다.
+
+```
+pass 또는 regenerate_count ≥ 2  →  save_result
+fail  →  regenerate_reply (재생성)
+```
+
+---
+
+#### `regenerate_reply` — 최종 답변 재생성
+
+품질 미달 시 기존 `reply_text`를 함께 프롬프트에 넣어 "더 자연스럽고 구체적으로" 재작성을 요청합니다.  
+답변 구조(감사·공감·사과·해결책)는 유지하고 표현만 개선하도록 지시합니다.  
+재생성 후 다시 `check_result`로 돌아가며 최대 2회까지 시도합니다.
+
+---
+
+#### `save_result` — 결과 저장
+
+최종 통과한 답변을 DB에 저장하고 리뷰 상태를 `done`으로 업데이트합니다.
+
+```python
+review.emotion_label = state["emotion_label"]
+review.status = "done"
+ReviewReply.objects.create(review=review, reply_text=state["reply_text"])
+for tag in state["tags"]:
+    ReviewTag.objects.create(review=review, tag=tag)
+```
+
+---
+
+### 품질 검사 루프 요약
+
+부정 리뷰는 최악의 경우 아래 순서로 최대 **8회** LLM을 호출합니다.
+
+| 단계 | 노드 | 결과 |
+|---|---|---|
+| 1 | `bad_reply` — 답변 생성 | |
+| 2 | `review_reply` — 1차 품질 검사 | fail |
+| 3 | `bad_reply` — 재생성 (retry 1회) | |
+| 4 | `review_reply` — 1차 품질 검사 | pass 또는 상한 도달 |
+| 5 | `check_result` — 최종 품질 검사 | fail |
+| 6 | `regenerate_reply` — 재생성 (regenerate 1회) | |
+| 7 | `check_result` — 최종 품질 검사 | fail |
+| 8 | `regenerate_reply` — 재생성 (regenerate 2회, 상한 도달) | |
+| — | `save_result` — 저장 | 완료 |
+
+긍정·중립 리뷰는 `check_result`를 한 번만 거치므로 최소 **3회** LLM 호출로 완료됩니다.
+
+---
+
+### 비동기 처리 구조
+
+Django 뷰는 리뷰 저장 즉시 `201 Created`를 반환하고, `threading`으로 파이프라인을 백그라운드 실행합니다.  
+사용자는 답변 생성을 기다리지 않아도 됩니다.
+
+```
+POST /api/reviews/create/
+    │
+    ├── Django: Review 저장 (status=pending) → 즉시 201 응답
+    │
+    └── [background thread]
+          REPLY_DELAY_MINUTES 대기 (기본 10분)
+            └→ LangGraph 파이프라인 실행 (10~30초)
+                  └→ status=done, reply/tags DB 저장
+```
+
+`.env`의 `REPLY_DELAY_MINUTES`로 대기 시간을 조정할 수 있습니다.
+
 ---
 
 ## 화면 구성
@@ -50,17 +212,17 @@
 
 ![상품 상세](assets/screenshots/product-detail.png)
 
-### 관리자 대시보드
-
-![대시보드](assets/screenshots/admin-dashboard.png)
-
 ### 관리자 리뷰 목록
 
 ![리뷰 목록](assets/screenshots/admin-reviews.png)
 
-### 인사이트
+### 관리자 리뷰 상세
 
-![인사이트](assets/screenshots/admin-insights.png)
+![리뷰 상세](assets/screenshots/admin-review-detail.png)
+
+### 대시보드
+
+![인사이트](assets/screenshots/admin-dashboard.png)
 
 ---
 
