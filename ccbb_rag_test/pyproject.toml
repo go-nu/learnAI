@@ -1,0 +1,14 @@
+[project]
+name = "fault-ratio-baseline"
+version = "0.1.0"
+description = "교통사고 과실비율 RAG 챗봇 (baseline + streamlit)"
+requires-python = ">=3.11"
+dependencies = [
+    "chromadb>=0.6.0",
+    "google-generativeai>=0.8.0",
+    "pymupdf4llm>=0.0.17",
+    "python-dotenv>=1.0.0",
+    "langchain-text-splitters>=0.3.0",
+    "sentence-transformers>=3.0.0",
+    "streamlit>=1.58.0",
+]
