@@ -16,6 +16,23 @@ from rag_v4.rag_core_v4 import RagBgeM3
 
 load_dotenv()
 
+
+def _detect_device() -> str:
+    try:
+        import torch
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            print(f"  [GPU] {gpu_name} 감지 → CUDA 사용")
+            return "cuda"
+        print("  [CPU] GPU 없음 또는 CUDA 미지원 → CPU 사용")
+        return "cpu"
+    except ImportError:
+        print("  [CPU] torch 미설치 → CPU 사용")
+        return "cpu"
+
+
+DEVICE: str = _detect_device()
+
 # ── 전역 캐시 (대화 루프 중 재초기화 방지) ──────────────────────────────
 _rag: RagBgeM3 | None = None
 _retriever = None
@@ -25,7 +42,7 @@ _llm = None
 def _get_rag_components():
     global _rag, _retriever, _llm
     if _rag is None:
-        _rag = RagBgeM3()
+        _rag = RagBgeM3(embedding_device=DEVICE)
         _retriever = _rag.build_rag_components()
         _llm = _rag.get_llm()
     return _rag, _retriever, _llm
@@ -33,7 +50,7 @@ def _get_rag_components():
 
 # ── DB 구축 ──────────────────────────────────────────────────────────
 def build():
-    RagBgeM3().create_vectorstore()
+    RagBgeM3(embedding_device=DEVICE).create_vectorstore()
 
 
 # ── 검색 + 생성 ──────────────────────────────────────────────────────
