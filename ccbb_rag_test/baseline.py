@@ -10,9 +10,10 @@
 
 import os
 import sys
+import time
 
 import chromadb
-import google.generativeai as genai
+import google.genai as genai
 import pymupdf4llm
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -22,8 +23,8 @@ load_dotenv()
 
 # ── 설정 ─────────────────────────────────────────────────────────────
 BASELINE_DB_PATH = "./baseline_chroma_db"
-SOURCE_PDF = "./source/original_document.pdf"
-GEMINI_MODEL    = "gemini-2.0-flash-lite"
+SOURCE_PDF = "./source/standards.pdf"
+GEMINI_MODEL    = "gemini-2.5-flash"
 EMBEDDING_MODEL = "BAAI/bge-m3"
 CHUNK_SIZE      = 1200
 CHUNK_OVERLAP   = 100
@@ -103,12 +104,20 @@ def retrieve(query: str, top_k: int = TOP_K) -> list[str]:
 
 
 def generate(query: str, contexts: list[str]) -> str:
-    genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
-    model   = genai.GenerativeModel(GEMINI_MODEL)
+    client  = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
     context = "\n\n---\n\n".join(contexts)
     prompt  = f"{SYSTEM_PROMPT}\n\n[참고 문서]\n{context}\n\n[질문]\n{query}"
-    resp    = model.generate_content(prompt)
-    return resp.text
+    for attempt in range(3):
+        try:
+            resp = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+            return resp.text
+        except Exception as e:
+            if attempt == 2 or "503" not in str(e):
+                raise
+            wait = 10 * (attempt + 1)
+            print(f"[모델 과부하, {wait}초 후 재시도 ({attempt + 1}/3)...]")
+            time.sleep(wait)
+    raise RuntimeError("재시도 초과")
 
 
 def ask(query: str) -> str:

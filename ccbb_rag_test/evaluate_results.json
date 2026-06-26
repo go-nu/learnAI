@@ -1,0 +1,202 @@
+[
+  {
+    "id": "TC-M001",
+    "gt_ratio": "A 30% : B 70%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M002",
+    "gt_ratio": "A 30% : B 70%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M003",
+    "gt_ratio": "A 70% : B 30%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M004",
+    "gt_ratio": "A 50% : B 50%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M005",
+    "gt_ratio": "A 40% : B 60%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M006",
+    "gt_ratio": "A 30% : B 70%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M007",
+    "gt_ratio": "A 60% : B 40%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M008",
+    "gt_ratio": "A 30% : B 70%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M009",
+    "gt_ratio": "A 30% : B 70%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M010",
+    "gt_ratio": "A 20% : B 80%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M011",
+    "gt_ratio": "A 30% : B 70%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M012",
+    "gt_ratio": "A 60% : B 40%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M013",
+    "gt_ratio": "A 30% : B 70%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M014",
+    "gt_ratio": "A 20% : B 80%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M015",
+    "gt_ratio": "A 30% : B 70%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M016",
+    "gt_ratio": "A 20% : B 80%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M017",
+    "gt_ratio": "A 10% : B 90%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M018",
+    "gt_ratio": "A 10% : B 90%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M019",
+    "gt_ratio": "A 20% : B 80%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  },
+  {
+    "id": "TC-M020",
+    "gt_ratio": "A 10% : B 90%",
+    "baseline_ratio": "오류(ClientError)",
+    "baseline_score": 0,
+    "v4_ratio": "오류(ChatGoogleGenerativeAIError)",
+    "v4_score": 0,
+    "baseline_response": null,
+    "v4_response": null
+  }
+]
