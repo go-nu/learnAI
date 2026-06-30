@@ -1,0 +1,19 @@
+<!-- 상단 GNB -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 h-16 flex items-center px-6">
+    <div class="flex items-center justify-between w-full">
+        <!-- 로고 -->
+        <div class="flex items-center gap-2">
+            <span class="text-xl font-black text-primary">ToonCraft</span>
+            <span class="text-xs text-gray-400 font-medium">관리자</span>
+        </div>
+
+        <!-- 우측 메뉴 -->
+        <div class="flex items-center gap-4">
+            <span class="text-sm text-gray-600">{{ request.user.username }} 님</span>
+            <a href="/logout"
+               class="text-sm text-gray-500 hover:text-red-500 transition-colors border border-gray-200 rounded px-3 py-1.5">
+                로그아웃
+            </a>
+        </div>
+    </div>
+</header>

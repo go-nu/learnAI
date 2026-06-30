@@ -1,0 +1,95 @@
+<!-- 왼쪽 사이드바 메뉴 -->
+<aside class="fixed top-16 left-0 bottom-0 w-60 bg-gray-900 text-white flex flex-col z-40">
+    <nav class="flex-1 py-4 overflow-y-auto">
+        <ul class="space-y-1 px-3">
+
+            <!-- 대시보드 -->
+            <li>
+                <a href="/dashboard"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                          {% if request.resolver_match.url_name == 'dashboard' %}bg-primary text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 7h7v7H3zM3 17h7v3H3zM14 3h7v5h-7zM14 12h7v8h-7z"/>
+                    </svg>
+                    대시보드
+                </a>
+            </li>
+
+            <!-- 사용자 관리 -->
+            <li>
+                <a href="/admin/users/"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                          {% if request.resolver_match.url_name == 'users' %}bg-primary text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4a4 4 0 11-8 0 4 4 0 018 0zm6 4a2 2 0 100-4 2 2 0 000 4zM3 16a2 2 0 100-4 2 2 0 000 4z"/>
+                    </svg>
+                    사용자 관리
+                </a>
+            </li>
+
+            <!-- 웹툰 관리 -->
+            <li>
+                <a href="/admin/webtoons/"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                          {% if request.resolver_match.url_name == 'webtoons' %}bg-primary text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 16l4-4 4 4 4-8 4 8"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 5h18M3 19h18"/>
+                    </svg>
+                    웹툰 관리
+                </a>
+            </li>
+
+            <!-- 이미지 관리 -->
+            <li>
+                <a href="/admin/images/"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                          {% if request.resolver_match.url_name == 'images' %}bg-primary text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 16l4-4 4 4 4-5 4 5M3 3h18v18H3z"/>
+                        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                    </svg>
+                    이미지 관리
+                </a>
+            </li>
+
+            <!-- 통계 -->
+            <li>
+                <a href="/admin/stats/"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                          {% if request.resolver_match.url_name == 'stats' %}bg-primary text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    통계
+                </a>
+            </li>
+
+            <li class="pt-3 mt-3 border-t border-gray-700">
+                <!-- 설정 -->
+                <a href="/admin/settings/"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                          {% if request.resolver_match.url_name == 'settings' %}bg-primary text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    설정
+                </a>
+            </li>
+
+        </ul>
+    </nav>
+
+    <!-- 하단 버전 정보 -->
+    <div class="px-6 py-4 border-t border-gray-700">
+        <p class="text-xs text-gray-500">ToonCraft Admin v1.0</p>
+    </div>
+</aside>

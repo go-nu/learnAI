@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* ── 대시보드 블랙/화이트 테마 ── */
+  --dash-bg:           #222222;   /* 오른쪽 메인 배경 */
+  --dash-panel:        #161616;   /* 왼쪽 패널 (더 어둡게) */
+  --dash-surface:      #2A2A2A;   /* 입력창, 카드 배경 */
+  --dash-border:       #333333;   /* 테두리 */
+
+  --dash-text:         #FFFFFF;   /* 주 텍스트 (흰색) */
+  --dash-text-sub:     #AAAAAA;   /* 보조 텍스트 (회색) */
+  --dash-text-muted:   #555555;   /* 흐린 텍스트 */
+
+  --dash-btn-primary:      #FFFFFF;   /* 생성 버튼 배경 (흰색) */
+  --dash-btn-primary-text: #111111;   /* 생성 버튼 텍스트 (검정) */
+  --dash-btn-secondary:    #2A2A2A;   /* 초기화 버튼 배경 */
+
+  --dash-active:       #FFFFFF;   /* 활성 탭/선택 상태 */
+  --dash-warning-bg:   #2A2500;   /* 경고 배너 배경 */
+  --dash-warning-text: #E6A817;   /* 경고 배너 텍스트 */
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Noto Sans KR', Arial, Helvetica, sans-serif;
+}
+
+/* ── 스크롤바 숨김 유틸리티 클래스 ── */
+.scrollbar-hidden {
+  overflow-y: auto;
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE */
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;                /* Chrome, Safari, Edge */
+}
+
+/* ── 스크롤바 숨김 (전체 적용) ── */
+
+/* Chrome, Safari, Edge */
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  background: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: #111111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2A2A2A;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: none;
+  scrollbar-color: #2A2A2A #111111;
+}
+
+/* IE */
+* {
+  -ms-overflow-style: none;
+}
